@@ -13,7 +13,6 @@ MODIFIER_NONE := 1
 MODIFIER_ALT := 2
 MODIFIER_SHIFT := 3
 MODIFIER_CTRL := 4
-MODIFIER_OTHER := 5
 
 ; Used to allow actions after stopping the script
 global stopScript := false

@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 extern crate winapi;
 
 use std::ptr::null_mut;
@@ -10,6 +9,8 @@ use std::sync::Mutex;
 use lazy_static::lazy_static;
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
+
+use crate::modifier::Modifier;
 
 const MEMORY_NAME: &str = "Global\\lavender_keys";
 const MEMORY_SIZE: usize = 8;
@@ -65,17 +66,16 @@ pub fn initialize_or_reset_shared_memory() -> Result<HANDLE, String> {
     Ok(handle)
 }
 
-pub fn populate_shared_memory(handle: HANDLE, data: &str) -> Result<(), String> {
-    if data.len() != MEMORY_SIZE {
-        return Err(format!("Data must be {} characters long.", MEMORY_SIZE));
-    }
-
+pub fn populate_shared_memory(handle: HANDLE, data: [(Modifier, char); 4]) -> Result<(), String> {
     let _lock = MMAP_MUTEX.lock().unwrap();
 
     let ptr = map_view_of_file(handle)?;
 
     unsafe {
-        std::ptr::copy_nonoverlapping(data.as_ptr(), ptr, MEMORY_SIZE);
+        for (i, &(modifier, ch)) in data.iter().enumerate() {
+            ptr.add(i * 2).write(modifier.to_char() as u8);
+            ptr.add(i * 2 + 1).write(ch as u8);
+        }
     }
 
     unsafe { UnmapViewOfFile(ptr as *const _) };

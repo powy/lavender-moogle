@@ -7,10 +7,11 @@ use env_logger;
 mod capture;
 mod reader;
 mod memory;
+mod modifier;
+use modifier::Modifier;
 
 fn main() {
     // Force set the RUST_LOG environment variable
-    // std::env::set_var("RUST_LOG", "debug");  // Change "debug" to the desired log level
     std::env::set_var("RUST_LOG", "info");  // Change "debug" to the desired log level
 
     // Initialize the logger
@@ -53,7 +54,13 @@ fn main() {
                 // debug!("{}", text_ocr);
 
                 let memory_start = Instant::now();
-                memory::populate_shared_memory(memory_handle, "abcdefgh").expect("Failed to write to memory");
+                let example_orders: [(Modifier, char); 4] = [
+                    (Modifier::None, 'b'),
+                    (Modifier::Alt, 'b'),
+                    (Modifier::Shift, 'b'),
+                    (Modifier::Ctrl, 'b'),
+                ];
+                memory::populate_shared_memory(memory_handle, example_orders).expect("Failed to write to memory");
                 let memory_elapsed = memory_start.elapsed();
 
                 // Calculate the elapsed time for the whole loop
