@@ -1,60 +1,62 @@
-use image::{ImageBuffer, Rgba};
+use image::{ImageBuffer, Rgb, RgbImage};
 use scrap::{Capturer, Display};
 use std::time::{Duration, Instant};
-use std::{path::Path, thread::sleep};
+use std::thread::sleep;
+use std::error::Error;
 
-pub fn capture_and_save() {
-    let display = Display::primary().expect("Couldn't find primary display.");
-    let mut capturer = Capturer::new(display).expect("Couldn't begin capture.");
+pub fn init_capturer() -> Result<Capturer, Box<dyn Error>> {
+    let display = Display::primary()?;
+    let capturer = Capturer::new(display)?;
+    Ok(capturer)
+}
+
+pub fn capture(capturer: &mut Capturer, kept_width: Option<u32>, kept_height: Option<u32>) -> Result<RgbImage, Box<dyn std::error::Error>> {
+    let kept_width = kept_width.unwrap_or(49);
+    let kept_height = kept_height.unwrap_or(62);
 
     let screen_width = capturer.width();
-    // let screen_height = capturer.height();
-    
-    let kept_width = 100;
-    let kept_height = 100;
+    let mut error_loop_start: Option<Instant> = None;
 
     loop {
-        let start_capture = Instant::now();
+        // Frame capture timing
+        let frame_start = Instant::now();
         match capturer.frame() {
             Ok(frame) => {
-                let duration_capture = start_capture.elapsed();
-                println!("Time taken to capture: {:?}", duration_capture);
+                let frame_elapsed = frame_start.elapsed();
+                println!("Frame capture time: {} ms", frame_elapsed.as_millis());
 
-                let start_process = Instant::now();
+                // Post-processing timing
+                let post_start = Instant::now();
+                let mut cropped_image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(kept_width, kept_height);
 
-                // Create a buffer for the top-left 100x100 pixels
-                let mut cropped_image = ImageBuffer::<Rgba<u8>, Vec<u8>>::new(kept_width as u32, kept_height as u32);
-
-                // Copy and process only the top-left 100x100 pixels
                 for y in 0..kept_height {
                     for x in 0..kept_width {
-                        let idx = (y * screen_width + x) * 4;
+                        let idx = (y as usize * screen_width + x as usize) * 4;
                         let r = frame[idx];
                         let g = frame[idx + 1];
                         let b = frame[idx + 2];
-                        let a = frame[idx + 3];
 
-                        cropped_image.put_pixel(x as u32, y as u32, Rgba([r, g, b, a]));
+                        cropped_image.put_pixel(x, y, Rgb([r, g, b]));
                     }
                 }
 
-                let duration_process = start_process.elapsed();
-                println!("Time taken to process: {:?}", duration_process);
+                let post_elapsed = post_start.elapsed();
+                println!("Post-processing time: {} ms", post_elapsed.as_millis());
 
-                let start_save = Instant::now();
-                // Save processed image to a file
-                let output_path = Path::new("output/screenshot.png");
-                cropped_image.save(output_path).expect("Failed to save image");
-                let duration_save = start_save.elapsed();
-                println!("Time taken to save: {:?}", duration_save);
+                if let Some(start) = error_loop_start {
+                    let error_loop_elapsed = start.elapsed();
+                    println!("Time spent in error loop: {} ms", error_loop_elapsed.as_millis());
+                }
 
-                println!("Screenshot saved to {:?}", output_path);
-
-                break; // For demonstration, we break after one capture.
+                return Ok(cropped_image);
             },
             Err(_) => {
+                if error_loop_start.is_none() {
+                    error_loop_start = Some(Instant::now());
+                }
                 // Frame not ready, retry after some delay
-                sleep(Duration::new(0, 1_000_000_000 / 60)); // 60 FPS
+                // sleep(Duration::new(0, 1_000_000_000 / 240)); // 240 FPS
+                sleep(Duration::new(0, 1_000_000)); // 1 ms
             }
         }
     }
