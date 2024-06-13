@@ -1,9 +1,70 @@
-; Requires AutoHotKey 2
-; based on https://www.autohotkey.com/boards/viewtopic.php?f=96&t=124720
+; Define constants to mimic enum functionality
+MODIFIER_OTHER := 0
+MODIFIER_NONE := 1
+MODIFIER_ALT := 2
+MODIFIER_SHIFT := 3
+MODIFIER_CTRL := 4
+MODIFIER_OTHER := 5
 
+; Example usage in the script
+
+global stopScript := false
+
+; Mapping setup
 mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 8)
-MsgBox "Read from file mapping: " mapping.Read()
-mapping := unset
+
+; Hotkey to stop the script
+Insert:: {
+    stopScript := true
+    MsgBox "Script stopped."
+    ExitApp
+}
+
+; Hotkeys to read from shared memory
+x:: {
+    if (!stopScript) {
+        readAndDisplay(MODIFIER_NONE)
+    }
+}
+
+!x:: {
+    if (!stopScript) {
+        readAndDisplay(MODIFIER_ALT)
+    }
+}
+
++x:: {
+    if (!stopScript) {
+        readAndDisplay(MODIFIER_SHIFT)
+    }
+}
+
+^x:: {
+    if (!stopScript) {
+        readAndDisplay(MODIFIER_CTRL)
+    }
+}
+
+readAndDisplay(modifier) {
+    data := mapping.Read()
+    var1 := SubStr(data, 1, 1)
+    var2 := SubStr(data, 2, 1)
+    var3 := SubStr(data, 3, 1)
+    var4 := SubStr(data, 4, 1)
+    var5 := SubStr(data, 5, 1)
+    var6 := SubStr(data, 6, 1)
+    var7 := SubStr(data, 7, 1)
+    var8 := SubStr(data, 8, 1)
+    MsgBox "Read from file mapping (modifier " modifier "): " data "`n" 
+            . "Var1: " var1 "`n"
+            . "Var2: " var2 "`n"
+            . "Var3: " var3 "`n"
+            . "Var4: " var4 "`n"
+            . "Var5: " var5 "`n"
+            . "Var6: " var6 "`n"
+            . "Var7: " var7 "`n"
+            . "Var8: " var8
+}
 
 Class FileMapping {
     ; http://msdn.microsoft.com/en-us/library/windows/desktop/aa366556(v=vs.85).aspx
