@@ -15,4 +15,5 @@ memmap2 = "0.5"
 lazy_static = "1.4"
 winapi = { version = "0.3", features = ["fileapi", "handleapi", "memoryapi", "winnt"] }
 chrono = "0.4"
-
+log = "0.4"
+env_logger = "0.9"

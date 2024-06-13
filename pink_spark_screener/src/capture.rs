@@ -3,6 +3,7 @@ use scrap::{Capturer, Display};
 use std::time::{Duration, Instant};
 use std::thread::sleep;
 use std::error::Error;
+use log::debug;
 
 pub fn init_capturer() -> Result<Capturer, Box<dyn Error>> {
     let display = Display::primary()?;
@@ -25,7 +26,7 @@ pub fn capture(capturer: &mut Capturer, kept_width: Option<u32>, kept_height: Op
         match capturer.frame() {
             Ok(frame) => {
                 let frame_elapsed = frame_start.elapsed();
-                println!("Frame capture time: {} ms", frame_elapsed.as_millis());
+                debug!("Frame capture time: {} ms", frame_elapsed.as_millis());
 
                 // Post-processing timing
                 let post_start = Instant::now();
@@ -43,11 +44,11 @@ pub fn capture(capturer: &mut Capturer, kept_width: Option<u32>, kept_height: Op
                 }
 
                 let post_elapsed = post_start.elapsed();
-                println!("Post-processing time: {} ms", post_elapsed.as_millis());
+                debug!("Post-processing time: {} ms", post_elapsed.as_millis());
 
                 if let Some(start) = error_loop_start {
                     let error_loop_elapsed = start.elapsed();
-                    println!("Time spent in error loop: {} ms", error_loop_elapsed.as_millis());
+                    debug!("Time spent in error loop: {} ms", error_loop_elapsed.as_millis());
                 }
 
                 return Ok(cropped_image);
@@ -64,7 +65,7 @@ pub fn capture(capturer: &mut Capturer, kept_width: Option<u32>, kept_height: Op
                     )));
                 }
                 // Frame not ready, retry after some delay
-                println!("Frame not ready, retrying...");
+                debug!("Frame not ready, retrying...");
                 sleep(Duration::from_millis(1)); // 1 ms
             }
         }
