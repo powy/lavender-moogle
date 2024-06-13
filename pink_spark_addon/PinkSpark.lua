@@ -18,16 +18,16 @@ local backdropInfo =
  	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
  	tile = false,
  	tileEdge = false,
- 	tileSize = 8,
- 	edgeSize = 8,
- 	insets = { left = 1, right = 1, top = 1, bottom = 1 },
+ 	tileSize = 1, -- ws 8
+ 	edgeSize = 1, -- was 8
+ 	insets = { left = 0, right = 0, top = 0, bottom = 0 },
 }
 
 local frame = CreateFrame("Frame", nil, nil, "BackdropTemplate")
 frame:SetBackdrop(backdropInfo)
 
 -- local frame = CreateFrame("Frame", "PinkSparkFrame", UIParent)
-frame:SetSize(80, 50)
+frame:SetSize(26, 33)
 frame:SetPoint("TOPLEFT", 0, 0)
 -- frame:SetBackdrop({
 --     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -45,15 +45,17 @@ frame:SetScript("OnDragStart", frame.StartMoving)
 frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
 local lines = {}
-for i = 1, 6 do
+for i = 1, 5 do
     lines[i] = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
     lines[i]:SetJustifyH("LEFT")
     lines[i]:SetTextScale(0.5)
     lines[i]:SetTextColor(1, 1, 1, 1)
     if i == 1 then
-        lines[i]:SetPoint("TOPLEFT", frame, "TOPLEFT", 5, -5)
+        --lines[i]:SetPoint("TOPLEFT", frame, "TOPLEFT", 5, -5)
+        lines[i]:SetPoint("TOPLEFT", frame, "TOPLEFT", 3, -3)
     else
-        lines[i]:SetPoint("TOPLEFT", lines[i-1], "BOTTOMLEFT", 0, -2)
+        -- lines[i]:SetPoint("TOPLEFT", lines[i-1], "BOTTOMLEFT", 0, -2)
+        lines[i]:SetPoint("TOPLEFT", lines[i-1], "BOTTOMLEFT", 0, -1)
     end
 end
 
@@ -79,7 +81,7 @@ local function updateInfo()
     local chi = UnitPower("player", Enum.PowerType.Chi)
     local maxChi = UnitPowerMax("player", Enum.PowerType.Chi)
 
-    local max_size = 100
+    local max_size = 5
 
     -- Helper function to truncate strings
     local function truncateString(str, maxSize)
@@ -91,12 +93,18 @@ local function updateInfo()
     end
     
     -- Update text lines with truncated strings
-    lines[1]:SetText(truncateString("Spec: " .. specName, max_size))
-    lines[2]:SetText(truncateString("Last Spell: " .. lastSpellName, max_size))
-    lines[3]:SetText(truncateString("Primary Resource: " .. string.format("%.1f%%", primaryResourcePercent), max_size))
-    lines[4]:SetText(truncateString("Current GCD: " .. string.format("%.2f", gcd), max_size))
-    lines[5]:SetText(truncateString("Last Spell Time: " .. lastSpellTime, max_size))
-    lines[6]:SetText(truncateString("Chi: " .. chi .. " / " .. maxChi, max_size))
+    -- lines[1]:SetText(truncateString("rm: " .. specName, max_size))
+    -- lines[2]:SetText(truncateString("Last Spell: " .. lastSpellName, max_size))
+    -- lines[3]:SetText(truncateString("Primary Resource: " .. string.format("%.1f%%", primaryResourcePercent), max_size))
+    -- lines[4]:SetText(truncateString("Current GCD: " .. string.format("%.2f", gcd), max_size))
+    -- lines[5]:SetText(truncateString("Last Spell Time: " .. lastSpellTime, max_size))
+    -- lines[6]:SetText(truncateString("Chi: " .. chi .. " / " .. maxChi, max_size))
+	
+    lines[1]:SetText(truncateString("brm", max_size))
+    lines[2]:SetText(truncateString("sck", max_size))
+    lines[3]:SetText(truncateString("bok", max_size))
+    lines[4]:SetText(truncateString("tp", max_size))
+    lines[5]:SetText(truncateString("wwwww", max_size))
     
 end
 
