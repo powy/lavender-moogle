@@ -8,11 +8,11 @@
 ; On key pressing the asked keypress is simulated.
 
 ; Define constants describing the modifier "enum" as read in the shared memory
-MODIFIER_OTHER := 0
-MODIFIER_NONE := 1
-MODIFIER_ALT := 2
-MODIFIER_SHIFT := 3
-MODIFIER_CTRL := 4
+MODIFIER_OTHER := "o"
+MODIFIER_NONE := "n"
+MODIFIER_ALT := "a"
+MODIFIER_SHIFT := "s"
+MODIFIER_CTRL := "c"
 
 ; Used to allow actions after stopping the script
 global stopScript := false

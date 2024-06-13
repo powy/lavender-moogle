@@ -1,3 +1,9 @@
+
+// The orders are written as follow:
+// 4 pairs of 2 bytes
+// Each pair is a modifier and a key
+// Modifier are 
+
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 use chrono::Local;
@@ -8,7 +14,6 @@ mod capture;
 mod reader;
 mod memory;
 mod modifier;
-use modifier::Modifier;
 
 fn main() {
     // Force set the RUST_LOG environment variable
@@ -54,11 +59,11 @@ fn main() {
                 // debug!("{}", text_ocr);
 
                 let memory_start = Instant::now();
-                let example_orders: [(Modifier, char); 4] = [
-                    (Modifier::None, 'b'),
-                    (Modifier::Alt, 'b'),
-                    (Modifier::Shift, 'b'),
-                    (Modifier::Ctrl, 'b'),
+                let example_orders: [(char, char); 4] = [
+                    (modifier::NONE, 'b'),
+                    (modifier::ALT, 'b'),
+                    (modifier::SHIFT, 'b'),
+                    (modifier::CTRL, 'b'),
                 ];
                 memory::populate_shared_memory(memory_handle, example_orders).expect("Failed to write to memory");
                 let memory_elapsed = memory_start.elapsed();
