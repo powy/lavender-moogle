@@ -1,5 +1,6 @@
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use chrono::Local;
 
 mod capture;
 mod reader;
@@ -22,44 +23,48 @@ fn main() {
     let interval = Duration::from_millis(3000);
 
     loop {
+        // Print the current time at the start of the loop iteration
+        let current_time = Local::now();
+        println!("Current time: {}", current_time.format("%Y-%m-%d %H:%M:%S"));
+
+        println!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
         let start_time = Instant::now();
 
         // Capture the screen and process it
         let capture_start = Instant::now();
-        let cropped_image = capture::capture(&mut capturer, Some(49), Some(62)).expect("Failed to capture image");
-        let capture_elapsed = capture_start.elapsed();
-        println!("cropped_image done");
+        match capture::capture(&mut capturer, Some(49), Some(62)) {
+            Ok(cropped_image) => {
+                let capture_elapsed = capture_start.elapsed();
+                println!("cropped_image done");
 
-        // Read the processed image using OCR
-        let ocr_start = Instant::now();
-        let _text_ocr = reader::read_text_from_picture(&engine, &cropped_image).expect("Failed to read text from picture");
-        let ocr_elapsed = ocr_start.elapsed();
-        // println!("{}", text_ocr);
+                // Read the processed image using OCR
+                let ocr_start = Instant::now();
+                let _text_ocr = reader::read_text_from_picture(&engine, &cropped_image).expect("Failed to read text from picture");
+                let ocr_elapsed = ocr_start.elapsed();
+                // println!("{}", text_ocr);
 
-        
-        let memory_start = Instant::now();
-        memory::populate_shared_memory(memory_handle, "abcdefgh").expect("Failed to write to memory");
-        let memory_elapsed = memory_start.elapsed();
+                let memory_start = Instant::now();
+                memory::populate_shared_memory(memory_handle, "abcdefgh").expect("Failed to write to memory");
+                let memory_elapsed = memory_start.elapsed();
 
-        // Calculate the elapsed time for the whole loop
-        let total_elapsed = start_time.elapsed();
+                // Calculate the elapsed time for the whole loop
+                let total_elapsed = start_time.elapsed();
 
-        // Display elapsed times in milliseconds
-        println!("Capture time: {} ms", capture_elapsed.as_millis());
-        println!("OCR time: {} ms", ocr_elapsed.as_millis());
-        println!("Memory time: {} ms", memory_elapsed.as_millis());
-        println!("Total elapsed time: {} ms", total_elapsed.as_millis());
+                // Display elapsed times in milliseconds
+                println!("Capture time: {} ms", capture_elapsed.as_millis());
+                println!("OCR time: {} ms", ocr_elapsed.as_millis());
+                println!("Memory time: {} ms", memory_elapsed.as_millis());
+                println!("Total elapsed time: {} ms", total_elapsed.as_millis());
 
-        // Ensure the process starts exactly every 3000 milliseconds
-        if total_elapsed < interval {
-            sleep(interval - total_elapsed);
+                // Ensure the process starts exactly every 3000 milliseconds
+                if total_elapsed < interval {
+                    sleep(interval - total_elapsed);
+                }
+            },
+            Err(e) => {
+                println!("Failed to capture image: {}", e);
+            }
         }
-        
-            
-        // Read and print the shared memory content
-        let read_data = memory::read_shared_memory(memory_handle).unwrap();
-        println!("Data read from shared memory: {}", read_data);
-
 
         println!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
     }

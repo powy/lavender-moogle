@@ -14,3 +14,5 @@ rten-tensor = "0.10.0"
 memmap2 = "0.5"
 lazy_static = "1.4"
 winapi = { version = "0.3", features = ["fileapi", "handleapi", "memoryapi", "winnt"] }
+chrono = "0.4"
+

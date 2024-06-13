@@ -16,6 +16,8 @@ pub fn capture(capturer: &mut Capturer, kept_width: Option<u32>, kept_height: Op
 
     let screen_width = capturer.width();
     let mut error_loop_start: Option<Instant> = None;
+    let capture_timeout = Duration::from_secs(5); // Timeout after 5 seconds
+    let capture_start = Instant::now();
 
     loop {
         // Frame capture timing
@@ -54,9 +56,16 @@ pub fn capture(capturer: &mut Capturer, kept_width: Option<u32>, kept_height: Op
                 if error_loop_start.is_none() {
                     error_loop_start = Some(Instant::now());
                 }
+                // Check for timeout
+                if capture_start.elapsed() >= capture_timeout {
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::TimedOut,
+                        "Frame capture timed out",
+                    )));
+                }
                 // Frame not ready, retry after some delay
-                // sleep(Duration::new(0, 1_000_000_000 / 240)); // 240 FPS
-                sleep(Duration::new(0, 1_000_000)); // 1 ms
+                println!("Frame not ready, retrying...");
+                sleep(Duration::from_millis(1)); // 1 ms
             }
         }
     }
