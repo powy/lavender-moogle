@@ -1,0 +1,6 @@
+## Interface: 100005
+## Title: PinkSpark
+## Notes: Addon to calculate rotation, by Aysti Mindspark
+## Author: Mindspark
+## Version: 0.1
+PinkSpark.lua

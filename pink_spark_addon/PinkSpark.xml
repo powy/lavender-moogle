@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+   <Script file="PinkSpark.lua" />
+   <Frame name="TestFrame" parent="UIParent" inherits="BackdropTemplate">
+      <KeyValues>
+         <KeyValue key="backdropInfo" value="BACKDROP_ARENA_32_32" type="global" />
+         <KeyValue key="backdropBorderColor" value="LEGENDARY_ORANGE_COLOR" type="global" />
+         <KeyValue key="backdropBorderColorAlpha" value="0.25" type="number" />
+      </KeyValues>
+      <Size x="300" y="300" />
+      <Anchors>
+         <Anchor point="TOPLEFT" />
+      </Anchors>
+      <Layers>
+         <Layer level="ARTWORK">
+            <FontString name="PinkSparkLine1" inherits="GameFontNormalSmall">
+               <Size>
+                  <AbsDimension x="180" y="10" />
+               </Size>
+               <Anchors>
+                  <Anchor point="TOPLEFT" relativePoint="TOPLEFT">
+                     <Offset>
+                        <AbsDimension x="10" y="-10" />
+                     </Offset>
+                  </Anchor>
+               </Anchors>
+               <Text>Line 1: Placeholder</Text>
+               <Font height="8">
+                  <Color r="1" g="1" b="1" a="1" />
+               </Font>
+            </FontString>
+            <FontString name="PinkSparkLine2" inherits="GameFontNormalSmall">
+               <Size>
+                  <AbsDimension x="180" y="10" />
+               </Size>
+               <Anchors>
+                  <Anchor point="TOPLEFT" relativeTo="PinkSparkLine1" relativePoint="BOTTOMLEFT">
+                     <Offset>
+                        <AbsDimension x="0" y="-2" />
+                     </Offset>
+                  </Anchor>
+               </Anchors>
+               <Text>Line 2: Placeholder</Text>
+               <Font height="8">
+                  <Color r="1" g="1" b="1" a="1" />
+               </Font>
+            </FontString>
+            <FontString name="PinkSparkLine3" inherits="GameFontNormalSmall">
+               <Size>
+                  <AbsDimension x="180" y="10" />
+               </Size>
+               <Anchors>
+                  <Anchor point="TOPLEFT" relativeTo="PinkSparkLine2" relativePoint="BOTTOMLEFT">
+                     <Offset>
+                        <AbsDimension x="0" y="-2" />
+                     </Offset>
+                  </Anchor>
+               </Anchors>
+               <Text>Line 3: Placeholder</Text>
+               <Font height="8">
+                  <Color r="1" g="1" b="1" a="1" />
+               </Font>
+            </FontString>
+            <FontString name="PinkSparkLine4" inherits="GameFontNormalSmall">
+               <Size>
+                  <AbsDimension x="180" y="10" />
+               </Size>
+               <Anchors>
+                  <Anchor point="TOPLEFT" relativeTo="PinkSparkLine3" relativePoint="BOTTOMLEFT">
+                     <Offset>
+                        <AbsDimension x="0" y="-2" />
+                     </Offset>
+                  </Anchor>
+               </Anchors>
+               <Text>Line 4: Placeholder</Text>
+               <Font height="8">
+                  <Color r="1" g="1" b="1" a="1" />
+               </Font>
+            </FontString>
+            <FontString name="PinkSparkLine5" inherits="GameFontNormalSmall">
+               <Size>
+                  <AbsDimension x="180" y="10" />
+               </Size>
+               <Anchors>
+                  <Anchor point="TOPLEFT" relativeTo="PinkSparkLine4" relativePoint="BOTTOMLEFT">
+                     <Offset>
+                        <AbsDimension x="0" y="-2" />
+                     </Offset>
+                  </Anchor>
+               </Anchors>
+               <Text>Line 5: Placeholder</Text>
+               <Font height="8">
+                  <Color r="1" g="1" b="1" a="1" />
+               </Font>
+            </FontString>
+            <FontString name="PinkSparkLine6" inherits="GameFontNormalSmall">
+               <Size>
+                  <AbsDimension x="180" y="10" />
+               </Size>
+               <Anchors>
+                  <Anchor point="TOPLEFT" relativeTo="PinkSparkLine5" relativePoint="BOTTOMLEFT">
+                     <Offset>
+                        <AbsDimension x="0" y="-2" />
+                     </Offset>
+                  </Anchor>
+               </Anchors>
+               <Text>Line 6: Placeholder</Text>
+               <Font height="8">
+                  <Color r="1" g="1" b="1" a="1" />
+               </Font>
+            </FontString>
+         </Layer>
+      </Layers>
+   </Frame>
+</Ui>
