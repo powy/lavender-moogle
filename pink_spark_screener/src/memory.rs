@@ -80,5 +80,21 @@ pub fn populate_shared_memory(handle: HANDLE, data: &str) -> Result<(), String> 
 
     unsafe { UnmapViewOfFile(ptr as *const _) };
 
+    println!("Data written to shared memory: {}", data); // Added debug output
+
     Ok(())
+}
+
+pub fn read_shared_memory(handle: HANDLE) -> Result<String, String> {
+    let ptr = map_view_of_file(handle)?;
+
+    let data = unsafe {
+        std::slice::from_raw_parts(ptr, MEMORY_SIZE)
+    };
+
+    let result = String::from_utf8_lossy(data).to_string();
+
+    unsafe { UnmapViewOfFile(ptr as *const _) };
+
+    Ok(result)
 }

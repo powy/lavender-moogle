@@ -55,6 +55,12 @@ fn main() {
             sleep(interval - total_elapsed);
         }
         
+            
+        // Read and print the shared memory content
+        let read_data = memory::read_shared_memory(memory_handle).unwrap();
+        println!("Data read from shared memory: {}", read_data);
+
+
         println!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
     }
 }
