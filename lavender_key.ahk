@@ -1,4 +1,13 @@
-; Define constants to mimic enum functionality
+; Requires AutoHotKey 2
+
+; Read values in the shared memory to execute a command modifier + keystroke
+; There is 4 possible actions, depending on the modifiers used at the time of pressing the key
+; The goal is to automate some action decision - the next action to do is written in the shared memory.
+; On key pressing the asked keypress is simulated.
+
+; On key pressing the asked keypress is simulated.
+
+; Define constants describing the modifier "enum" as read in the shared memory
 MODIFIER_OTHER := 0
 MODIFIER_NONE := 1
 MODIFIER_ALT := 2
@@ -6,66 +15,73 @@ MODIFIER_SHIFT := 3
 MODIFIER_CTRL := 4
 MODIFIER_OTHER := 5
 
-; Example usage in the script
-
+; Used to allow actions after stopping the script
 global stopScript := false
 
-; Mapping setup
+; Shared Memory Mapping setup
+; This script is the reader, the Shared Memory shall be created, Written and kept alive outside
 mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 8)
 
 ; Hotkey to stop the script
 Insert:: {
     stopScript := true
-    MsgBox "Script stopped."
+    MsgBox "Your computer tastes Lavender. The color."
     ExitApp
 }
 
-; Hotkeys to read from shared memory
+; Hotkeys to read from shared memory and execute the order
 x:: {
-    if (!stopScript) {
-        readAndDisplay(MODIFIER_NONE)
-    }
+    ; Use indexes 1 and 2 of the shared memory
+    execute(1, 2)
 }
 
 !x:: {
-    if (!stopScript) {
-        readAndDisplay(MODIFIER_ALT)
-    }
+    execute(3, 4)
 }
 
 +x:: {
-    if (!stopScript) {
-        readAndDisplay(MODIFIER_SHIFT)
-    }
+    execute(5, 6)
 }
 
 ^x:: {
+    execute(7, 8)
+}
+
+; Execute the order :
+; The modifier at index modifier_index in the shared memory
+; With the key at key_index in the shared memory
+; Indexes start at 1
+execute(modifier_index, key_index) {
     if (!stopScript) {
-        readAndDisplay(MODIFIER_CTRL)
+        data := mapping.Read()
+        target_modifier := GetModifierString(SubStr(data, modifier_index, 1))
+        target_key := SubStr(data, key_index, 1)
+        Send(target_modifier target_key)
+        ; MsgBox "Execute:" target_modifier target_key
     }
 }
 
-readAndDisplay(modifier) {
-    data := mapping.Read()
-    var1 := SubStr(data, 1, 1)
-    var2 := SubStr(data, 2, 1)
-    var3 := SubStr(data, 3, 1)
-    var4 := SubStr(data, 4, 1)
-    var5 := SubStr(data, 5, 1)
-    var6 := SubStr(data, 6, 1)
-    var7 := SubStr(data, 7, 1)
-    var8 := SubStr(data, 8, 1)
-    MsgBox "Read from file mapping (modifier " modifier "): " data "`n" 
-            . "Var1: " var1 "`n"
-            . "Var2: " var2 "`n"
-            . "Var3: " var3 "`n"
-            . "Var4: " var4 "`n"
-            . "Var5: " var5 "`n"
-            . "Var6: " var6 "`n"
-            . "Var7: " var7 "`n"
-            . "Var8: " var8
+; Function to get the string identifier understood by AHK based on the enum value
+GetModifierString(modifier) {
+    switch modifier {
+        case MODIFIER_OTHER:
+            return ""
+        case MODIFIER_NONE:
+            return ""
+        case MODIFIER_ALT:
+            return "!"
+        case MODIFIER_SHIFT:
+            return "+"
+        case MODIFIER_CTRL:
+            return "^"
+        default:
+            return ""
+    }
 }
 
+; Management of the Shared memory reading
+; This class is used almost as is from the tutoriel on the official forum
+; based on https://www.autohotkey.com/boards/viewtopic.php?f=96&t=124720
 Class FileMapping {
     ; http://msdn.microsoft.com/en-us/library/windows/desktop/aa366556(v=vs.85).aspx
     ; http://www.autohotkey.com/board/topic/86771-i-want-to-share-var-between-2-processes-how-to-copy-memory-do-it/#entry552031
