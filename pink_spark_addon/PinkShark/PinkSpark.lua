@@ -1,16 +1,4 @@
 
--- local MyFrame = CreateFrame("Frame")
--- MyFrame:ClearAllPoints()
--- MyFrame:SetBackdrop(StaticPopup1:GetBackdrop())
--- MyFrame:SetHeight(300)
--- MyFrame:SetWidth(300)
-
--- MyFrame.text = MyFrame:CreateFontString(nil, "BACKGROUND", "GameFontNormal")
--- MyFrame.text:SetAllPoints()
--- MyFrame.text:SetText("YOUR HELP TEXT HERE")
--- MyFrame:SetPoint("CENTER", 0, 0)
-
--- FontString:SetFont("Fonts\\FRIZQT__.TTF", 20, "OUTLINE, MONOCHROME")
 
 local backdropInfo =
 {
@@ -18,7 +6,7 @@ local backdropInfo =
  	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
  	tile = false,
  	tileEdge = false,
- 	tileSize = 1, -- ws 8
+ 	tileSize = 1, -- was 8
  	edgeSize = 1, -- was 8
  	insets = { left = 0, right = 0, top = 0, bottom = 0 },
 }
@@ -26,17 +14,9 @@ local backdropInfo =
 local frame = CreateFrame("Frame", nil, nil, "BackdropTemplate")
 frame:SetBackdrop(backdropInfo)
 
--- local frame = CreateFrame("Frame", "PinkSparkFrame", UIParent)
 frame:SetSize(26, 33)
 frame:SetPoint("TOPLEFT", 0, 0)
--- frame:SetBackdrop({
---     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
---     edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
---     tile = true, tileSize = 16, edgeSize = 16,
---     insets = { left = 4, right = 4, top = 4, bottom = 4 }
--- })
 
--- frame:SetBackdrop(StaticPopup1:GetBackdrop())
 frame:SetBackdropColor(0, 0, 0, 1)
 frame:SetMovable(true)
 frame:EnableMouse(true)
@@ -101,10 +81,10 @@ local function updateInfo()
     -- lines[6]:SetText(truncateString("Chi: " .. chi .. " / " .. maxChi, max_size))
 	
     lines[1]:SetText(truncateString("brm", max_size))
-    lines[2]:SetText(truncateString("sck", max_size))
+    lines[2]:SetText(truncateString("tp", max_size))
     lines[3]:SetText(truncateString("bok", max_size))
-    lines[4]:SetText(truncateString("tp", max_size))
-    lines[5]:SetText(truncateString("wwwww", max_size))
+    lines[4]:SetText(truncateString("rsk", max_size))
+    lines[5]:SetText(truncateString("bof", max_size))
     
 end
 

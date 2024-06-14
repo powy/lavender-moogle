@@ -8,12 +8,22 @@ use crate::types::SpellBinding;
 
 // Note: there is some special cases where we consider the top line going up to 12
 // This is to follow the logic of mmo mouse and typical hotbar size
+// Convert the whole bar to AAZERTY
 fn convert_to_char(value: &str) -> char {
     let trimmed_value = value.trim();
     match trimmed_value {
+        "1" => '&',
+        "2" => 'é',
+        "3" => '\"',
+        "4" => '\'',
+        "5" => '(',
+        "6" => '-',
+        "7" => 'è',
+        "8" => '_',
+        "9" => 'ç',
         "10" => '0',
-        "11" => ')', // WARNING: AZERTY
-        "12" => '=', // WARNING: AZERTY
+        "11" => ')',
+        "12" => '=',
         _ => if trimmed_value.len() == 1 {
             trimmed_value.chars().next().unwrap_or('i')
         } else {

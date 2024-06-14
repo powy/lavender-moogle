@@ -14,9 +14,6 @@ MODIFIER_SHIFT := "s"
 MODIFIER_CTRL := "c"
 
 
-
-
-
 ; Used to block actions after stopping the script and before init
 global stopScript := true
 
@@ -64,7 +61,7 @@ execute(modifier_index, key_index) {
         target_modifier := GetModifierString(SubStr(data, modifier_index, 1))
         target_key := SubStr(data, key_index, 1)
         if (target_modifier != "invalid") {
-            Send(target_modifier target_key)
+            SendEvent(target_modifier target_key)
             ; MsgBox "Execute:" target_modifier target_key
         }
         ; else {
