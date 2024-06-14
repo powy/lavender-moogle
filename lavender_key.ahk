@@ -13,8 +13,17 @@ MODIFIER_ALT := "a"
 MODIFIER_SHIFT := "s"
 MODIFIER_CTRL := "c"
 
-; Used to allow actions after stopping the script
-global stopScript := false
+
+
+
+
+; Used to block actions after stopping the script and before init
+global stopScript := true
+
+; Wait 5 seconds in case it is started at the same time than the shared memory owner
+; It allows time for the shared memory to be inbitialized
+Sleep 5000
+stopScript := false
 
 ; Shared Memory Mapping setup
 ; This script is the reader, the Shared Memory shall be created, Written and kept alive outside

@@ -58,19 +58,18 @@ fn main() {
 
                 // Read the processed image using OCR
                 let ocr_start = Instant::now();
-                let _text_ocr = reader::read_text_from_picture(&engine, &cropped_image).expect("Failed to read text from picture");
+                let text_ocr = reader::read_text_from_picture(&engine, &cropped_image).expect("Failed to read text from picture");
                 let ocr_elapsed = ocr_start.elapsed();
                 // debug!("{}", text_ocr);
 
                 let memory_start = Instant::now();
+                
+                let binding_outputs = spell_binder::get_spell_bindings_from_text(&text_ocr, &spell_bindings);
 
-                let test_text = "brm\ntp\nbok\nrsk\nbof";
+                // let test_text = "brm\ntp\nbok\nrsk\nbof";
+                // let binding_outputs = spell_binder::get_spell_bindings_from_text(&test_text, &spell_bindings);
 
-                // let example_orders = configure::get_spell_bindings_from_text(&_text_ocr, &_spells);
-                let example_orders = spell_binder::get_spell_bindings_from_text(&test_text, &spell_bindings);
-
-
-                memory::populate_shared_memory(memory_handle, example_orders).expect("Failed to write to memory");
+                memory::populate_shared_memory(memory_handle, binding_outputs).expect("Failed to write to memory");
                 let memory_elapsed = memory_start.elapsed();
 
                 // Calculate the elapsed time for the whole loop
