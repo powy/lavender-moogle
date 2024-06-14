@@ -8,7 +8,6 @@
 ; On key pressing the asked keypress is simulated.
 
 ; Define constants describing the modifier "enum" as read in the shared memory
-MODIFIER_OTHER := "o"
 MODIFIER_NONE := "n"
 MODIFIER_ALT := "a"
 MODIFIER_SHIFT := "s"
@@ -55,16 +54,19 @@ execute(modifier_index, key_index) {
         data := mapping.Read()
         target_modifier := GetModifierString(SubStr(data, modifier_index, 1))
         target_key := SubStr(data, key_index, 1)
-        Send(target_modifier target_key)
-        ; MsgBox "Execute:" target_modifier target_key
+        if (target_modifier != "invalid") {
+            Send(target_modifier target_key)
+            ; MsgBox "Execute:" target_modifier target_key
+        }
+        ; else {
+        ;     MsgBox "Invalid modifier" data
+        ; }
     }
 }
 
-; Function to get the string identifier understood by AHK based on the enum value
+; Functions to get the string identifier understood by AHK based on the API value
 GetModifierString(modifier) {
     switch modifier {
-        case MODIFIER_OTHER:
-            return ""
         case MODIFIER_NONE:
             return ""
         case MODIFIER_ALT:
@@ -74,9 +76,10 @@ GetModifierString(modifier) {
         case MODIFIER_CTRL:
             return "^"
         default:
-            return ""
+            return "invalid"
     }
 }
+
 
 ; Management of the Shared memory reading
 ; This class is used almost as is from the tutoriel on the official forum

@@ -13,7 +13,8 @@ use env_logger;
 mod capture;
 mod reader;
 mod memory;
-mod modifier;
+mod spell_binder;
+mod types;
 
 fn main() {
     // Force set the RUST_LOG environment variable
@@ -23,6 +24,9 @@ fn main() {
     env_logger::init();
 
     debug!("Screening for pinky sparkles!");
+
+    // Configure the spell list associating read input and output
+    let spell_bindings = spell_binder::read_spells_from_excel("spell_list.xlsx");
 
     // Initialize the OCR engine once
     let engine = reader::init_ocr_engine(None, None).expect("Failed to initialize OCR engine");
@@ -59,12 +63,13 @@ fn main() {
                 // debug!("{}", text_ocr);
 
                 let memory_start = Instant::now();
-                let example_orders: [(char, char); 4] = [
-                    (modifier::NONE, 'b'),
-                    (modifier::ALT, 'b'),
-                    (modifier::SHIFT, 'b'),
-                    (modifier::CTRL, 'b'),
-                ];
+
+                let test_text = "brm\ntp\nbok\nrsk\nbof";
+
+                // let example_orders = configure::get_spell_bindings_from_text(&_text_ocr, &_spells);
+                let example_orders = spell_binder::get_spell_bindings_from_text(&test_text, &spell_bindings);
+
+
                 memory::populate_shared_memory(memory_handle, example_orders).expect("Failed to write to memory");
                 let memory_elapsed = memory_start.elapsed();
 
