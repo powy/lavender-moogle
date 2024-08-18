@@ -1,11 +1,10 @@
 // spell_init.rs
 // manage the function relatives to spell list configuration
-
 use calamine::{open_workbook_auto, DataType, Reader};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::error::Error;
-use crate::types::{SpellDescription, SpellBook};
+use crate::types::{SpellDescription, SpellBook, JobSpells};
 
 pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn Error>> {
     let mut workbook = open_workbook_auto(file_path)?;
@@ -17,6 +16,9 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                 .map(|h| h.to_string())
                 .collect();
             
+
+            let mut job_spells: JobSpells = HashMap::new();
+
             for row in range.rows().skip(1) {
                 let mut spell_description = SpellDescription {
                     name: String::new(),
@@ -25,9 +27,10 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                     spell_type: String::new(),
                     duration: 0,
                     cooldown: 0,
-                    give_buffs: vec![],
-                    remove_buffs: vec![],
-                    available_until: Utc::now(),
+                    give_status: vec![],
+                    remove_status: vec![],
+                    active_until: Utc::now(),
+                    unavaible_before: Utc::now(),
                 };
 
                 for (col_idx, cell) in row.iter().enumerate() {
@@ -62,22 +65,22 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                             };
                         }
                 
-                        Some("give_buffs") => {
+                        Some("give_status") => {
                             if cell.is_empty() {
-                                spell_description.give_buffs = Vec::new();  // Set to an empty vector if the cell is empty
+                                spell_description.give_status = Vec::new();  // Set to an empty vector if the cell is empty
                             } else {
-                                spell_description.give_buffs = cell.to_string().split(';')
+                                spell_description.give_status = cell.to_string().split(';')
                                     .map(|s| s.trim().to_string())
                                     .filter(|s| !s.is_empty())  // Filter out any empty strings after splitting
                                     .collect();
                             }
                         }                        
                 
-                        Some("remove_buffs") => {
+                        Some("remove_status") => {
                             if cell.is_empty() {
-                                spell_description.remove_buffs = Vec::new();  // Set to an empty vector if the cell is empty
+                                spell_description.remove_status = Vec::new();  // Set to an empty vector if the cell is empty
                             } else {
-                                spell_description.remove_buffs = cell.to_string().split(';')
+                                spell_description.remove_status = cell.to_string().split(';')
                                     .map(|s| s.trim().to_string())
                                     .filter(|s| !s.is_empty())  // Optional: filter out any empty strings after splitting
                                     .collect();
@@ -88,11 +91,12 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                     }
                 }
 
-                spell_book
-                    .entry(sheet_name.clone())
-                    .or_insert_with(HashMap::new)
-                    .insert(spell_description.name.clone(), spell_description);
+                // Insert the spell into the JobSpells struct HashMap
+                job_spells.insert(spell_description.name.clone(), spell_description);
             }
+
+            // Insert the JobSpells into the SpellBook
+            spell_book.insert(sheet_name.clone(), job_spells);
         }
     }
 
@@ -100,28 +104,33 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
 }
 
 pub fn pretty_print_spell_book(spell_book: &SpellBook) {
-    for (category, spells) in spell_book {
-        println!("Category: {}", category);
+    for (job_name, job_spells) in spell_book {
+        println!("Job: {}", job_name);
         println!("{}", "=".repeat(20));
 
-        for (spell_name, spell) in spells {
+        for (spell_name, spell_description) in job_spells {
             println!("Spell Name: {}", spell_name);
-            println!("  Modifier: {}", spell.modifier);
-            println!("  Key: {}", spell.key);
-            println!("  Type: {}", spell.spell_type);
-            println!("  Duration: {} seconds", spell.duration);
-            println!("  Cooldown: {} seconds", spell.cooldown);
-            if !spell.give_buffs.is_empty() {
-                println!("  Gives Buffs: {}", spell.give_buffs.join(", "));
+            println!("  Modifier: {}", spell_description.modifier);
+            println!("  Key: {}", spell_description.key);
+            println!("  Type: {}", spell_description.spell_type);
+            println!("  Duration: {} milliseconds", spell_description.duration);
+            println!("  Cooldown: {} milliseconds", spell_description.cooldown);
+
+            if !spell_description.give_status.is_empty() {
+                println!("  Gives Buffs: {}", spell_description.give_status.join(", "));
             } else {
                 println!("  Gives Buffs: None");
             }
-            if !spell.remove_buffs.is_empty() {
-                println!("  Removes Buffs: {}", spell.remove_buffs.join(", "));
+
+            if !spell_description.remove_status.is_empty() {
+                println!("  Removes Buffs: {}", spell_description.remove_status.join(", "));
             } else {
                 println!("  Removes Buffs: None");
             }
-            println!("  Available Until: {}", spell.available_until);
+
+            println!("  Active Until: {}", spell_description.active_until);
+            println!("  Unavailable Before: {}", spell_description.unavaible_before);
+
             println!("{}", "-".repeat(20));
         }
 

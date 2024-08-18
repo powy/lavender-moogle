@@ -1,17 +1,16 @@
-use std::thread::sleep;
-use std::time::{Duration, Instant};
-use std::env;
-use chrono::Local;
-use log::{debug, error, info, log_enabled, Level};
-use env_logger;
-
-mod memory;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use log::{debug, error};
 
 mod types;
 mod spell_init;
+mod spell_actions;
+mod server;
+mod memory;
 
 fn main() {
     // Force set the RUST_LOG environment variable
+    use std::env;
     env::set_var("RUST_LOG", "debug");  // Change "debug" to the desired log level
 
     // Initialize the logger
@@ -19,35 +18,57 @@ fn main() {
 
     debug!("Here come the lavender moogles!");
 
-    // Configure the spell book associating job - spell name - spell characteristics and output keys
     let spell_file_path = "moogle_spell_list.xlsx";
-    let spell_book = spell_init::init_spell_book_from_excel(spell_file_path)
-    // if log_enabled!(Level::Debug) {
-    //   spell_init::pretty_print_spell_book(&spell_book);
-    // }
+    let spell_book_result = spell_init::init_spell_book_from_excel(spell_file_path);
 
-    // Initialize the memory
-    let _memory_handle = memory::initialize_or_reset_shared_memory().expect("Failed to initialize memory");
+    let spell_book = match spell_book_result {
+        Ok(book) => Arc::new(Mutex::new(book)),
+        Err(e) => {
+            error!("Failed to initialize spell book: {}", e);
+            return;
+        }
+    };
 
-    debug!("Init done");
+    // Thread 1: Processing Loop
+    let spell_book_clone = Arc::clone(&spell_book);
+    let processing_thread = thread::spawn(move || {
+        processing_loop(spell_book_clone);
+    });
 
-    let interval = Duration::from_millis(2000);
+    // Thread 2: JSON Server
+    let spell_book_clone = Arc::clone(&spell_book);
+    let server_thread = thread::spawn(move || {
+        server::start_json_server(spell_book_clone);
+    });
+
+    // Wait for both threads to finish
+    processing_thread.join().unwrap();
+    server_thread.join().unwrap();
+}
+
+fn processing_loop(shared_spell_book: Arc<Mutex<types::SpellBook>>) {
+    let interval = std::time::Duration::from_millis(100);
 
     loop {
-        // Print the current time at the start of the loop iteration
-        let current_time = Local::now();
-        debug!("Current time: {}", current_time.format("%Y-%m-%d %H:%M:%S"));
+        let current_time = chrono::Local::now();
+        // debug!("Current time: {}", current_time.format("%Y-%m-%d %H:%M:%S"));
 
-        debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
-        let start_time = Instant::now();
+        // debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
+        let start_time = std::time::Instant::now();
         
-        debug!("Process...");
-        let total_elapsed = start_time.elapsed();
-        info!("Total elapsed time: {} ms", total_elapsed.as_millis());
-        if total_elapsed < interval {
-            sleep(interval - total_elapsed);
+        {
+            let spell_book = shared_spell_book.lock().unwrap();
+            // Process spell_book here
+            // debug!("Updating next spell ...");
+            // Add more processing logic here as needed
         }
 
-        debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
+        let total_elapsed = start_time.elapsed();
+        // debug!("Total elapsed time: {} ms", total_elapsed.as_millis());
+        // debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
+        if total_elapsed < interval {
+            std::thread::sleep(interval - total_elapsed);
+        }
+
     }
 }
