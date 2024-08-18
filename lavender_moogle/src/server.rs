@@ -6,6 +6,7 @@ use log::{debug, error};
 use serde_json::Value;
 use crate::types;
 use crate::spell_actions;
+use crate::paladin_rotation;
 
 pub fn start_json_server(shared_spell_book: Arc<Mutex<types::SpellBook>>) {
     let runtime = tokio::runtime::Runtime::new().unwrap();
@@ -52,7 +53,7 @@ async fn handle_request(
                 {
                     let mut spell_book = shared_spell_book.lock().unwrap();
                     spell_actions::apply_spell_cast(&mut spell_book, &job, &spell_name);
-                    // spell_actions::apply_spell_cast(&mut spell_book, &job, &spell_name);
+                    paladin_rotation::update_next_spellcast_paladin(&mut spell_book);
                 } // The lock is released here when the scope ends
 
                 return Ok(Response::new(Body::from(r#"{"message": "JSON received and processed"}"#)));

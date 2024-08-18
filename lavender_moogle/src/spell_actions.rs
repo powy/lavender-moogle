@@ -14,9 +14,10 @@ pub fn apply_spell_cast(spell_book: &mut SpellBook, job_name: &str, spell_name: 
             // Important to remove status before activating them !
             deactivate_related_status_on_cast(job_spells, &spell_description);
             apply_new_status_on_cast(job_spells, &spell_description);
-        } else {
-            debug!("Spell {} not found for job {}", spell_name, job_name);
         }
+        //  else {
+        //     debug!("Spell {} not found for job {}", spell_name, job_name);
+        // }
     } else {
         error!("Job {} not found in spell book", job_name);
     }
@@ -82,5 +83,45 @@ pub fn calculate_future_time(duration_value: i32, margin_time: i32) -> DateTime<
 // FIXME Implementation for resetting all CD and status
 pub fn reset(spell_book: &mut SpellBook) {
     debug!("RESET");
+}
+
+pub fn get_next_gcd_time(job_spells: &mut JobSpells) -> DateTime<Utc> {
+    if let Some(gcd_desciption) = job_spells.get("gcd unavailable") {
+        return gcd_desciption.active_until;
+    }
+    else {
+        return Utc::now();
+    }
+}
+
+pub fn is_spell_available_next_gcd(job_spells: &mut JobSpells, spell_name: &str) -> bool {
+    let next_gcd_time = get_next_gcd_time(job_spells);
+    if let Some(spell_description) = job_spells.get_mut(spell_name) {
+        return spell_description.unavaible_before < next_gcd_time;
+    }
+    false
+}
+
+
+pub fn is_spell_available_now(job_spells: &mut JobSpells, spell_name: &str) -> bool {
+    if let Some(spell_description) = job_spells.get_mut(spell_name) {
+        return spell_description.unavaible_before < Utc::now();
+    }
+    false
+}
+
+pub fn is_status_active_now(job_spells: &mut JobSpells, spell_name: &str) -> bool {
+    if let Some(spell_description) = job_spells.get_mut(spell_name) {
+        return spell_description.active_until > Utc::now();
+    }
+    false
+}
+
+pub fn is_status_active_next_gcd(job_spells: &mut JobSpells, spell_name: &str) -> bool {
+    let next_gcd_time = get_next_gcd_time(job_spells);
+    if let Some(spell_description) = job_spells.get_mut(spell_name) {
+        return spell_description.active_until > next_gcd_time;
+    }
+    false
 }
 

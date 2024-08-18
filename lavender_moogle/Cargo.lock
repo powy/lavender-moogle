@@ -421,6 +421,7 @@ dependencies = [
  "lazy_static",
  "log",
  "memmap2",
+ "once_cell",
  "serde",
  "serde_json",
  "tokio",

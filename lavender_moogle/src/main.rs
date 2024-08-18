@@ -7,6 +7,7 @@ mod spell_init;
 mod spell_actions;
 mod server;
 mod memory;
+mod paladin_rotation;
 
 fn main() {
     // Force set the RUST_LOG environment variable
