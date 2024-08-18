@@ -39,10 +39,10 @@ pub fn update_next_spellcast(job_spells: &mut JobSpells, spell_name: &str) {
     if *saved_next_spell_name != spell_name {
         debug!("Updating next spellcast to {}", spell_name);
         *saved_next_spell_name = spell_name.to_string(); // copy
-        // if let Some(next_spell_description) = job_spells.get(spell_name).cloned() {
-        //     memory::populate_shared_memory(next_spell_description);
-        // } else {
-        //     error!("Spell {} not found for shared memory", spell_name);
-        // }
+        if let Some(next_spell_description) = job_spells.get(spell_name).cloned() {
+            memory::populate_shared_memory(next_spell_description);
+        } else {
+            error!("Spell {} not found for shared memory", spell_name);
+        }
     }
 }
