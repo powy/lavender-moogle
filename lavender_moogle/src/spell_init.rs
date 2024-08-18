@@ -38,11 +38,11 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                         Some("name") => spell_description.name = cell.to_string(),
                 
                         Some("modifier") => {
-                            spell_description.modifier = cell.to_string().chars().next().unwrap_or('\0');  // Default to null character if empty
+                            spell_description.modifier = convert_to_char(cell.to_string());  // Default to null character if empty
                         }
                 
                         Some("key") => {
-                            spell_description.key = cell.to_string().chars().next().unwrap_or('\0');  // Default to null character if empty
+                            spell_description.key = convert_to_char(cell.to_string());  // Default to null character if empty
                         }
                 
                         Some("spell_type") => spell_description.spell_type = cell.to_string(),
@@ -102,6 +102,35 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
 
     Ok(spell_book)
 }
+
+
+
+// Note: there is some special cases where we consider the top line going up to 12
+// This is to follow the logic of mmo mouse and typical hotbar size
+// Convert the whole bar to AAZERTY
+fn convert_to_char(value: String) -> char {
+    let trimmed_value = value.trim();
+    match trimmed_value {
+        "1" => '&',
+        "2" => 'é',
+        "3" => '\"',
+        "4" => '\'',
+        "5" => '(',
+        "6" => '-',
+        "7" => 'è',
+        "8" => '_',
+        "9" => 'ç',
+        "10" => '0',
+        "11" => ')',
+        "12" => '=',
+        _ => if trimmed_value.len() == 1 {
+            trimmed_value.chars().next().unwrap_or('i')
+        } else {
+            'i'
+        },
+    }
+}
+
 
 pub fn pretty_print_spell_book(spell_book: &SpellBook) {
     for (job_name, job_spells) in spell_book {

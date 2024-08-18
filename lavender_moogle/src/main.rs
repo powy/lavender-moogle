@@ -29,6 +29,9 @@ fn main() {
             return;
         }
     };
+    // Initialize the memory
+    memory::initialize_or_reset_shared_memory().expect("Failed to initialize memory");
+
 
     // Thread 1: Processing Loop
     let spell_book_clone = Arc::clone(&spell_book);
