@@ -36,16 +36,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
         // check expiring GCD        
         if next_spell_name == "" {
-            if spell_actions::is_status_expiring(job_details, "Goring Blade Ready") {
-                next_spell_name = "Goring Blade";
-            } else if spell_actions::is_status_expiring(job_details, "Confiteor Ready") {
+            
+            if spell_actions::is_status_expiring(job_details, "Confiteor Ready") {
                 next_spell_name = "Confiteor";
             } else if spell_actions::is_status_expiring(job_details, "Blade of Faith Ready") {
                 next_spell_name = "Blade of Faith";
             } else if spell_actions::is_status_expiring(job_details, "Blade of Truth Ready") {
                 next_spell_name = "Blade of Truth";
             } else if spell_actions::is_status_expiring(job_details, "Blade of Valor Ready") {
-                next_spell_name = "Blade of Valor"; 
+                next_spell_name = "Blade of Valor";
+            } else if spell_actions::is_status_expiring(job_details, "Goring Blade Ready") {
+                    next_spell_name = "Goring Blade";
             } else if spell_actions::is_status_expiring(job_details, "Sepulchre Ready") {
                 next_spell_name = "Sepulchre";
             } else if spell_actions::is_status_expiring(job_details, "Supplication Ready") {
@@ -61,16 +62,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
         // check standart GCD
         if next_spell_name == "" {
-            if spell_actions::is_status_active_next_gcd(job_details, "Goring Blade Ready") {
+            
+            if spell_actions::is_status_active_next_gcd(job_details, "Confiteor Ready") {
+                next_spell_name = "Confiteor";
+            } else if spell_actions::is_status_active_next_gcd(job_details, "Blade of Faith Ready") {
+                next_spell_name = "Blade of Faith";
+            } else if spell_actions::is_status_active_next_gcd(job_details, "Blade of Truth Ready") {
+                next_spell_name = "Blade of Truth";
+            } else if spell_actions::is_status_active_next_gcd(job_details, "Blade of Valor Ready") {
+                next_spell_name = "Blade of Valor";
+            } else if spell_actions::is_status_active_next_gcd(job_details, "Goring Blade Ready") {
                 next_spell_name = "Goring Blade";
-            // } else if spell_actions::is_status_active_next_gcd(job_details, "Confiteor Ready") {
-            //     next_spell_name = "Confiteor";
-            // } else if spell_actions::is_status_active_next_gcd(job_details, "Blade of Faith Ready") {
-            //     next_spell_name = "Blade of Faith";
-            // } else if spell_actions::is_status_active_next_gcd(job_details, "Blade of Truth Ready") {
-            //     next_spell_name = "Blade of Truth";
-            // } else if spell_actions::is_status_active_next_gcd(job_details, "Blade of Valor Ready") {
-            //     next_spell_name = "Blade of Valor"; 
             } else if spell_actions::is_status_active_next_gcd(job_details, "Sepulchre Ready") {
                 next_spell_name = "Sepulchre";
             } else if spell_actions::is_status_active_next_gcd(job_details, "Supplication Ready") {

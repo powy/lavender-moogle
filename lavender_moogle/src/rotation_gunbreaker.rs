@@ -45,54 +45,68 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             }
         }
 
-        // check EXPIRING GCD
-        if next_spell_name == "" {
-            // No oGCD selected, prepare next GCD
-            
-            // TODO - for each "ready", we should activate them if they are to close to end
-            // Right now only done for the holy spirit because it is the only one at real risk
-            
-            if spell_actions::is_status_expiring(job_details, "LIONH READY fixme") {
-                next_spell_name = "LIONH paf fixme";
-            }
+        // No oGCD selected, prepare next GCD            
 
-                // COPY Paste from the normal GCD and keep only status related GCD
-        }
+        // check EXPIRING GCD
+        // if next_spell_name == "" {
+
+        //     if spell_actions::is_status_expiring(job_details, "Ready to Break") {
+        //         next_spell_name = "Sonic Break";
+
+        //     // --- GNASHING FANG FOLLOW UP
+        //     } else if spell_actions::is_status_expiring(job_details, "Savage Claw Ready") {
+        //         next_spell_name = "Savage Claw";
+        //     } else if spell_actions::is_status_expiring(job_details, "Wicked Talon Ready") {
+        //         next_spell_name = "Wicked Talon";
+
+        //     // --- LION HEART COMBO
+        //     // Wait for burst
+        //     } else if spell_actions::is_status_expiring(job_details, "Ready to Reign") {
+        //         next_spell_name = "Reign of Beasts";
+        //     } else if spell_actions::is_status_expiring(job_details, "Noble Blood Ready") {
+        //         next_spell_name = "Noble Blood";
+        //     } else if spell_actions::is_status_expiring(job_details, "Lion Heart Ready") {
+        //         next_spell_name = "Lion Heart";
+
+        //     // --- STANDART ROTATION
+        //     } else if spell_actions::is_status_expiring(job_details,"Solid Barrel Ready") {
+        //             next_spell_name = "Solid Barrel";
+        //     } else if spell_actions::is_status_expiring(job_details, "Brutal Shell Ready") {                
+        //         next_spell_name = "Brutal Shell";
+        //     }
+        // }
 
         // check normal GCD
         if next_spell_name == "" {
 
             // --- CARTBRIDGE usage
-            // Note: Double down or gnashing first ?
-            // fixme Double down 
-            // fixme Gnashing 
-            // Fixme Burst Strike to avoid overcap
+            // Note: Double down or gnashing first ? Chose double down to secure cardbridge usage
             if should_double_down(job_details) {
                 next_spell_name = "Double Down";
-            } else if should_gnashing_fang(job_details) {
-                next_spell_name = "Gnashing Fang";
-            } else if should_burst_strike_to_prevent_cartbridge_overcap(job_details) {
-                next_spell_name = "Burst Strike";
+            // } else if should_gnashing_fang(job_details) {
+            //     next_spell_name = "Gnashing Fang";
+            // } else if should_burst_strike_to_prevent_cartbridge_overcap(job_details) {
+            //     next_spell_name = "Burst Strike";
 
             // --- Sonic break in the no mercy burst
-            } else if spell_actions::is_status_active_next_gcd(job_details, "Ready to Break") {
-                next_spell_name = "Sonic Break";
+            // } else if spell_actions::is_status_active_next_gcd(job_details, "Ready to Break") {
+            //     next_spell_name = "Sonic Break";
 
             // --- GNASHING FANG FOLLOW UP
-            } else if spell_actions::is_status_active_next_gcd(job_details, "Savage Claw Ready") {
-                next_spell_name = "Savage Claw";
-            } else if spell_actions::is_status_active_next_gcd(job_details, "Wicked Talon Ready") {
-                next_spell_name = "Wicked Talon";
+            // } else if spell_actions::is_status_active_next_gcd(job_details, "Savage Claw Ready") {
+            //     next_spell_name = "Savage Claw";
+            // } else if spell_actions::is_status_active_next_gcd(job_details, "Wicked Talon Ready") {
+            //     next_spell_name = "Wicked Talon";
 
             // --- LION HEART COMBO
             // Wait for burst
-            } else if spell_actions::is_status_active_next_gcd(job_details, "Ready to Reign")
-                && !spell_actions::spell_will_be_available_soon(job_details, "No Mercy", 10000) {
-                next_spell_name = "Reign of Beasts";
-            } else if spell_actions::is_status_active_next_gcd(job_details, "Noble Blood Ready") {
-                next_spell_name = "Noble Blood";
-            } else if spell_actions::is_status_active_next_gcd(job_details, "Lion Heart Ready") {
-                next_spell_name = "Lion Heart";
+            // } else if spell_actions::is_status_active_next_gcd(job_details, "Ready to Reign")
+            //     && !spell_actions::spell_will_be_available_soon(job_details, "No Mercy", 10000) {
+            //     next_spell_name = "Reign of Beasts";
+            // } else if spell_actions::is_status_active_next_gcd(job_details, "Noble Blood Ready") {
+            //     next_spell_name = "Noble Blood";
+            // } else if spell_actions::is_status_active_next_gcd(job_details, "Lion Heart Ready") {
+            //     next_spell_name = "Lion Heart";
 
             // --- STANDART ROTATION
             } else if spell_actions::is_status_active_next_gcd(job_details,"Solid Barrel Ready") {
