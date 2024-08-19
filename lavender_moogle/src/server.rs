@@ -6,19 +6,19 @@ use log::{debug, error};
 use serde_json::Value;
 use crate::types;
 use crate::spell_actions;
-use crate::paladin_rotation;
+use crate::job_management;
 
-pub fn start_json_server(shared_spell_book: Arc<Mutex<types::SpellBook>>) {
+pub fn start_json_server(shared_character_details: Arc<Mutex<types::CharacterDetails>>) {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.block_on(async move {
         let addr = ([127, 0, 0, 1], 50017).into();
 
         let make_svc = make_service_fn(move |_conn| {
-            let shared_spell_book = Arc::clone(&shared_spell_book);
+            let shared_character_details = Arc::clone(&shared_character_details);
             async move {
                 Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                    let shared_spell_book = Arc::clone(&shared_spell_book);
-                    handle_request(req, shared_spell_book)
+                    let shared_character_details = Arc::clone(&shared_character_details);
+                    handle_request(req, shared_character_details)
                 }))
             }
         });
@@ -34,7 +34,7 @@ pub fn start_json_server(shared_spell_book: Arc<Mutex<types::SpellBook>>) {
 }
 async fn handle_request(
     req: Request<Body>,
-    shared_spell_book: Arc<Mutex<types::SpellBook>>,
+    shared_character_details: Arc<Mutex<types::CharacterDetails>>,
 ) -> Result<Response<Body>, Infallible> {
     if req.method() == hyper::Method::POST {
         let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
@@ -49,11 +49,19 @@ async fn handle_request(
 
                 // debug!("Received spell_name: {}, job: {}", spell_name, job);
 
-                // Reserve (lock) the spell_book and perform an action
+                // Reserve (lock) the character_details and perform an action
                 {
-                    let mut spell_book = shared_spell_book.lock().unwrap();
-                    spell_actions::apply_spell_cast(&mut spell_book, &job, &spell_name);
-                    paladin_rotation::update_next_spellcast_paladin(&mut spell_book);
+                    let mut character_details = shared_character_details.lock().unwrap();
+                    job_management::update_current_job(&mut character_details, &job);
+                    // FIXME - update current job
+                    if spell_name == "reset" {
+                        // Receiving reset spell, means reset all status and CD
+                        types::reset_character_details_timestamps(&mut character_details);
+                    } else {
+                        // Update the status following received spell, and apply rotation
+                        spell_actions::apply_spell_cast(&mut character_details, &job, &spell_name);
+                        job_management::apply_current_job_rotation(&mut character_details);
+                    }
                 } // The lock is released here when the scope ends
 
                 return Ok(Response::new(Body::from(r#"{"message": "JSON received and processed"}"#)));

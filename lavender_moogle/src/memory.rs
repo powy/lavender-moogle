@@ -1,16 +1,23 @@
 extern crate winapi;
 
 use std::ptr::null_mut;
+use std::sync::{Arc, Mutex};
+use std::ffi::OsStr;
+use std::os::windows::ffi::OsStrExt;
+
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::ntdef::NULL;
 use winapi::um::memoryapi::{CreateFileMappingW, MapViewOfFile, UnmapViewOfFile, FILE_MAP_ALL_ACCESS};
 use winapi::um::winnt::{HANDLE, PAGE_READWRITE};
-use std::sync::{Arc, Mutex};
-use lazy_static::lazy_static;
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
 
-use crate::types::SpellDescription;
+use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
+use log::{debug, error};
+
+use crate::types::{SpellDetails, JobDetails};
+
+
+static NEXT_SPELL_STR: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
 
 const MEMORY_NAME: &str = "Global\\lavender_keys";
 const MEMORY_SIZE: usize = 8;
@@ -80,7 +87,7 @@ pub fn initialize_or_reset_shared_memory() -> Result<(), String> {
 
 // transfer the keybinding of a spell to the shared memory
 // WARNING: puts the same spell in all the shared memory slots
-pub fn populate_shared_memory(spell: SpellDescription) -> Result<(), String> {
+pub fn populate_shared_memory(spell: SpellDetails) -> Result<(), String> {
     let _lock = MMAP_MUTEX.lock().unwrap();
 
     // Retrieve the global handle
@@ -102,5 +109,18 @@ pub fn populate_shared_memory(spell: SpellDescription) -> Result<(), String> {
             Ok(())
         }
         None => Err("Shared memory handle is not initialized".to_string()),
+    }
+}
+
+pub fn communicate_next_spellcast(job_details: &mut JobDetails, spell_name: &str) {
+    let mut saved_next_spell_name = NEXT_SPELL_STR.lock().unwrap();
+    if *saved_next_spell_name != spell_name {
+        debug!("Updating next spellcast to {}", spell_name);
+        *saved_next_spell_name = spell_name.to_string(); // copy
+        if let Some(next_spell_details) = job_details.get_spell(spell_name).cloned() {
+            let _ = populate_shared_memory(next_spell_details);
+        } else {
+            error!("Spell {} not found for shared memory", spell_name);
+        }
     }
 }

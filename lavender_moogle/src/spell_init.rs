@@ -4,23 +4,29 @@ use calamine::{open_workbook_auto, DataType, Reader};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::error::Error;
-use crate::types::{SpellDescription, SpellBook, JobSpells};
+use crate::types::{SpellDetails, CharacterDetails, JobDetails};
 
-pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn Error>> {
+pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDetails, Box<dyn Error>> {
     let mut workbook = open_workbook_auto(file_path)?;
-    let mut spell_book: SpellBook = HashMap::new();
+    let mut character_details: CharacterDetails = HashMap::new();
     
     for sheet_name in workbook.sheet_names().to_owned() {
         if let Some(Ok(range)) = workbook.worksheet_range(&sheet_name) {
             let headers: Vec<String> = range.rows().next().unwrap_or(&[]).iter()
                 .map(|h| h.to_string())
                 .collect();
-            
 
-            let mut job_spells: JobSpells = HashMap::new();
+            let mut job_details = JobDetails {
+                spells: HashMap::new(),
+                mana: 0,
+                secondary_bar: 0,
+                tertiary_bar: 0,
+                stacks_a: 0,
+                stacks_b: 0,
+            };
 
             for row in range.rows().skip(1) {
-                let mut spell_description = SpellDescription {
+                let mut spell_details = SpellDetails {
                     name: String::new(),
                     modifier: '\0',
                     key: '\0',
@@ -30,25 +36,31 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                     give_status: vec![],
                     remove_status: vec![],
                     active_until: Utc::now(),
-                    unavaible_before: Utc::now(),
+                    unavailable_before: Utc::now(),
+                    mana: 0,
+                    secondary_bar: 0,
+                    tertiary_bar: 0,
+                    stacks_a: 0,
+                    stacks_b: 0,
                 };
+                
 
                 for (col_idx, cell) in row.iter().enumerate() {
                     match headers.get(col_idx).map(|h| h.as_str()) {
-                        Some("name") => spell_description.name = cell.to_string(),
+                        Some("name") => spell_details.name = cell.to_string(),
                 
                         Some("modifier") => {
-                            spell_description.modifier = convert_to_char(cell.to_string());  // Default to null character if empty
+                            spell_details.modifier = convert_to_char(cell.to_string());  // Default to null character if empty
                         }
                 
                         Some("key") => {
-                            spell_description.key = convert_to_char(cell.to_string());  // Default to null character if empty
+                            spell_details.key = convert_to_char(cell.to_string());  // Default to null character if empty
                         }
                 
-                        Some("spell_type") => spell_description.spell_type = cell.to_string(),
+                        Some("spell_type") => spell_details.spell_type = cell.to_string(),
                 
                         Some("duration") => {
-                            spell_description.duration = match cell {
+                            spell_details.duration = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
                                 DataType::Empty => 0,  // Default to 0 if empty
@@ -57,7 +69,7 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                         }
                 
                         Some("cooldown") => {
-                            spell_description.cooldown = match cell {
+                            spell_details.cooldown = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
                                 DataType::Empty => 0,  // Default to 0 if empty
@@ -67,9 +79,9 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                 
                         Some("give_status") => {
                             if cell.is_empty() {
-                                spell_description.give_status = Vec::new();  // Set to an empty vector if the cell is empty
+                                spell_details.give_status = Vec::new();  // Set to an empty vector if the cell is empty
                             } else {
-                                spell_description.give_status = cell.to_string().split(';')
+                                spell_details.give_status = cell.to_string().split(';')
                                     .map(|s| s.trim().to_string())
                                     .filter(|s| !s.is_empty())  // Filter out any empty strings after splitting
                                     .collect();
@@ -78,29 +90,74 @@ pub fn init_spell_book_from_excel(file_path: &str) -> Result<SpellBook, Box<dyn 
                 
                         Some("remove_status") => {
                             if cell.is_empty() {
-                                spell_description.remove_status = Vec::new();  // Set to an empty vector if the cell is empty
+                                spell_details.remove_status = Vec::new();  // Set to an empty vector if the cell is empty
                             } else {
-                                spell_description.remove_status = cell.to_string().split(';')
+                                spell_details.remove_status = cell.to_string().split(';')
                                     .map(|s| s.trim().to_string())
                                     .filter(|s| !s.is_empty())  // Optional: filter out any empty strings after splitting
                                     .collect();
                             }
                         }
 
+                        Some("mana") => {
+                            spell_details.mana = match cell {
+                                DataType::Int(value) => *value as i32,
+                                DataType::Float(value) => *value as i32,
+                                DataType::Empty => 0,  // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                            };
+                        }
+
+                        Some("secondary_bar") => {
+                            spell_details.secondary_bar = match cell {
+                                DataType::Int(value) => *value as i32,
+                                DataType::Float(value) => *value as i32,
+                                DataType::Empty => 0,  // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                            };
+                        }
+
+                        Some("tertiary_bar") => {
+                            spell_details.tertiary_bar = match cell {
+                                DataType::Int(value) => *value as i32,
+                                DataType::Float(value) => *value as i32,
+                                DataType::Empty => 0,  // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                            };
+                        }
+
+                        Some("stacks_a") => {
+                            spell_details.stacks_a = match cell {
+                                DataType::Int(value) => *value as i32,
+                                DataType::Float(value) => *value as i32,
+                                DataType::Empty => 0,  // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                            };
+                        }
+
+                        Some("stacks_b") => {
+                            spell_details.stacks_b = match cell {
+                                DataType::Int(value) => *value as i32,
+                                DataType::Float(value) => *value as i32,
+                                DataType::Empty => 0,  // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                            };
+                        }
+                                                
                         _ => {}
                     }
                 }
 
-                // Insert the spell into the JobSpells struct HashMap
-                job_spells.insert(spell_description.name.clone(), spell_description);
+                // Insert the spell into the JobDetails struct HashMap
+                job_details.insert_spell(spell_details.name.clone(), spell_details);
             }
 
-            // Insert the JobSpells into the SpellBook
-            spell_book.insert(sheet_name.clone(), job_spells);
+            // Insert the JobDetails into the CharacterDetails
+            character_details.insert(sheet_name.clone(), job_details);
         }
     }
 
-    Ok(spell_book)
+    Ok(character_details)
 }
 
 
@@ -132,37 +189,37 @@ fn convert_to_char(value: String) -> char {
 }
 
 
-pub fn pretty_print_spell_book(spell_book: &SpellBook) {
-    for (job_name, job_spells) in spell_book {
-        println!("Job: {}", job_name);
-        println!("{}", "=".repeat(20));
+// pub fn pretty_print_character_details(character_details: &CharacterDetails) {
+//     for (job_name, job_details) in character_details {
+//         println!("Job: {}", job_name);
+//         println!("{}", "=".repeat(20));
 
-        for (spell_name, spell_description) in job_spells {
-            println!("Spell Name: {}", spell_name);
-            println!("  Modifier: {}", spell_description.modifier);
-            println!("  Key: {}", spell_description.key);
-            println!("  Type: {}", spell_description.spell_type);
-            println!("  Duration: {} milliseconds", spell_description.duration);
-            println!("  Cooldown: {} milliseconds", spell_description.cooldown);
+//         for (spell_name, spell_details) in job_details {
+//             println!("Spell Name: {}", spell_name);
+//             println!("  Modifier: {}", spell_details.modifier);
+//             println!("  Key: {}", spell_details.key);
+//             println!("  Type: {}", spell_details.spell_type);
+//             println!("  Duration: {} milliseconds", spell_details.duration);
+//             println!("  Cooldown: {} milliseconds", spell_details.cooldown);
 
-            if !spell_description.give_status.is_empty() {
-                println!("  Gives Buffs: {}", spell_description.give_status.join(", "));
-            } else {
-                println!("  Gives Buffs: None");
-            }
+//             if !spell_details.give_status.is_empty() {
+//                 println!("  Gives Buffs: {}", spell_details.give_status.join(", "));
+//             } else {
+//                 println!("  Gives Buffs: None");
+//             }
 
-            if !spell_description.remove_status.is_empty() {
-                println!("  Removes Buffs: {}", spell_description.remove_status.join(", "));
-            } else {
-                println!("  Removes Buffs: None");
-            }
+//             if !spell_details.remove_status.is_empty() {
+//                 println!("  Removes Buffs: {}", spell_details.remove_status.join(", "));
+//             } else {
+//                 println!("  Removes Buffs: None");
+//             }
 
-            println!("  Active Until: {}", spell_description.active_until);
-            println!("  Unavailable Before: {}", spell_description.unavaible_before);
+//             println!("  Active Until: {}", spell_details.active_until);
+//             println!("  Unavailable Before: {}", spell_details.unavailable_before);
 
-            println!("{}", "-".repeat(20));
-        }
+//             println!("{}", "-".repeat(20));
+//         }
 
-        println!();
-    }
-}
+//         println!();
+//     }
+// }

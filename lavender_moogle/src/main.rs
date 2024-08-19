@@ -7,7 +7,9 @@ mod spell_init;
 mod spell_actions;
 mod server;
 mod memory;
-mod paladin_rotation;
+mod job_management;
+mod rotation_paladin;
+mod rotation_gunbreaker;
 
 fn main() {
     // Force set the RUST_LOG environment variable
@@ -20,9 +22,9 @@ fn main() {
     debug!("Here come the lavender moogles!");
 
     let spell_file_path = "moogle_spell_list.xlsx";
-    let spell_book_result = spell_init::init_spell_book_from_excel(spell_file_path);
+    let character_details_result = spell_init::init_character_details_from_excel(spell_file_path);
 
-    let spell_book = match spell_book_result {
+    let character_details = match character_details_result {
         Ok(book) => Arc::new(Mutex::new(book)),
         Err(e) => {
             error!("Failed to initialize spell book: {}", e);
@@ -34,15 +36,15 @@ fn main() {
 
 
     // Thread 1: Processing Loop
-    let spell_book_clone = Arc::clone(&spell_book);
+    let character_details_clone = Arc::clone(&character_details);
     let processing_thread = thread::spawn(move || {
-        processing_loop(spell_book_clone);
+        processing_loop(character_details_clone);
     });
 
     // Thread 2: JSON Server
-    let spell_book_clone = Arc::clone(&spell_book);
+    let character_details_clone = Arc::clone(&character_details);
     let server_thread = thread::spawn(move || {
-        server::start_json_server(spell_book_clone);
+        server::start_json_server(character_details_clone);
     });
 
     // Wait for both threads to finish
@@ -50,22 +52,21 @@ fn main() {
     server_thread.join().unwrap();
 }
 
-fn processing_loop(shared_spell_book: Arc<Mutex<types::SpellBook>>) {
-    let interval = std::time::Duration::from_millis(100);
+fn processing_loop(shared_character_details: Arc<Mutex<types::CharacterDetails>>) {
+    let interval = std::time::Duration::from_millis(75);
 
     loop {
-        let current_time = chrono::Local::now();
+        // let current_time = chrono::Local::now();
         // debug!("Current time: {}", current_time.format("%Y-%m-%d %H:%M:%S"));
 
         // debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
         let start_time = std::time::Instant::now();
         
         {
-            let spell_book = shared_spell_book.lock().unwrap();
-            // Process spell_book here
-            // debug!("Updating next spell ...");
-            // Add more processing logic here as needed
-        }
+            let mut character_details = shared_character_details.lock().unwrap();
+            job_management::apply_current_job_rotation(&mut character_details);
+        } // The lock is released here when the scope ends
+
 
         let total_elapsed = start_time.elapsed();
         // debug!("Total elapsed time: {} ms", total_elapsed.as_millis());
