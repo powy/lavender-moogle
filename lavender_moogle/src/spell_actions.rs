@@ -85,6 +85,10 @@ pub fn calculate_future_time(duration_value: i32, margin_time: i32) -> DateTime<
 }
 
 pub fn apply_ressources_on_cast(job_details: &mut JobDetails, spell_details: &SpellDetails) {
+    if spell_details.stacks_a != 0
+    {
+        debug!("Applying {} stacks of A - old {} - new {}", spell_details.stacks_a, job_details.stacks_a, job_details.stacks_a + spell_details.stacks_a);
+    }
     job_details.mana += spell_details.mana;
     job_details.secondary_bar += spell_details.secondary_bar;
     job_details.tertiary_bar += spell_details.tertiary_bar;
