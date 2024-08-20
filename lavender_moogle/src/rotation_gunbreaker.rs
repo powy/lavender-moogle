@@ -52,10 +52,14 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
         // check normal GCD
         if next_spell_name == "" {
 
+        // --- CARTBRIDGE usage
+            // Note: Double down or gnashing first ? Chose double down to secure cardbridge usage
+            if should_double_down(job_details) {
+                next_spell_name = "Double Down";
 
             // -- Finish started combo
             // --- LION HEART COMBO
-            if spell_actions::is_status_active_next_gcd(job_details, "Noble Blood Ready") {
+            } else if spell_actions::is_status_active_next_gcd(job_details, "Noble Blood Ready") {
                 next_spell_name = "Noble Blood";
             } else if spell_actions::is_status_active_next_gcd(job_details, "Lion Heart Ready") {
                 next_spell_name = "Lion Heart";
@@ -68,9 +72,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
 
             // --- CARTBRIDGE usage
-            // Note: Double down or gnashing first ? Chose double down to secure cardbridge usage
-            } else if should_double_down(job_details) {
-                next_spell_name = "Double Down";
             } else if should_gnashing_fang(job_details) { 
                 next_spell_name = "Gnashing Fang";
 
@@ -83,7 +84,10 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             } else if spell_actions::is_status_active_next_gcd(job_details, "Ready to Break") {
                 next_spell_name = "Sonic Break";
 
-            // --- STANDART ROTATION
+            // -- STANDART ROTATION and Special burst strike cases
+            // // -- Fit Burst strike in the no mercy burst
+            } else if should_add_a_boom_in_the_burst(job_details) {
+                next_spell_name = "Burst Strike";
             } else if should_burst_strike_to_prevent_cartbridge_overcap(job_details) {
                 next_spell_name = "Burst Strike";
             } else if spell_actions::is_status_active_next_gcd(job_details,"Solid Barrel Ready") {
@@ -157,5 +161,13 @@ fn should_burst_strike_to_prevent_cartbridge_overcap(job_details: &mut JobDetail
     false
 }
 
-// Note: possible opti to put one more burst strike at the end of no mercy
-// note: get at 0 cartbridge when Bloodfest is coming
+// Opti suggested by guide, but makes the wound slide
+fn should_add_a_boom_in_the_burst(job_details: &mut JobDetails) -> bool {
+    // let enough_cartbridge = job_details.stacks_a >= 1;
+    // let under_no_mercy = spell_actions::is_status_active_next_gcd(job_details, "No Mercy");
+    // let end_of_no_mercy = !spell_actions::is_status_still_active_in_two_gcd(job_details, "No Mercy");
+    // return enough_cartbridge && under_no_mercy && end_of_no_mercy;
+    false
+}
+
+// note: may opti get at 0 cartbridge when Bloodfest is coming
