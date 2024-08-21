@@ -3,13 +3,14 @@ use std::thread;
 use log::{debug, error};
 
 mod types;
-mod spell_init;
-mod spell_actions;
+mod character_init;
+mod spell;
 mod server;
 mod memory;
 mod job_management;
 mod rotation_paladin;
 mod rotation_gunbreaker;
+mod rotation_summoner;
 
 fn main() {
     // Force set the RUST_LOG environment variable
@@ -22,7 +23,7 @@ fn main() {
     debug!("Here come the lavender moogles!");
 
     let spell_file_path = "moogle_spell_list.xlsx";
-    let character_details_result = spell_init::init_character_details_from_excel(spell_file_path);
+    let character_details_result = character_init::init_character_details_from_excel(spell_file_path);
 
     let character_details = match character_details_result {
         Ok(book) => Arc::new(Mutex::new(book)),

@@ -3,9 +3,10 @@
 use std::sync::{Mutex, Arc};
 use lazy_static::lazy_static;
 use log::debug;
-use crate::types::{JobDetails, CharacterDetails, reset_character_details_timestamps};
+use crate::types::{JobDetails, CharacterDetails, reset_character_status};
 use crate::rotation_paladin;
 use crate::rotation_gunbreaker;
+use crate::rotation_summoner;
 
 lazy_static! {
     static ref CURRENT_JOB: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
@@ -21,7 +22,7 @@ pub fn update_current_job(character_details: &mut CharacterDetails, new_job: &st
     if *current_job != new_job {
         debug!("changing job to {}", new_job);
         *current_job = new_job.to_string();
-        reset_character_details_timestamps(character_details);
+        reset_character_status(character_details);
     }
 }
 
@@ -31,6 +32,7 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
     match job_name {
         "PLD" => rotation_paladin::update_next_spellcast(character_details),
         "GNB" => rotation_gunbreaker::update_next_spellcast(character_details),
+        "SMN" => rotation_summoner::update_next_spellcast(character_details),
         _ => debug!("Unmanaged job {}", job_name),
     }
 }
@@ -40,6 +42,7 @@ pub fn apply_spell_additional_effects(job_name: &str, spell_name: &str, job_deta
     match job_name {
         "PLD" => rotation_paladin::apply_spell_additional_effects(spell_name, job_details),
         "GNB" => rotation_gunbreaker::apply_spell_additional_effects(spell_name, job_details),
+        "SMN" => rotation_summoner::apply_spell_additional_effects(spell_name, job_details),
         _ => debug!("Unmanaged job {}", job_name),
     }
 }

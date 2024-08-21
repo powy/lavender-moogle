@@ -60,7 +60,7 @@ pub fn activate_status(job_details: &mut JobDetails, spell_name: &str, margin_ti
 
 pub fn deactivate_status(job_details: &mut JobDetails, spell_name: &str) {
     if let Some(spell_details) = job_details.get_spell(spell_name) {
-        spell_details.active_until = calculate_future_time(-100, 0);
+        spell_details.active_until = calculate_future_time(-1000, 0);
         debug!("Status {} deactivated", spell_name);
     } else {
         error!("Effect to deactivate {} not found in spell book", spell_name);

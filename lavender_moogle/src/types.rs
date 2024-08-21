@@ -49,10 +49,15 @@ impl JobDetails {
 // Type alias for a dictionary of dictionaries
 pub type CharacterDetails = HashMap<String, JobDetails>;
 
-pub fn reset_character_details_timestamps(character_details: &mut CharacterDetails) {
+pub fn reset_character_status(character_details: &mut CharacterDetails) {
     let now_minus_500ms = Utc::now() - Duration::milliseconds(500);
 
     for job_details in character_details.values_mut() {
+        job_details.mana = 0;
+        job_details.secondary_bar = 0;
+        job_details.tertiary_bar = 0;
+        job_details.stacks_a = 0;
+        job_details.stacks_b = 0;
         for spell in job_details.spells.values_mut() {
             spell.active_until = now_minus_500ms;
             spell.unavailable_before = now_minus_500ms;

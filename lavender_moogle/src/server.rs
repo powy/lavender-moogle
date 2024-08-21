@@ -5,7 +5,7 @@ use std::convert::Infallible;
 use log::{debug, error};
 use serde_json::Value;
 use crate::types;
-use crate::spell_actions;
+use crate::spell;
 use crate::job_management;
 
 pub fn start_json_server(shared_character_details: Arc<Mutex<types::CharacterDetails>>) {
@@ -56,10 +56,10 @@ async fn handle_request(
                     // FIXME - update current job
                     if spell_name == "reset" {
                         // Receiving reset spell, means reset all status and CD
-                        types::reset_character_details_timestamps(&mut character_details);
+                        types::reset_character_status(&mut character_details);
                     } else {
                         // Update the status following received spell, and apply rotation
-                        spell_actions::apply_spell_cast(&mut character_details, &job, &spell_name);
+                        spell::apply_spell_cast(&mut character_details, &job, &spell_name);
                         job_management::apply_current_job_rotation(&mut character_details);
                     }
                 } // The lock is released here when the scope ends

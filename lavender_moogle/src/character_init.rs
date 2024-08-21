@@ -1,4 +1,4 @@
-// spell_init.rs
+// character_init.rs
 // manage the function relatives to spell list configuration
 use calamine::{open_workbook_auto, DataType, Reader};
 use chrono::Utc;
