@@ -162,7 +162,7 @@ fn should_burst_strike_to_prevent_cartbridge_overcap(job_details: &mut JobDetail
 }
 
 // Opti suggested by guide, but makes the wound slide
-fn should_add_a_boom_in_the_burst(job_details: &mut JobDetails) -> bool {
+fn should_add_a_boom_in_the_burst(_job_details: &mut JobDetails) -> bool {
     // let enough_cartbridge = job_details.stacks_a >= 1;
     // let under_no_mercy = spell_actions::is_status_active_next_gcd(job_details, "No Mercy");
     // let end_of_no_mercy = !spell_actions::is_status_still_active_in_two_gcd(job_details, "No Mercy");
@@ -171,3 +171,7 @@ fn should_add_a_boom_in_the_burst(job_details: &mut JobDetails) -> bool {
 }
 
 // note: may opti get at 0 cartbridge when Bloodfest is coming
+
+pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {
+
+}

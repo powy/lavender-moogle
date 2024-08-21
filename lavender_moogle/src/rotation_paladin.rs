@@ -3,7 +3,7 @@
 
 use log::error;
 
-use crate::types::CharacterDetails;
+use crate::types::{CharacterDetails, JobDetails};
 use crate::spell_actions;
 use crate::memory;
 
@@ -99,4 +99,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
     } else {
         error!("JOB not found in spell book");
     }
+}
+
+pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {
+
 }

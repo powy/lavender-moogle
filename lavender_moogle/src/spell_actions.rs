@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use log::{debug, error};
 use crate::types::{SpellDetails, JobDetails, CharacterDetails};
+use crate::job_management;
 
 // Apply the affect of casting a spell - CD, new effects etc.
 pub fn apply_spell_cast(character_details: &mut CharacterDetails, job_name: &str, spell_name: &str) {
@@ -15,6 +16,7 @@ pub fn apply_spell_cast(character_details: &mut CharacterDetails, job_name: &str
             deactivate_related_status_on_cast(job_details, &spell_details);
             apply_new_status_on_cast(job_details, &spell_details);
             apply_ressources_on_cast(job_details, &spell_details);
+            job_management::apply_spell_additional_effects(job_name, spell_name, job_details);
         }
         else {
             if spell_name != "attack" {
@@ -25,6 +27,7 @@ pub fn apply_spell_cast(character_details: &mut CharacterDetails, job_name: &str
         error!("Job {} not found in spell book", job_name);
     }
 }
+
 
 pub fn apply_spell_cooldown(job_details: &mut JobDetails, spell_name: &str) {
     if let Some(spell_details) = job_details.get_spell(spell_name) {
