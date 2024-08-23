@@ -7,6 +7,7 @@ use crate::types::{JobDetails, CharacterDetails, reset_character_status};
 use crate::rotation_paladin;
 use crate::rotation_gunbreaker;
 use crate::rotation_summoner;
+use crate::rotation_scholar;
 
 lazy_static! {
     static ref CURRENT_JOB: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
@@ -33,6 +34,7 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
         "PLD" => rotation_paladin::update_next_spellcast(character_details),
         "GNB" => rotation_gunbreaker::update_next_spellcast(character_details),
         "SMN" => rotation_summoner::update_next_spellcast(character_details),
+        "SCH" => rotation_scholar::update_next_spellcast(character_details),
         _ => debug!("Unmanaged job {}", job_name),
     }
 }
@@ -43,6 +45,7 @@ pub fn apply_spell_additional_effects(job_name: &str, spell_name: &str, job_deta
         "PLD" => rotation_paladin::apply_spell_additional_effects(spell_name, job_details),
         "GNB" => rotation_gunbreaker::apply_spell_additional_effects(spell_name, job_details),
         "SMN" => rotation_summoner::apply_spell_additional_effects(spell_name, job_details),
+        "SCH" => rotation_scholar::apply_spell_additional_effects(spell_name, job_details),
         _ => debug!("Unmanaged job {}", job_name),
     }
 }

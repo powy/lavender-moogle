@@ -11,6 +11,7 @@ mod job_management;
 mod rotation_paladin;
 mod rotation_gunbreaker;
 mod rotation_summoner;
+mod rotation_scholar;
 
 fn main() {
     // Force set the RUST_LOG environment variable
@@ -54,7 +55,7 @@ fn main() {
 }
 
 fn processing_loop(shared_character_details: Arc<Mutex<types::CharacterDetails>>) {
-    let interval = std::time::Duration::from_millis(75);
+    let interval = std::time::Duration::from_millis(50);
 
     loop {
         // let current_time = chrono::Local::now();
