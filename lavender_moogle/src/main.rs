@@ -9,6 +9,7 @@ mod server;
 mod memory;
 mod job_management;
 mod rotation_paladin;
+mod rotation_dark_knight;
 mod rotation_gunbreaker;
 mod rotation_summoner;
 mod rotation_scholar;

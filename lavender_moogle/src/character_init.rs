@@ -4,6 +4,7 @@ use calamine::{open_workbook_auto, DataType, Reader};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::error::Error;
+use log::debug;
 use crate::types::{SpellDetails, CharacterDetails, JobDetails};
 
 pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDetails, Box<dyn Error>> {
@@ -115,6 +116,9 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                                 DataType::Empty => 0,  // Default to 0 if empty
                                 _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
                             };
+                            if spell_details.secondary_bar != 0  {
+                                debug!("spell : {}, secondary_bar: {}", spell_details.name, spell_details.secondary_bar);
+                            }
                         }
 
                         Some("tertiary_bar") => {
@@ -133,6 +137,10 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                                 DataType::Empty => 0,  // Default to 0 if empty
                                 _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
                             };
+                            
+                            if spell_details.stacks_a != 0  {
+                                debug!("spell : {}, stack a: {}", spell_details.name, spell_details.stacks_a);
+                            }
                         }
 
                         Some("stacks_b") => {
@@ -142,6 +150,10 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                                 DataType::Empty => 0,  // Default to 0 if empty
                                 _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
                             };
+
+                            if spell_details.stacks_b != 0  {
+                                debug!("spell : {}, stack b: {}", spell_details.name, spell_details.stacks_b);
+                            }
                         }
                                                 
                         _ => {}

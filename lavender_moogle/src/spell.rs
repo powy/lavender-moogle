@@ -88,9 +88,17 @@ pub fn calculate_future_time(duration_value: i32, margin_time: i32) -> DateTime<
 }
 
 pub fn apply_ressources_on_cast(job_details: &mut JobDetails, spell_details: &SpellDetails) {
-    if spell_details.stacks_a != 0
-    {
+    if spell_details.stacks_a != 0 {
         debug!("Applying {} stacks of A - old {} - new {}", spell_details.stacks_a, job_details.stacks_a, job_details.stacks_a + spell_details.stacks_a);
+    }
+    if spell_details.tertiary_bar != 0 {
+        debug!("Applying {} tertiary bar - old {} - new {}", spell_details.tertiary_bar, job_details.tertiary_bar, job_details.tertiary_bar + spell_details.tertiary_bar);
+    }
+    if spell_details.secondary_bar != 0 {
+        debug!("Applying {} secondary bar - old {} - new {}", spell_details.secondary_bar, job_details.secondary_bar, job_details.secondary_bar + spell_details.secondary_bar);
+    }
+    if spell_details.stacks_b != 0 {
+        debug!("Applying {} stacks of B - old {} - new {}", spell_details.stacks_b, job_details.stacks_b, job_details.stacks_b + spell_details.stacks_b);
     }
     job_details.mana += spell_details.mana;
     job_details.secondary_bar += spell_details.secondary_bar;
@@ -143,7 +151,7 @@ pub fn is_status_active_next_gcd(job_details: &mut JobDetails, spell_name: &str)
 
 // warning - hard coded value for oGCD clipping
 pub fn ogcd_end_before_next_gcd(job_details: &mut JobDetails) -> bool {
-    let ogcd_lock_duration = chrono::Duration::milliseconds(675);   
+    let ogcd_lock_duration = chrono::Duration::milliseconds(750);   
     let next_gcd_time = get_next_gcd_time(job_details);
     let expected_end_time_of_ogcd = Utc::now() + ogcd_lock_duration;
     return expected_end_time_of_ogcd < next_gcd_time;

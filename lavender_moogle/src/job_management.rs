@@ -5,6 +5,7 @@ use lazy_static::lazy_static;
 use log::debug;
 use crate::types::{JobDetails, CharacterDetails, reset_character_status};
 use crate::rotation_paladin;
+use crate::rotation_dark_knight;
 use crate::rotation_gunbreaker;
 use crate::rotation_summoner;
 use crate::rotation_scholar;
@@ -32,6 +33,7 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
     let job_name = current_job_string.as_str();
     match job_name {
         "PLD" => rotation_paladin::update_next_spellcast(character_details),
+        "DRK" => rotation_dark_knight::update_next_spellcast(character_details),
         "GNB" => rotation_gunbreaker::update_next_spellcast(character_details),
         "SMN" => rotation_summoner::update_next_spellcast(character_details),
         "SCH" => rotation_scholar::update_next_spellcast(character_details),
@@ -43,6 +45,7 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
 pub fn apply_spell_additional_effects(job_name: &str, spell_name: &str, job_details: &mut JobDetails) {
     match job_name {
         "PLD" => rotation_paladin::apply_spell_additional_effects(spell_name, job_details),
+        "DRK" => rotation_dark_knight::apply_spell_additional_effects(spell_name, job_details),
         "GNB" => rotation_gunbreaker::apply_spell_additional_effects(spell_name, job_details),
         "SMN" => rotation_summoner::apply_spell_additional_effects(spell_name, job_details),
         "SCH" => rotation_scholar::apply_spell_additional_effects(spell_name, job_details),
