@@ -190,7 +190,7 @@ fn is_lesser_summon_in_process(job_details: &mut JobDetails) -> bool {
 
 fn should_lux(job_details: &mut JobDetails) -> bool {
     let lux_available = spell::is_status_active_now(job_details, "Lux Solaris Ready");
-    let lux_will_go = ! spell::is_status_still_active_in_two_gcd(job_details, "Lux Solaris");
+    let lux_will_go = ! spell::is_status_still_active_in_two_gcd(job_details, "Lux Solaris Ready");
     return lux_available && lux_will_go;
 }
 

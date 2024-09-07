@@ -1,6 +1,6 @@
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc, Duration};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpellDetails {

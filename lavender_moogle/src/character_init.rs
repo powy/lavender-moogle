@@ -1,19 +1,25 @@
 // character_init.rs
 // manage the function relatives to spell list configuration
+use crate::types::{CharacterDetails, JobDetails, SpellDetails};
 use calamine::{open_workbook_auto, DataType, Reader};
 use chrono::Utc;
+use log::debug;
 use std::collections::HashMap;
 use std::error::Error;
-use log::debug;
-use crate::types::{SpellDetails, CharacterDetails, JobDetails};
 
-pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDetails, Box<dyn Error>> {
+pub fn init_character_details_from_excel(
+    file_path: &str,
+) -> Result<CharacterDetails, Box<dyn Error>> {
     let mut workbook = open_workbook_auto(file_path)?;
     let mut character_details: CharacterDetails = HashMap::new();
-    
+
     for sheet_name in workbook.sheet_names().to_owned() {
         if let Some(Ok(range)) = workbook.worksheet_range(&sheet_name) {
-            let headers: Vec<String> = range.rows().next().unwrap_or(&[]).iter()
+            let headers: Vec<String> = range
+                .rows()
+                .next()
+                .unwrap_or(&[])
+                .iter()
                 .map(|h| h.to_string())
                 .collect();
 
@@ -44,58 +50,66 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                     stacks_a: 0,
                     stacks_b: 0,
                 };
-                
 
                 for (col_idx, cell) in row.iter().enumerate() {
                     match headers.get(col_idx).map(|h| h.as_str()) {
-                        Some("name") => spell_details.name = cell.to_string(),
-                
+                        Some("name") => {
+                            spell_details.name = cell.to_string();
+                            debug!("spell : {}, job {}", spell_details.name, sheet_name);
+                        }
+
                         Some("modifier") => {
-                            spell_details.modifier = convert_to_char(cell.to_string());  // Default to null character if empty
+                            spell_details.modifier = convert_to_char(cell.to_string());
+                            // Default to null character if empty
                         }
-                
+
                         Some("key") => {
-                            spell_details.key = convert_to_char(cell.to_string());  // Default to null character if empty
+                            spell_details.key = convert_to_char(cell.to_string());
+                            // Default to null character if empty
                         }
-                
+
                         Some("spell_type") => spell_details.spell_type = cell.to_string(),
-                
+
                         Some("duration") => {
                             spell_details.duration = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
-                                DataType::Empty => 0,  // Default to 0 if empty
-                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                                DataType::Empty => 0, // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0), // Fallback to parsing, default to 0 on failure
                             };
                         }
-                
+
                         Some("cooldown") => {
                             spell_details.cooldown = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
-                                DataType::Empty => 0,  // Default to 0 if empty
-                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                                DataType::Empty => 0, // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0), // Fallback to parsing, default to 0 on failure
                             };
                         }
-                
+
                         Some("give_status") => {
                             if cell.is_empty() {
-                                spell_details.give_status = Vec::new();  // Set to an empty vector if the cell is empty
+                                spell_details.give_status = Vec::new(); // Set to an empty vector if the cell is empty
                             } else {
-                                spell_details.give_status = cell.to_string().split(';')
+                                spell_details.give_status = cell
+                                    .to_string()
+                                    .split(';')
                                     .map(|s| s.trim().to_string())
-                                    .filter(|s| !s.is_empty())  // Filter out any empty strings after splitting
+                                    .filter(|s| !s.is_empty()) // Filter out any empty strings after splitting
                                     .collect();
                             }
-                        }                        
-                
+                        }
+
                         Some("remove_status") => {
                             if cell.is_empty() {
-                                spell_details.remove_status = Vec::new();  // Set to an empty vector if the cell is empty
+                                spell_details.remove_status = Vec::new(); // Set to an empty vector if the cell is empty
                             } else {
-                                spell_details.remove_status = cell.to_string().split(';')
+                                spell_details.remove_status = cell
+                                    .to_string()
+                                    .split(';')
                                     .map(|s| s.trim().to_string())
-                                    .filter(|s| !s.is_empty())  // Optional: filter out any empty strings after splitting
+                                    .filter(|s| !s.is_empty()) // Optional: filter out any empty strings after splitting
                                     .collect();
                             }
                         }
@@ -104,8 +118,8 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                             spell_details.mana = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
-                                DataType::Empty => 0,  // Default to 0 if empty
-                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                                DataType::Empty => 0, // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0), // Fallback to parsing, default to 0 on failure
                             };
                         }
 
@@ -113,11 +127,14 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                             spell_details.secondary_bar = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
-                                DataType::Empty => 0,  // Default to 0 if empty
-                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                                DataType::Empty => 0, // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0), // Fallback to parsing, default to 0 on failure
                             };
-                            if spell_details.secondary_bar != 0  {
-                                debug!("spell : {}, secondary_bar: {}", spell_details.name, spell_details.secondary_bar);
+                            if spell_details.secondary_bar != 0 {
+                                debug!(
+                                    "spell : {}, secondary_bar: {}",
+                                    spell_details.name, spell_details.secondary_bar
+                                );
                             }
                         }
 
@@ -125,8 +142,8 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                             spell_details.tertiary_bar = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
-                                DataType::Empty => 0,  // Default to 0 if empty
-                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                                DataType::Empty => 0, // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0), // Fallback to parsing, default to 0 on failure
                             };
                         }
 
@@ -134,12 +151,15 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                             spell_details.stacks_a = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
-                                DataType::Empty => 0,  // Default to 0 if empty
-                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                                DataType::Empty => 0, // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0), // Fallback to parsing, default to 0 on failure
                             };
-                            
-                            if spell_details.stacks_a != 0  {
-                                debug!("spell : {}, stack a: {}", spell_details.name, spell_details.stacks_a);
+
+                            if spell_details.stacks_a != 0 {
+                                debug!(
+                                    "spell : {}, stack a: {}",
+                                    spell_details.name, spell_details.stacks_a
+                                );
                             }
                         }
 
@@ -147,21 +167,25 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
                             spell_details.stacks_b = match cell {
                                 DataType::Int(value) => *value as i32,
                                 DataType::Float(value) => *value as i32,
-                                DataType::Empty => 0,  // Default to 0 if empty
-                                _ => cell.to_string().parse().unwrap_or(0),  // Fallback to parsing, default to 0 on failure
+                                DataType::Empty => 0, // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0), // Fallback to parsing, default to 0 on failure
                             };
 
-                            if spell_details.stacks_b != 0  {
-                                debug!("spell : {}, stack b: {}", spell_details.name, spell_details.stacks_b);
+                            if spell_details.stacks_b != 0 {
+                                debug!(
+                                    "spell : {}, stack b: {}",
+                                    spell_details.name, spell_details.stacks_b
+                                );
                             }
                         }
-                                                
+
                         _ => {}
                     }
                 }
 
-                // Insert the spell into the JobDetails struct HashMap
-                job_details.insert_spell(spell_details.name.clone(), spell_details);
+                if !spell_details.name.trim().is_empty() {
+                    job_details.insert_spell(spell_details.name.clone(), spell_details);
+                }
             }
 
             // Insert the JobDetails into the CharacterDetails
@@ -171,8 +195,6 @@ pub fn init_character_details_from_excel(file_path: &str) -> Result<CharacterDet
 
     Ok(character_details)
 }
-
-
 
 // Note: there is some special cases where we consider the top line going up to 12
 // This is to follow the logic of mmo mouse and typical hotbar size
@@ -192,14 +214,15 @@ fn convert_to_char(value: String) -> char {
         "10" => '0',
         "11" => ')',
         "12" => '=',
-        _ => if trimmed_value.len() == 1 {
-            trimmed_value.chars().next().unwrap_or('i')
-        } else {
-            'i'
-        },
+        _ => {
+            if trimmed_value.len() == 1 {
+                trimmed_value.chars().next().unwrap_or('i')
+            } else {
+                'i'
+            }
+        }
     }
 }
-
 
 // pub fn pretty_print_character_details(character_details: &CharacterDetails) {
 //     for (job_name, job_details) in character_details {

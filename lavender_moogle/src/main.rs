@@ -13,6 +13,7 @@ mod rotation_dark_knight;
 mod rotation_gunbreaker;
 mod rotation_summoner;
 mod rotation_scholar;
+mod rotation_dancer;
 
 fn main() {
     // Force set the RUST_LOG environment variable

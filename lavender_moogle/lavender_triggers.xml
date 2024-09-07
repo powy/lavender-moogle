@@ -1,0 +1,180 @@
+<?xml version="1.0"?>
+<TriggernometryExport PluginVersion="1.2.0.7">
+  <ExportedFolder Id="e02868ad-ab90-419d-aaad-8273a54529ea" Name="Lavender" Enabled="true">
+    <Folders>
+      <Folder FFXIVJobFilterEnabled="True" FFXIVJobFilter="262144" Id="e935cef1-4c56-425d-8fe3-f0428019e030" Name="pld" Enabled="true">
+        <Folders />
+        <Triggers>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="all spells pld" Id="ce17d1c2-d48f-481f-abe2-2a92a1b8683d" RegularExpression="^2[12]\|[^|]*\|[A-Z0-9]{8}\|(?&lt;player&gt;[^|]{2,31})\|[A-Z0-9]+\|(?&lt;spell&gt;[^|]+)\|" RefirePeriodExpression="200">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;${spell}&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;PLD&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="true" Grouping="And">
+              <ConditionSingle Enabled="true" ExpressionL="${player}" ExpressionTypeL="String" ExpressionR="${_ffxivplayer}" ExpressionTypeR="String" ConditionType="StringEqualCase" />
+            </Condition>
+          </Trigger>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="Wipe/Clear Detection" Id="8bb7fcc0-458c-4d74-a0e1-258d3c07af56" RegularExpression="^33\|[^|]*\|[A-F0-9]{8}\|4000000[3F]\|">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;reset&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;PLD&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="false" Grouping="Or" />
+          </Trigger>
+        </Triggers>
+      </Folder>
+      <Folder FFXIVJobFilterEnabled="True" FFXIVJobFilter="68719476736" Id="8c166982-802b-4d84-80fe-2df7e9ffc50a" Name="gnb" Enabled="true">
+        <Folders />
+        <Triggers>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="all spells gnb" Id="a24d119a-976f-4298-a82c-8f8c95820bac" RegularExpression="^2[12]\|[^|]*\|[A-Z0-9]{8}\|(?&lt;player&gt;[^|]{2,31})\|[A-Z0-9]+\|(?&lt;spell&gt;[^|]+)\|" RefirePeriodExpression="200">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;${spell}&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;GNB&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="true" Grouping="And">
+              <ConditionSingle Enabled="true" ExpressionL="${player}" ExpressionTypeL="String" ExpressionR="${_ffxivplayer}" ExpressionTypeR="String" ConditionType="StringEqualCase" />
+            </Condition>
+          </Trigger>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="Wipe/Clear Detection" Id="14ab1244-ec1f-427c-a6f0-383e5a96506b" RegularExpression="^33\|[^|]*\|[A-F0-9]{8}\|4000000[3F]\|">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;reset&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;GNB&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="false" Grouping="Or" />
+          </Trigger>
+        </Triggers>
+      </Folder>
+      <Folder FFXIVJobFilterEnabled="True" FFXIVJobFilter="100663296" Id="779bfd62-97be-4dee-9c03-5600e2d2f568" Name="smn" Enabled="true">
+        <Folders />
+        <Triggers>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="all spells smn" Id="80bdcda1-b2da-49a1-941d-79c07f38a939" RegularExpression="^2[12]\|[^|]*\|[A-Z0-9]{8}\|(?&lt;player&gt;[^|]{2,31})\|[A-Z0-9]+\|(?&lt;spell&gt;[^|]+)\|" RefirePeriodExpression="200">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;${spell}&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;SMN&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="true" Grouping="And">
+              <ConditionSingle Enabled="true" ExpressionL="${player}" ExpressionTypeL="String" ExpressionR="${_ffxivplayer}" ExpressionTypeR="String" ConditionType="StringEqualCase" />
+            </Condition>
+          </Trigger>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="Wipe/Clear Detection" Id="5b85439f-26a3-4931-a5b0-ffdae29e83a5" RegularExpression="^33\|[^|]*\|[A-F0-9]{8}\|4000000[3F]\|">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;reset&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;PLD&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="false" Grouping="Or" />
+          </Trigger>
+        </Triggers>
+      </Folder>
+      <Folder FFXIVJobFilterEnabled="True" FFXIVJobFilter="134217728" Id="f6450a60-bce2-4160-be65-5a7f6de8e76f" Name="sch" Enabled="true">
+        <Folders />
+        <Triggers>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="all spells sch" Id="3f83008d-5c4d-4e2c-ad95-b5c6e8b689ce" RegularExpression="^2[12]\|[^|]*\|[A-Z0-9]{8}\|(?&lt;player&gt;[^|]{2,31})\|[A-Z0-9]+\|(?&lt;spell&gt;[^|]+)\|" RefirePeriodExpression="200">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;${spell}&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;SCH&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="true" Grouping="And">
+              <ConditionSingle Enabled="true" ExpressionL="${player}" ExpressionTypeL="String" ExpressionR="${_ffxivplayer}" ExpressionTypeR="String" ConditionType="StringEqualCase" />
+            </Condition>
+          </Trigger>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="Wipe/Clear Detection" Id="08bbde70-7338-47ec-8964-b1198c68ffca" RegularExpression="^33\|[^|]*\|[A-F0-9]{8}\|4000000[3F]\|">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;reset&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;SCH&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="false" Grouping="Or" />
+          </Trigger>
+        </Triggers>
+      </Folder>
+      <Folder FFXIVJobFilterEnabled="True" FFXIVJobFilter="2147483648" Id="614cce7c-dbc7-485b-8f1d-bceb3bf12558" Name="drk" Enabled="true">
+        <Folders />
+        <Triggers>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="all spells" Id="3d03e3fd-fc00-47de-908b-88d64205112e" RegularExpression="^2[12]\|[^|]*\|[A-Z0-9]{8}\|(?&lt;player&gt;[^|]{2,31})\|[A-Z0-9]+\|(?&lt;spell&gt;[^|]+)\|" RefirePeriodExpression="200">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;${spell}&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;DRK&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="true" Grouping="And">
+              <ConditionSingle Enabled="true" ExpressionL="${player}" ExpressionTypeL="String" ExpressionR="${_ffxivplayer}" ExpressionTypeR="String" ConditionType="StringEqualCase" />
+            </Condition>
+          </Trigger>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="Wipe/Clear Detection" Id="06b13bf3-abab-40da-9443-16454ddb6a71" RegularExpression="^33\|[^|]*\|[A-F0-9]{8}\|4000000[3F]\|">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;reset&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;DRK&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="false" Grouping="Or" />
+          </Trigger>
+        </Triggers>
+      </Folder>
+      <Folder FFXIVJobFilterEnabled="True" FFXIVJobFilter="137438953472" Id="53ad4158-1b13-4e70-9de6-17c2c0731e2c" Name="dnc" Enabled="true">
+        <Folders />
+        <Triggers>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="all spells" Id="115c3bf0-b94b-42be-9ab3-319ad2f6954d" RegularExpression="^2[12]\|[^|]*\|[A-Z0-9]{8}\|(?&lt;player&gt;[^|]{2,31})\|[A-Z0-9]+\|(?&lt;spell&gt;[^|]+)\|" RefirePeriodExpression="200">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;${spell}&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;DNC&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="true" Grouping="And">
+              <ConditionSingle Enabled="true" ExpressionL="${player}" ExpressionTypeL="String" ExpressionR="${_ffxivplayer}" ExpressionTypeR="String" ConditionType="StringEqualCase" />
+            </Condition>
+            <Conditions />
+          </Trigger>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="Wipe/Clear Detection" Id="8f883545-b7a2-4eae-969a-8b471bccb6be" RegularExpression="^33\|[^|]*\|[A-F0-9]{8}\|4000000[3F]\|">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;reset&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;DNC&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="false" Grouping="Or" />
+            <Conditions />
+          </Trigger>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="Job Gauge" Id="b6543d15-ca50-47fb-999b-3b18eafed473" RegularExpression="^(?&lt;type&gt;31)\|(?&lt;timestamp&gt;[^|]*)\|(?&lt;id&gt;[^|]*)\|(?&lt;data0&gt;[^|]*)\|(?&lt;data1&gt;[^|]*)\|(?&lt;data2&gt;[^|]*)\|(?&lt;data3&gt;[^|]*)\|" RefirePeriodExpression="200">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA; &quot;spell_name&quot;: &quot;gauge&quot;,&#xD;&#xA; &quot;job&quot;: &quot;DNC&quot;,&#xD;&#xA; &quot;data0&quot;: &quot;${data0}&quot;,&#xD;&#xA; &quot;data1&quot;: &quot;${data1}&quot;,&#xD;&#xA; &quot;data2&quot;: &quot;${data2}&quot;,&#xD;&#xA; &quot;data3&quot;: &quot;${data3}&quot;&#xD;&#xA;}&#xD;&#xA;" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+              <Action OrderNumber="2" SoundRouting="None" TTSRouting="None" Enabled="False">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="false" Grouping="Or" />
+            <Conditions />
+          </Trigger>
+          <Trigger Enabled="true" Source="FFXIVNetwork" Name="Some Buffs" Id="36df15bb-5d17-4a11-b275-e5086f0542c8" RegularExpression="^(?&lt;type&gt;26)\|(?&lt;timestamp&gt;[^|]*)\|(?&lt;effectId&gt;[^|]*)\|(?&lt;effect&gt;[^|]*)\|(?&lt;duration&gt;[^|]*)\|(?&lt;sourceId&gt;[^|]*)\|(?&lt;source&gt;[^|]*)\|(?&lt;targetId&gt;[^|]*)\|(?&lt;target&gt;[^|]*)\|(?&lt;count&gt;[^|]*)\|(?&lt;targetMaxHp&gt;[^|]*)\|(?&lt;sourceMaxHp&gt;[^|]*)\|" RefirePeriodExpression="200">
+            <Actions>
+              <Action OrderNumber="1" JsonEndpointExpression="http://127.0.0.1:50017" JsonPayloadExpression="{&#xD;&#xA;    &quot;spell_name&quot;: &quot;buff&quot;,&#xD;&#xA;    &quot;job&quot;: &quot;DNC&quot;,&#xD;&#xA;    &quot;buff_name&quot;: &quot;${effect}&quot;&#xD;&#xA;}" SoundRouting="None" TTSRouting="None" ActionType="GenericJson">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+              <Action OrderNumber="2" SystemBeepFreqExpression="700" SoundRouting="None" TTSRouting="None">
+                <Condition Enabled="false" Grouping="Or" />
+              </Action>
+            </Actions>
+            <Condition Enabled="true" Grouping="And">
+              <ConditionSingle Enabled="true" ExpressionL="${target}" ExpressionTypeL="String" ExpressionR="${_ffxivplayer}" ExpressionTypeR="String" ConditionType="StringEqualCase" />
+              <ConditionGroup Enabled="true" Grouping="Or">
+                <ConditionSingle Enabled="true" ExpressionL="${effect}" ExpressionTypeL="String" ExpressionR="Silken Symmetry" ExpressionTypeR="String" ConditionType="StringEqualNocase" />
+                <ConditionSingle Enabled="true" ExpressionL="${effect}" ExpressionTypeL="String" ExpressionR="Threefold Fan Dance" ExpressionTypeR="String" ConditionType="StringEqualNocase" />
+                <ConditionSingle Enabled="true" ExpressionL="${effect}" ExpressionTypeL="String" ExpressionR="Fourfold Fan Dance" ExpressionTypeR="String" ConditionType="StringEqualNocase" />
+                <ConditionSingle Enabled="true" ExpressionL="${effect}" ExpressionTypeL="String" ExpressionR="Silken Flow" ExpressionTypeR="String" ConditionType="StringEqualNocase" />
+              </ConditionGroup>
+            </Condition>
+            <Conditions />
+          </Trigger>
+        </Triggers>
+      </Folder>
+    </Folders>
+    <Triggers />
+  </ExportedFolder>
+</TriggernometryExport>

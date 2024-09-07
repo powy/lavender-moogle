@@ -73,16 +73,27 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
                 next_spell_name = "Blade of Valor";
             } else if spell::is_status_active_next_gcd(job_details, "Goring Blade Ready") {
                 next_spell_name = "Goring Blade";
-            } else if spell::is_status_active_next_gcd(job_details, "Sepulchre Ready") {
+            // USe sepulchre combo asap if in buff, otherwise delay it
+            } else if spell::is_status_active_next_gcd(job_details, "Sepulchre Ready")
+                && spell::is_status_active_next_gcd(job_details, "Fight or Flight Buff") {
                 next_spell_name = "Sepulchre";
-            } else if spell::is_status_active_next_gcd(job_details, "Supplication Ready") {
+            } else if spell::is_status_active_next_gcd(job_details, "Supplication Ready")
+                    && spell::is_status_active_next_gcd(job_details, "Fight or Flight Buff") {
                 next_spell_name = "Supplication";
-            } else if spell::is_status_active_next_gcd(job_details, "Atonement Ready") {
+            } else if spell::is_status_active_next_gcd(job_details, "Atonement Ready")
+                    && spell::is_status_active_next_gcd(job_details, "Fight or Flight Buff") {
                 next_spell_name = "Atonement";
             } else if spell::is_status_active_next_gcd(job_details,"Royal Authority Ready") {
                 // Special case: Holy spirit only if it will disappear by royal authority
                 // Ortherwise it is kept as long as possible for mobility uptime
-                if spell::is_status_active_next_gcd(job_details,"Divine Might") {
+                // Same, keep Sepulchre as long as possible to maxmize strong gcd in burst
+                if spell::is_status_active_next_gcd(job_details, "Sepulchre Ready") {
+                    next_spell_name = "Sepulchre";
+                } else if spell::is_status_active_next_gcd(job_details, "Supplication Ready") {
+                    next_spell_name = "Supplication";
+                } else if spell::is_status_active_next_gcd(job_details, "Atonement Ready") {
+                    next_spell_name = "Atonement";
+                } else if spell::is_status_active_next_gcd(job_details,"Divine Might") {
                     next_spell_name = "Holy Spirit";
                 } else {
                     next_spell_name = "Royal Authority";
