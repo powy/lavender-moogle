@@ -6,19 +6,9 @@ use log::{debug, error};
 // Apply the new buff to the character
 pub fn apply_new_buff(character_details: &mut CharacterDetails, job_name: &str, buff_name: &str) {
     if let Some(job_details) = character_details.get_mut(job_name) {
-        debug!("=================Applying new buff: {}", buff_name);
+        debug!("Directly applying new buff: {}", buff_name);
         activate_status(job_details, buff_name, 0);
     }
-
-    // if let Some(job_details) = character_details.get_mut(job_name) {
-    //     if let Some(spell_details) = job_details.get_spell_mut(buff_name) {
-    //         spell_details.active_until = calculate_future_time(spell_details.duration, 0);
-    //         debug!(
-    //             "Buff {} activated for {} milliseconds, until {}",
-    //             buff_name, spell_details.cooldown, spell_details.active_until
-    //         );
-    //     }
-    // }
 }
 
 // Apply the affect of casting a spell - CD, new effects etc.
@@ -233,4 +223,12 @@ pub fn is_status_expiring(job_details: &mut JobDetails, status_name: &str) -> bo
     let is_status_still_active_in_two_gcd =
         is_status_still_active_in_two_gcd(job_details, status_name);
     return status_active && !is_status_still_active_in_two_gcd;
+}
+
+pub fn is_status_active_in(job_details: &mut JobDetails, spell_name: &str, duration: i32) -> bool {
+    let calculated_time = Utc::now() + chrono::Duration::milliseconds(duration.into());
+    if let Some(spell_details) = job_details.get_spell(spell_name) {
+        return spell_details.active_until > calculated_time;
+    }
+    return false;
 }

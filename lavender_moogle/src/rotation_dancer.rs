@@ -5,6 +5,7 @@ use log::{debug, error};
 
 use crate::memory;
 use crate::spell;
+use crate::spell::spell_will_be_available_soon;
 use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
@@ -29,22 +30,56 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             next_spell_name = get_next_step(job_details, "Technical Finish");
         }
 
-        // oGCD - No clipping?
-        if next_spell_name == "" && spell::ogcd_end_before_next_gcd(job_details) {
-            // In Burst
-            if spell::is_status_active_now(job_details, "Devilement Buff") {
-                next_spell_name = "";
-            } else
-            // Classical no buff
+        // Devilment - do not avoid clipping
+        // Due to tech step "special" category
+        if spell::is_spell_available_now(job_details, "Devilment")
+            && spell::is_status_active_now(job_details, "Technical Finish Buff")
+        {
+            next_spell_name = "Devilment";
+        }
 
+        // oGCD - No clipping?
+        // In Burst
+        if next_spell_name == ""
+            && spell::ogcd_end_before_next_gcd(job_details)
+            && spell::is_status_active_now(job_details, "Devilment Buff")
+        {
+            if spell::is_spell_available_now(job_details, "Flourish")
+                && !spell::is_status_active_now(job_details, "Threefold Fan Dance")
+            {
+                next_spell_name = "Flourish";
+            } else
             // Dance 3 proc
             if spell::is_status_active_now(job_details, "Threefold Fan Dance") {
                 next_spell_name = "Fan Dance III";
             } else
+            // Dance 4
+            if spell::is_status_active_now(job_details, "Fourfold Fan Dance") {
+                next_spell_name = "Fan Dance IV";
+            } else
+            // Spend Dance 1
+            if job_details.stacks_a >= 1 {
+                next_spell_name = "Fan Dance";
+            }
+        }
+
+        // oGCD - No clipping?
+        // Classical no buff
+        if next_spell_name == "" && spell::ogcd_end_before_next_gcd(job_details) {
+            // Dance 3 proc
+            if spell::is_status_active_now(job_details, "Threefold Fan Dance") {
+                next_spell_name = "Fan Dance III";
+            } else
+            // Dance 4
+            if spell::is_status_active_now(job_details, "Fourfold Fan Dance") {
+                next_spell_name = "Fan Dance IV";
+            } else
             // Flourish out of buff
-            if !spell::spell_will_be_available_soon(job_details, "Devilement", 45000) // Not before burst
+            if spell::is_spell_available_now(job_details, "Flourish")
+                && !spell::spell_will_be_available_soon(job_details, "Devilment", 45000) // Not before burst
                 && !spell::is_status_active_now(job_details, "Silken Symmetry")
                 && !spell::is_status_active_now(job_details, "Silken Flow")
+                && !spell::is_status_active_now(job_details, "Threefold Fan Dance")
             {
                 next_spell_name = "Flourish";
             } else
@@ -59,17 +94,42 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
         // No oGCD selected, prepare next GCD
 
-        // check burst GCD
-        // if next_spell_name == ""
-        //     && spell::is_status_active_next_gcd(job_details, "2m Burst")
-        //     && spell::is_status_active_next_gcd(job_details, "1m Burst")
-        // {
-        //         if spell::is_status_active_next_gcd(job_details, "Scorn") {
-        //             next_spell_name = "Disesteem";
-        //         } else if job_details.secondary_bar >= 50 {
-        //             next_spell_name = "Bloodspiller";
-        //         }
-        // }
+        // Start the burst Window
+        // Tech step to go into burst
+        if next_spell_name == ""
+            && !spell::is_status_active_next_gcd(job_details, "Technical Step on CD")
+        {
+            next_spell_name = "Technical Step";
+        }
+
+        // No overcap on Esprit
+        if next_spell_name == "" && job_details.secondary_bar >= 90 {
+            next_spell_name = "Saber Dance";
+        }
+
+        // Start the burst Window
+        // HOLD stand step if 6s or less before tech step
+        if next_spell_name == ""
+            && !spell::is_status_active_next_gcd(job_details, "Standard Step on CD")
+            && spell::is_status_active_in(job_details, "Technical Step on CD", 7000)
+        {
+            next_spell_name = "Standard Step";
+        }
+
+        // check burst special treatment GCD
+        // Note: wait for active Devilment before going into more big spells
+        if next_spell_name == "" && spell::is_status_active_next_gcd(job_details, "Devilment Buff")
+        {
+            if spell::is_status_active_next_gcd(job_details, "Flourishing Starfall") {
+                next_spell_name = "Starfall Dance";
+            } else if spell::is_status_active_next_gcd(job_details, "Flourishing Finish")
+                && job_details.secondary_bar <= 50
+            {
+                next_spell_name = "Tillana";
+            } else if job_details.secondary_bar >= 50 {
+                next_spell_name = "Saber Dance";
+            }
+        }
 
         // check standart GCD
         // Not in burst window - avoid overcap blood or classic combo
@@ -79,6 +139,10 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
                 next_spell_name = "Fountainfall";
             } else if spell::is_status_active_next_gcd(job_details, "Silken Symmetry") {
                 next_spell_name = "Reverse Cascade";
+            } else
+            // Follow up dance
+            if spell::is_status_active_next_gcd(job_details, "Last Dance Ready") {
+                next_spell_name = "Last Dance";
             } else
             // Basic Combo
             if spell::is_status_active_next_gcd(job_details, "Fountain Ready") {
@@ -110,14 +174,14 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
         .collect();
 
     let feathers: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
-    let spirit: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
+    let esprit: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
     let step1: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
     let step2: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
     let step3: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
     let step4: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
     let current_step: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
 
-    job_details.secondary_bar = spirit;
+    job_details.secondary_bar = esprit;
     job_details.stacks_a = feathers; // Stacks_a is feathers in DNC job
     job_details.stacks_b = match current_step {
         0 => step1,
@@ -128,15 +192,6 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
             0 // Default value if current_step is not 1, 2, 3, or 4
         }
     };
-
-    debug!(
-        "feathers: {}, spirit: {}, step1: {}, step2: {}, step3: {}, step4: {}, current_step: {}",
-        feathers, spirit, step1, step2, step3, step4, current_step
-    );
-    debug!(
-        "job details: bar {} feathers {} next step {}",
-        job_details.secondary_bar, job_details.stacks_a, job_details.stacks_b
-    );
 }
 
 // Determine the next step to cast while in a dance

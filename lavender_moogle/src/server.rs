@@ -39,10 +39,8 @@ async fn handle_request(
     if req.method() == hyper::Method::POST {
         let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
 
-        debug!("================= received json: ");
         // Attempt to parse the JSON
         if let Ok(data) = serde_json::from_slice::<Value>(&whole_body) {
-            debug!("================= OK json: ");
             // Check if the required fields "spell_name" and "job" are present
             if let (Some(spell_name), Some(job)) = (data.get("spell_name"), data.get("job")) {
                 // Assign values to variables
@@ -62,8 +60,6 @@ async fn handle_request(
                     } else if spell_name == "gauge" {
                         handle_gauge(&data, &mut character_details, &job);
                     } else if spell_name == "buff" {
-                        debug!("================= received buff: ");
-
                         if let Some(buff_name) = data.get("buff_name").and_then(|v| v.as_str()) {
                             spell::apply_new_buff(&mut character_details, &job, buff_name);
                         }

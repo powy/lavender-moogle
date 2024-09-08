@@ -1,15 +1,15 @@
 // job_management.rs
 // save current job and apply the right rotation
-use std::sync::{Mutex, Arc};
-use lazy_static::lazy_static;
-use log::debug;
-use crate::types::{JobDetails, CharacterDetails, reset_character_status};
-use crate::rotation_paladin;
+use crate::rotation_dancer;
 use crate::rotation_dark_knight;
 use crate::rotation_gunbreaker;
-use crate::rotation_summoner;
+use crate::rotation_paladin;
 use crate::rotation_scholar;
-use crate::rotation_dancer;
+use crate::rotation_summoner;
+use crate::types::{reset_character_status, CharacterDetails, JobDetails};
+use lazy_static::lazy_static;
+use log::debug;
+use std::sync::{Arc, Mutex};
 
 lazy_static! {
     static ref CURRENT_JOB: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
@@ -39,12 +39,15 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
         "SMN" => rotation_summoner::update_next_spellcast(character_details),
         "SCH" => rotation_scholar::update_next_spellcast(character_details),
         "DNC" => rotation_dancer::update_next_spellcast(character_details),
-        _ => {},
+        _ => {}
     }
 }
 
-
-pub fn apply_spell_additional_effects(job_name: &str, spell_name: &str, job_details: &mut JobDetails) {
+pub fn apply_spell_additional_effects(
+    job_name: &str,
+    spell_name: &str,
+    job_details: &mut JobDetails,
+) {
     match job_name {
         "PLD" => rotation_paladin::apply_spell_additional_effects(spell_name, job_details),
         "DRK" => rotation_dark_knight::apply_spell_additional_effects(spell_name, job_details),
@@ -52,18 +55,26 @@ pub fn apply_spell_additional_effects(job_name: &str, spell_name: &str, job_deta
         "SMN" => rotation_summoner::apply_spell_additional_effects(spell_name, job_details),
         "SCH" => rotation_scholar::apply_spell_additional_effects(spell_name, job_details),
         "DNC" => rotation_dancer::apply_spell_additional_effects(spell_name, job_details),
-        _ => {},
+        _ => {}
     }
 }
 
-pub fn update_job_gauge(character_details: &mut CharacterDetails, job_name: &str, raw_data0: &str, raw_data1: &str, raw_data2: &str, raw_data3: &str) {
-
+pub fn update_job_gauge(
+    character_details: &mut CharacterDetails,
+    job_name: &str,
+    raw_data0: &str,
+    raw_data1: &str,
+    raw_data2: &str,
+    raw_data3: &str,
+) {
     if let Some(job_details) = character_details.get_mut(job_name) {
-
         // Function to reorder characters using an index pattern
         fn reorder(data: &str) -> String {
             let pattern = [6, 7, 4, 5, 2, 3, 0, 1];
-            pattern.iter().map(|&i| data.chars().nth(i).unwrap()).collect()
+            pattern
+                .iter()
+                .map(|&i| data.chars().nth(i).unwrap())
+                .collect()
         }
 
         // Format and reorder each data string
@@ -76,11 +87,11 @@ pub fn update_job_gauge(character_details: &mut CharacterDetails, job_name: &str
         ]
         .concat();
 
-        debug!("Job gauge update: {}", final_data);
+        // debug!("Job gauge update: {}", final_data);
 
         match job_name {
             "DNC" => rotation_dancer::update_job_gauge(job_details, &final_data),
-            _ => {},
+            _ => {}
         }
     }
 }
