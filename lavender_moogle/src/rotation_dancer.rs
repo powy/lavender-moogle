@@ -1,11 +1,10 @@
 // rotation_dancer.rs
 // Rotation logic for dancer job
 
-use log::{debug, error};
+use log::error;
 
 use crate::memory;
 use crate::spell;
-use crate::spell::spell_will_be_available_soon;
 use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
@@ -36,6 +35,21 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             && spell::is_status_active_now(job_details, "Technical Finish Buff")
         {
             next_spell_name = "Devilment";
+        }
+
+        // Early dancing to avoid drifting
+        // Start the burst Window
+        // Tech step to go into burst
+        if !spell::is_status_active_in(job_details, "Technical Step on CD", 1250) {
+            next_spell_name = "Technical Step";
+        }
+
+        // Normal dance
+        // HOLD stand step if 6s or less before tech step
+        // Hold if finishing move available (last dance) Should happen only during burst
+        // Hold if Flourish to have instant one
+        if next_spell_name == "" && should_standard_step(job_details) {
+            next_spell_name = "Standard Step";
         }
 
         // oGCD - No clipping?
@@ -76,9 +90,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             } else
             // Flourish out of buff
             if spell::is_spell_available_now(job_details, "Flourish")
-                && !spell::spell_will_be_available_soon(job_details, "Devilment", 45000) // Not before burst
-                && !spell::is_status_active_now(job_details, "Silken Symmetry")
-                && !spell::is_status_active_now(job_details, "Silken Flow")
+                && !spell::spell_will_be_available_soon(job_details, "Devilment", 30000) // Not before burst
+                // && !spell::is_status_active_now(job_details, "Silken Symmetry")
+                // && !spell::is_status_active_now(job_details, "Silken Flow")
                 && !spell::is_status_active_now(job_details, "Threefold Fan Dance")
             {
                 next_spell_name = "Flourish";
@@ -94,33 +108,19 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
         // No oGCD selected, prepare next GCD
 
-        // Start the burst Window
-        // Tech step to go into burst
-        if next_spell_name == ""
-            && !spell::is_status_active_next_gcd(job_details, "Technical Step on CD")
-        {
-            next_spell_name = "Technical Step";
-        }
-
         // No overcap on Esprit
-        if next_spell_name == "" && job_details.secondary_bar >= 90 {
+        if next_spell_name == "" && job_details.secondary_bar >= 80 {
             next_spell_name = "Saber Dance";
-        }
-
-        // Start the burst Window
-        // HOLD stand step if 6s or less before tech step
-        if next_spell_name == ""
-            && !spell::is_status_active_next_gcd(job_details, "Standard Step on CD")
-            && spell::is_status_active_in(job_details, "Technical Step on CD", 7000)
-        {
-            next_spell_name = "Standard Step";
         }
 
         // check burst special treatment GCD
         // Note: wait for active Devilment before going into more big spells
         if next_spell_name == "" && spell::is_status_active_next_gcd(job_details, "Devilment Buff")
         {
-            if spell::is_status_active_next_gcd(job_details, "Flourishing Starfall") {
+            // First use the
+            if spell::is_status_active_next_gcd(job_details, "Last Dance Ready") {
+                next_spell_name = "Last Dance";
+            } else if spell::is_status_active_next_gcd(job_details, "Flourishing Starfall") {
                 next_spell_name = "Starfall Dance";
             } else if spell::is_status_active_next_gcd(job_details, "Flourishing Finish")
                 && job_details.secondary_bar <= 50
@@ -193,6 +193,44 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
         }
     };
 }
+
+fn should_standard_step(job_details: &mut JobDetails) -> bool {
+    let standart_available: bool =
+        !spell::is_status_active_in(job_details, "Standard Step on CD", 1250);
+    let technical_soon: bool =
+        !spell::is_status_active_in(job_details, "Technical Step on CD", 7000);
+    let last_dance_ready: bool = spell::is_status_active_now(job_details, "Last Dance Ready");
+    let flourish_soon: bool = spell::spell_will_be_available_soon(job_details, "Flourish", 5000);
+    let instant_possible: bool = spell::is_status_active_now(job_details, "Finishing Move Ready");
+    let devilment_running: bool = spell::is_status_active_now(job_details, "Devilment Buff");
+
+    if standart_available {
+        // We have instant proc, not in burst, use
+        if instant_possible && !devilment_running {
+            return true;
+        }
+
+        // We are in burst and expect something else before
+        if flourish_soon || last_dance_ready {
+            return false;
+        }
+
+        // Delay to not drift technical step
+        if technical_soon {
+            return false;
+        }
+
+        // normal case, use
+        return true;
+    }
+
+    return false;
+}
+
+// && !spell::is_status_active_in(job_details, "Standard Step on CD", 1250)
+// && spell::is_status_active_in(job_details, "Technical Step on CD", 7000)
+// && !spell::is_status_active_now(job_details, "Last Dance Ready")
+// && !spell::spell_will_be_available_soon(job_details, "Flourish", 6000)
 
 // Determine the next step to cast while in a dance
 fn get_next_step<'a>(job_details: &mut JobDetails, finish_spell: &'a str) -> &'a str {
