@@ -90,6 +90,7 @@ pub fn update_job_gauge(
         // debug!("Job gauge update: {}", final_data);
 
         match job_name {
+            "GNB" => rotation_gunbreaker::update_job_gauge(job_details, &final_data),
             "DNC" => rotation_dancer::update_job_gauge(job_details, &final_data),
             _ => {}
         }
