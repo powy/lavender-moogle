@@ -60,6 +60,7 @@ async fn handle_request(
                     } else if spell_name == "gauge" {
                         handle_gauge(&data, &mut character_details, &job);
                     } else if spell_name == "buff" {
+                        debug!("Received buffs !");
                         if let Some(buff_name) = data.get("buff_name").and_then(|v| v.as_str()) {
                             spell::apply_new_buff(&mut character_details, &job, buff_name);
                         }

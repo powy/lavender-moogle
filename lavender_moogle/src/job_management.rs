@@ -1,5 +1,6 @@
 // job_management.rs
 // save current job and apply the right rotation
+use crate::rotation_bard;
 use crate::rotation_dancer;
 use crate::rotation_dark_knight;
 use crate::rotation_gunbreaker;
@@ -39,6 +40,7 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
         "SMN" => rotation_summoner::update_next_spellcast(character_details),
         "SCH" => rotation_scholar::update_next_spellcast(character_details),
         "DNC" => rotation_dancer::update_next_spellcast(character_details),
+        "BRD" => rotation_bard::update_next_spellcast(character_details),
         _ => {}
     }
 }
@@ -55,6 +57,7 @@ pub fn apply_spell_additional_effects(
         "SMN" => rotation_summoner::apply_spell_additional_effects(spell_name, job_details),
         "SCH" => rotation_scholar::apply_spell_additional_effects(spell_name, job_details),
         "DNC" => rotation_dancer::apply_spell_additional_effects(spell_name, job_details),
+        "BRD" => rotation_bard::apply_spell_additional_effects(spell_name, job_details),
         _ => {}
     }
 }
@@ -92,6 +95,7 @@ pub fn update_job_gauge(
         match job_name {
             "GNB" => rotation_gunbreaker::update_job_gauge(job_details, &final_data),
             "DNC" => rotation_dancer::update_job_gauge(job_details, &final_data),
+            "BRD" => rotation_bard::update_job_gauge(job_details, &final_data),
             _ => {}
         }
     }

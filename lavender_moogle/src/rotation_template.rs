@@ -15,15 +15,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
         // update stack min / max
 
-        if job_details.stacks_a > 4 {
-            job_details.stacks_a = 4;
-        } else if job_details.stacks_a < 0 {
-            job_details.stacks_a = 0;
-        }
+        // if job_details.stacks_a > 4 {
+        //     job_details.stacks_a = 4;
+        // } else if job_details.stacks_a < 0 {
+        //     job_details.stacks_a = 0;
+        // }
 
-        // No clipping?
+        // High priority oGCD
 
-        // if spell::ogcd_end_before_next_gcd(job_details)
+        // No clipping? - oGCD
+
+        // if next_spell_name == "" && spell::ogcd_end_before_next_gcd(job_details)
         // {
 
         // }
@@ -49,10 +51,10 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
         // check standart GCD
         // Not in burst window - avoid overcap blood or classic combo
         if next_spell_name == "" {
-            if spell::is_status_active_next_gcd(job_details, "Fountain Ready") {
-                next_spell_name = "Fountain";
+            if spell::is_status_active_next_gcd(job_details, "XXX Ready") {
+                next_spell_name = "XXX";
             } else {
-                next_spell_name = "Cascade";
+                next_spell_name = "YYY";
             }
         }
         if next_spell_name != "" {
@@ -67,6 +69,10 @@ pub fn apply_spell_additional_effects(spell_name: &str, _job_details: &mut JobDe
     match spell_name {
         _ => {}
     }
+}
+
+pub fn update_job_gauge(_job_details: &mut JobDetails, _data: &str) {
+    // Placeholder for gauge updates
 }
 
 // let chunk1: u8 = u8::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
