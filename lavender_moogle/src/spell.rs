@@ -183,7 +183,7 @@ pub fn is_status_active_next_gcd(job_details: &mut JobDetails, spell_name: &str)
         let next_gcd_time = get_next_gcd_time(job_details);
         if let Some(spell_details) = job_details.get_spell(spell_name) {
             let is_active_at_scheduled_gcd = spell_details.active_until > next_gcd_time;
-            // FIXME if GCD is passed, doesn't work well
+            // WARNING if GCD is passed, doesn't work well
             return is_active_at_scheduled_gcd;
         }
     }
@@ -221,10 +221,6 @@ pub fn is_status_still_active_in_two_gcd(job_details: &mut JobDetails, spell_nam
                 let is_active_at_scheduled_2_gcd = spell_details.active_until > two_gcd_time;
                 let one_gcd_from_now = Utc::now() + gcd_duration;
                 let is_active_in_one_gcd_duration = spell_details.active_until > one_gcd_from_now;
-                let margin: chrono::TimeDelta = spell_details.active_until - two_gcd_time;
-                // error!("margin: {} ms", margin.num_milliseconds());
-                // error!("margin: is_status_still_active_in_two_gcd: {} is not active in two gcd, active until: {} > two gcd time: {}", spell_name, spell)
-                // return spell_details.active_until > two_gcd_time;
                 return is_active_at_scheduled_2_gcd && is_active_in_one_gcd_duration;
             }
         }
