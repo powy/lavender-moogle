@@ -136,8 +136,8 @@ fn should_bloodfest(job_details: &mut JobDetails) -> bool {
 }
 
 fn should_double_down(job_details: &mut JobDetails) -> bool {
-    // Default behavior - 2 cartbridge = 1 double
-    let enough_cartbridge = job_details.stacks_a >= 2;
+    // Default behavior - 1 cartbridge = 1 double
+    let enough_cartbridge = job_details.stacks_a >= 1;
     let available = spell::is_spell_available_next_gcd(job_details, "Double Down");
     let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 20000);
     return enough_cartbridge && available && !no_mercy_soon;

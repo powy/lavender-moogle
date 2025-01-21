@@ -51,6 +51,12 @@ x:: {
     execute(7, 8)
 }
 
+
+; Joy3:: {
+;     execute(1, 2)
+; }
+
+
 ; Execute the order :
 ; The modifier at index modifier_index in the shared memory
 ; With the key at key_index in the shared memory
