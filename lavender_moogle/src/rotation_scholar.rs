@@ -1,12 +1,12 @@
 // rotation_scholar.rs
 // Rotation logic for scholar job
 
-use log::error;
+use log::{debug, error};
 
-use crate::types::{CharacterDetails, JobDetails};
-use crate::spell;
 use crate::memory;
-
+use crate::spell;
+use crate::spell::is_spell_available_in_x_gcd;
+use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
     if let Some(job_details) = character_details.get_mut("SCH") {
@@ -14,8 +14,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
         // update stack min / max
         // Stack a = aetherflow
-        if job_details.stacks_a > 2 {
-            job_details.stacks_a = 2;
+        if job_details.stacks_a > 3 {
+            job_details.stacks_a = 3;
         } else if job_details.stacks_a < 0 {
             job_details.stacks_a = 0;
         }
@@ -23,27 +23,40 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
         // check oGCD
         let mut next_spell_name = "";
 
-        if spell::ogcd_end_before_next_gcd(job_details)
-        {
+        //DEBUG TEST
+
+        if spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
             if spell::is_spell_available_now(job_details, "Chain Stratagem") {
                 next_spell_name = "Chain Stratagem";
-            } else if spell::is_status_active_now(job_details, "Impact imminent") {
+            // Impact imminient is delayed because doing aetherflow is a priority
+            } else if spell::is_status_active_now(job_details, "Impact Imminent")
+                && !spell::is_spell_available_now(job_details, "Aetherflow")
+            {
                 next_spell_name = "Baneful Impaction";
+            // Drain dump before using Aethercharge
+            } else if should_dump_aether_charges(job_details) {
+                next_spell_name = "Energy Drain";
+            // Refresh charges with Aetherflow
+            } else if spell::is_spell_available_now(job_details, "Aetherflow") {
+                next_spell_name = "Aetherflow";
             }
+            // Refresh charges with drain
         }
 
-        // No oGCD selected, prepare next GCD            
+        // No oGCD selected, prepare next GCD
 
         // no check on EXPIRING GCD because not an easy occurance for this job
 
         // check normal GCD
         if next_spell_name == "" {
-
-            // big summons
-            if spell::is_spell_available_next_gcd(job_details, "Biolysis") {
+            // reset dot end of burst
+            if should_reset_dot_end_of_burst(job_details) {
                 next_spell_name = "Biolysis";
-            // lesser summons
+            // Reset Dot on time
+            } else if spell::is_spell_available_next_gcd(job_details, "Biolysis") {
+                next_spell_name = "Biolysis";
+            // Default GCD
             } else {
                 next_spell_name = "Broil IV";
             }
@@ -56,6 +69,52 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
     }
 }
 
-pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {
+fn should_dump_aether_charges(job_details: &mut JobDetails) -> bool {
+    // If there is 1 / 2 /3 GCD left, and 1 / 2 /3 charges left, we should use them
+    if job_details.stacks_a > 0 {
+        if (job_details.stacks_a >= 3) && is_spell_available_in_x_gcd(job_details, "Aetherflow", 3)
+        {
+            return true;
+        }
+        if (job_details.stacks_a >= 2) && is_spell_available_in_x_gcd(job_details, "Aetherflow", 2)
+        {
+            return true;
+        }
+        if (job_details.stacks_a >= 1) && is_spell_available_in_x_gcd(job_details, "Aetherflow", 2)
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
+// Opti suggested by guide, but makes the wound slide
+fn should_reset_dot_end_of_burst(job_details: &mut JobDetails) -> bool {
+    let dot_half_spent = !spell::is_status_active_in(job_details, "Dot", 15000); // 15s left on dot or less
+    let in_burst_next_gcd = spell::is_status_active_next_gcd(job_details, "Burst");
+    let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
+    let end_of_burst_situation = in_burst_next_gcd && !in_burst_in_2_gcd;
+
+    if end_of_burst_situation && dot_half_spent {
+        debug!("reset dot");
+    }
+
+    return end_of_burst_situation && dot_half_spent;
+}
+
+pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {}
+
+pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
+    let chunks: Vec<String> = data
+        .as_bytes() // Convert the string to a byte slice
+        .chunks(2) // Split into chunks of 2 bytes
+        .map(|chunk| String::from_utf8_lossy(chunk).to_string()) // Convert each chunk back to a String
+        .collect();
+
+    let aether_charges: i32 =
+        i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
+
+    job_details.stacks_a = aether_charges;
+
+    let _faery_gauge: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
 }

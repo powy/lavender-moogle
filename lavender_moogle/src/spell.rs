@@ -228,6 +228,33 @@ pub fn is_status_still_active_in_two_gcd(job_details: &mut JobDetails, spell_nam
     false
 }
 
+// 1 GCD = next GCD. 2 GCD = the one after etc.
+// Say if the spell is available at the exact time we go from one gcd to the next one
+pub fn is_spell_available_in_x_gcd(
+    job_details: &mut JobDetails,
+    spell_name: &str,
+    nb_gcd: i32,
+) -> bool {
+    if let Some(gcd_desciption) = job_details.get_spell("gcd unavailable") {
+        let mut next_gcd_time = gcd_desciption.active_until;
+
+        // Replace with current time if in the past
+        let now = Utc::now();
+        if next_gcd_time < now {
+            next_gcd_time = now;
+        }
+
+        let gcd_duration =
+            chrono::Duration::milliseconds(((nb_gcd - 1) * gcd_desciption.duration).into());
+        let several_gcd_time = next_gcd_time + gcd_duration;
+
+        if let Some(spell_details) = job_details.get_spell(spell_name) {
+            return spell_details.unavailable_before < several_gcd_time;
+        }
+    }
+    false
+}
+
 pub fn is_status_expiring(job_details: &mut JobDetails, status_name: &str) -> bool {
     let status_active = is_status_active_now(job_details, status_name);
     let is_status_still_active_in_two_gcd =
