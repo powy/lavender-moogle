@@ -9,6 +9,7 @@ use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
     if let Some(job_details) = character_details.get_mut("SMN") {
+        const MAX_WEAVE_NUMBER: i32 = 2;
         // update status
 
         // update stack min / max
@@ -32,7 +33,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // No clipping?
 
         // FIXME - accept some small clipping for the GNB reactional skills
-        if spell::ogcd_end_before_next_gcd(job_details) {
+        if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
             if spell::is_spell_available_now(job_details, "Searing Light") {
                 next_spell_name = "Searing Light";

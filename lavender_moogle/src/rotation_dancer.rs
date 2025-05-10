@@ -9,6 +9,7 @@ use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
     if let Some(job_details) = character_details.get_mut("DNC") {
+        const MAX_WEAVE_NUMBER: i32 = 2;
         // update status
         // check oGCD
         let mut next_spell_name = "";
@@ -55,6 +56,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // oGCD - No clipping?
         // In Burst
         if next_spell_name == ""
+            && (job_details.weaves < MAX_WEAVE_NUMBER)
             && spell::ogcd_end_before_next_gcd(job_details)
             && spell::is_status_active_now(job_details, "Devilment Buff")
         {
@@ -79,7 +81,10 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // oGCD - No clipping?
         // Classical no buff
-        if next_spell_name == "" && spell::ogcd_end_before_next_gcd(job_details) {
+        if (next_spell_name == "")
+            && (job_details.weaves < MAX_WEAVE_NUMBER)
+            && spell::ogcd_end_before_next_gcd(job_details)
+        {
             // Dance 3 proc
             if spell::is_status_active_now(job_details, "Threefold Fan Dance") {
                 next_spell_name = "Fan Dance III";
