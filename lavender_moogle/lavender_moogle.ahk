@@ -31,19 +31,26 @@ Insert:: {
 }
 
 ; Hotkeys to read from shared memory and execute the order
-x:: {
+; Browser_Search ko
+; Browser_Favorites ok
+; Browser_Refresh ok
+; Browser_Stop ok
+; Browser_Back ok
+; Browser_Forward ok
+; Browser_Home ko
+Browser_Favorites:: {
     executeRaw(0, 1)
 }
 
-!x:: {
+Browser_Refresh:: {
     executeRaw(2, 3)
 }
 
-+x:: {
+Browser_Back:: {
     executeRaw(4, 5)
 }
 
-^x:: {
+Browser_Forward:: {
     executeRaw(6, 7)
 }
 
