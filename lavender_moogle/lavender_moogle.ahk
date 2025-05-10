@@ -5,8 +5,6 @@
 ; The goal is to automate some action decision - the next action to do is written in the shared memory.
 ; On key pressing the asked keypress is simulated.
 
-; On key pressing the asked keypress is simulated.
-
 ; Define constants describing the modifier "enum" as read in the shared memory
 MODIFIER_NONE := "n"
 MODIFIER_ALT := "a"
@@ -34,48 +32,41 @@ Insert:: {
 
 ; Hotkeys to read from shared memory and execute the order
 x:: {
-    ; Use indexes 1 and 2 of the shared memory
-    execute(1, 2)
+    executeRaw(0, 1)
 }
 
 !x:: {
-    execute(3, 4)
+    executeRaw(2, 3)
 }
 
 +x:: {
-    execute(5, 6)
+    executeRaw(4, 5)
 }
 
 ^x:: {
-    execute(7, 8)
+    executeRaw(6, 7)
 }
 
-; Execute the order :
-; The modifier at index modifier_index in the shared memory
-; With the key at key_index in the shared memory
-; Indexes start at 1
-execute(modifier_index, key_index) {
-    /*
+; Execute the order using raw memory reading (byte by byte)
+; Positions are zero-based (0-7) as in Rust
+executeRaw(modifier_pos, key_pos) {
     if (!stopScript) {
-        data := mapping.Read()
-        target_modifier := GetModifierString(SubStr(data, modifier_index, 1))
-        target_key := SubStr(data, key_index, 1)
+        ; Get a raw buffer of all 8 bytes
+        buf := Buffer(8)
+        mapping.ReadToBuffer(buf)
+
+        ; Extract the specific bytes we need
+        modifier_byte := NumGet(buf, modifier_pos, "UChar")
+        key_byte := NumGet(buf, key_pos, "UChar")
+
+        ; Convert to character
+        modifier_char := Chr(modifier_byte)
+        key_char := Chr(key_byte)
+
+        ; Process the keypress
+        target_modifier := GetModifierString(modifier_char)
+
         if (target_modifier != "invalid") {
-            SendEvent(target_modifier target_key)
-            ; MsgBox "Execute:" target_modifier target_key
-        }
-        ; else {
-        ;     MsgBox "Invalid modifier" data
-        ; }
-    }
-    */
-    if (!stopScript) {
-        ; Get the action
-        data := mapping.Read()
-        target_modifier := GetModifierString(SubStr(data, modifier_index, 1))
-        target_key := SubStr(data, key_index, 1)
-        if (target_modifier != "invalid") {
-            ; Capture the state of the modifiers
             existing_modifiers := ""
             if GetKeyState("Ctrl", "P")
                 existing_modifiers .= "{Ctrl down}"
@@ -84,27 +75,43 @@ execute(modifier_index, key_index) {
             if GetKeyState("Alt", "P")
                 existing_modifiers .= "{Alt down}"
 
-            ; Release all modifiers_
             SendEvent("{Blind}{Ctrl up}{Shift up}{Alt up}")
             Sleep(1)
 
-            ; Send the desired modifier and key using the variables
             if target_modifier {
                 SendEvent("{" target_modifier " down}")
                 Sleep(1)
             }
-            SendEvent(target_key)
+            SendEvent(key_char)
             if target_modifier {
                 Sleep(1)
                 SendEvent("{" target_modifier " up}")
                 Sleep(1)
             }
 
-            ; Restore the original modifier state
             SendEvent(existing_modifiers)
             Sleep(1)
         }
     }
+}
+
+; Display full memory contents for debugging
+DumpMemory() {
+    buf := Buffer(8)
+    mapping.ReadToBuffer(buf)
+    hexStr := ""
+    charStr := ""
+
+    ; Fixed loop syntax for AutoHotkey 2
+    loop 8 {
+        i := A_Index - 1  ; Zero-based index
+        byteVal := NumGet(buf, i, "UChar")
+        hexStr .= Format("{:02X} ", byteVal)
+        ; For printable characters, show them; otherwise show a dot
+        charStr .= (byteVal >= 32 && byteVal <= 126) ? Chr(byteVal) : "."
+    }
+
+    MsgBox "Shared memory contents (8 bytes):`nHex: " hexStr "`nChar: " charStr
 }
 
 ; Functions to get the string identifier understood by AHK based on the API value
@@ -143,6 +150,7 @@ class FileMapping {
             "Int", dwSize))    ; MapViewOfFile Failed
             throw Error("Unable to map view of file")
     }
+
     Write(data, offset := 0) {
         if (this.pBuf) {
             if data is String
@@ -155,10 +163,22 @@ class FileMapping {
         } else
             throw Error("File already closed!")
     }
-    ; If a buffer object is provided then data is transferred from the file mapping to the buffer
+
+    ; The original Read method that uses StrGet (has issues with null bytes)
     Read(buffer?, offset := 0, size?) => IsSet(buffer) ? DllCall("RtlCopyMemory", "ptr", buffer, "ptr", this.pBuf +
         offset, "int", Min(buffer.size, this.BUF_SIZE - offset, size ?? this.BUF_SIZE - offset)) : StrGet(this.pBuf +
             offset, size ?? this.BUF_SIZE - offset, "CP0")
+
+    ; reads directly into a buffer without string interpretation
+    ReadToBuffer(buf, offset := 0) {
+        if (this.pBuf) {
+            DllCall("RtlCopyMemory", "ptr", buf, "ptr", this.pBuf + offset, "int", Min(buf.Size, this.BUF_SIZE - offset
+            ))
+            return buf.Size
+        } else
+            throw Error("File already closed!")
+    }
+
     Close() {
         DllCall("UnmapViewOfFile", "Ptr", this.pBuf), DllCall("CloseHandle", "Ptr", this.hMapFile)
         this.szName := "", this.BUF_SIZE := "", this.hMapFile := "", this.pBuf := ""

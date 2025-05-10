@@ -41,12 +41,19 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             } else if spell::is_status_active_now(job_details, "Searing Light Buff")
                 && job_details.stacks_a > 0
             {
-                next_spell_name = "Necrotize";
+                if aoe {
+                    next_spell_name = "Painflare";
+                } else {
+                    next_spell_name = "Necrotize";
+                }
             } else if spell::is_spell_available_now(job_details, "Energy Drain")
                 && job_details.stacks_a <= 0
             {
-                next_spell_name = "Energy Drain";
-
+                if aoe {
+                    next_spell_name = "Energy Siphon";
+                } else {
+                    next_spell_name = "Energy Drain";
+                }
             // -- Summons special actions
             } else if spell::is_status_active_now(job_details, "Mountain Buster Ready") {
                 next_spell_name = "Mountain Buster";
@@ -77,8 +84,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             } else if !spell::is_status_active_next_gcd(job_details, "Big Summon Cooldown") {
                 next_spell_name = "Summon Bahamut";
             } else if in_big_primal_phase_next_gcd(job_details) {
-                next_spell_name = "Ruin III";
-
+                if aoe {
+                    next_spell_name = "Tri-disaster";
+                } else {
+                    next_spell_name = "Ruin III";
+                }
             // lesser summons
             } else if spell::is_status_active_next_gcd(job_details, "Titan Ready")
                 && !is_lesser_summon_in_process(job_details)
@@ -105,7 +115,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
             // Attenument usage - same for all lesser summons
             } else if job_details.stacks_b > 0 {
-                next_spell_name = "Gemshine";
+                if aoe {
+                    next_spell_name = "Precious Brilliance";
+                } else {
+                    next_spell_name = "Gemshine";
+                }
 
             // hard-casted slipstream
             } else if spell::is_status_active_next_gcd(job_details, "Slipstream Ready") {
@@ -114,7 +128,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             } else if spell::is_status_active_next_gcd(job_details, "Further Ruin") {
                 next_spell_name = "Ruin IV";
             } else {
-                next_spell_name = "Ruin III";
+                if aoe {
+                    next_spell_name = "Tri-disaster";
+                } else {
+                    next_spell_name = "Ruin III";
+                }
             }
         }
         if next_spell_name != "" {

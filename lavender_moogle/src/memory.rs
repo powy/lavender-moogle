@@ -105,22 +105,19 @@ pub fn initialize_or_reset_shared_memory() -> Result<(), String> {
 // transfer the keybinding of a spell to the shared memory
 // Expected positions:
 // 0 = n (standard)
-// 1 = a (maybe "no burst" or alternative)
-// 2 = s (Maybe "AOE")
-// 3 = c (maybe "AOE" + "no burst" or alternative)
+// 1 = a (alternative)
+// 2 = s (AOE)
+// 3 = c (AOE + alternative)
 pub fn populate_shared_memory(
     spell: SpellDetails,
     spellcast_type: SpellcastType,
 ) -> Result<(), String> {
-    // debug!("Spellcast Type: {:?}", spellcast_type);
-
     let position = spellcast_type.to_position();
 
     if position > 3 {
         eprintln!("Invalid position {}: must be between 0 and 3", position);
         return Ok(()); // Do nothing, but not an error in the Result
     }
-
     let _lock = MMAP_MUTEX.lock().unwrap();
     let shared_handle = SHARED_MEMORY_HANDLE.lock().unwrap();
 

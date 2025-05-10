@@ -37,17 +37,11 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
     // Define a function to handle the job rotations
     let update_rotation = |update_fn: fn(&mut CharacterDetails, bool, bool),
                            character_details: &mut CharacterDetails| {
-        // debug!("Calling update_fn with (false, false)");
         update_fn(character_details, false, false);
-
-        // debug!("Calling update_fn with (true, false)");
         update_fn(character_details, true, false);
-
-        // debug!("Calling update_fn with (false, true)");
-        update_fn(character_details, false, true);
-
-        // debug!("Calling update_fn with (true, true)");
-        update_fn(character_details, true, true);
+        // Dead code because no Altenate spell in rotation yet
+        // update_fn(character_details, false, true);
+        // update_fn(character_details, true, true);s
     };
 
     match job_name {
