@@ -18,7 +18,14 @@ use once_cell::sync::Lazy;
 
 use crate::types::{JobDetails, SpellDetails, SpellcastType};
 
-static NEXT_SPELL_STR: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
+static NEXT_SPELL_STR_MONO_STANDARD: Lazy<Mutex<String>> =
+    Lazy::new(|| Mutex::new(String::from("none")));
+static NEXT_SPELL_STR_MONO_ALTERNATE: Lazy<Mutex<String>> =
+    Lazy::new(|| Mutex::new(String::from("none")));
+static NEXT_SPELL_STR_AOE_STANDARD: Lazy<Mutex<String>> =
+    Lazy::new(|| Mutex::new(String::from("none")));
+static NEXT_SPELL_STR_AOE_ALTERNATE: Lazy<Mutex<String>> =
+    Lazy::new(|| Mutex::new(String::from("none")));
 
 const MEMORY_NAME: &str = "Global\\lavender_keys";
 const MEMORY_SIZE: usize = 8;
@@ -142,9 +149,20 @@ pub fn communicate_next_spellcast(
 ) {
     let spellcast_type = SpellcastType::from_flags(alternate, aoe);
     // debug!("Spellcast Type: {:?}", spellcast_type);
-    let mut saved_next_spell_name = NEXT_SPELL_STR.lock().unwrap();
+
+    let next_spell_str = match spellcast_type {
+        SpellcastType::MonoStandard => &NEXT_SPELL_STR_MONO_STANDARD,
+        SpellcastType::MonoAlternate => &NEXT_SPELL_STR_MONO_ALTERNATE,
+        SpellcastType::AoeStandard => &NEXT_SPELL_STR_AOE_STANDARD,
+        SpellcastType::AoeAlternate => &NEXT_SPELL_STR_AOE_ALTERNATE,
+    };
+
+    let mut saved_next_spell_name = next_spell_str.lock().unwrap();
     if *saved_next_spell_name != spell_name {
-        debug!("Updating next spellcast to {}", spell_name);
+        debug!(
+            "Updating next spellcast to {} with spellcast type {:?}",
+            spell_name, spellcast_type
+        );
         *saved_next_spell_name = spell_name.to_string(); // copy
         if let Some(next_spell_details) = job_details.get_spell(spell_name).cloned() {
             let _ = populate_shared_memory(next_spell_details, spellcast_type);
