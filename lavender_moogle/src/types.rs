@@ -79,3 +79,43 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
 //         }
 //     }
 // }
+
+// Spell Cast type is used to determine which type of action/rotation we are working on
+// The system allows for 4 different rotations, usable changing the modifier (alt, shift, ctrl)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum SpellcastType {
+    MonoStandard = 0,
+    MonoAlternate = 1,
+    AoeStandard = 2,
+    AoeAlternate = 3,
+}
+
+impl TryFrom<usize> for SpellcastType {
+    type Error = ();
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(SpellcastType::MonoStandard),
+            1 => Ok(SpellcastType::MonoAlternate),
+            2 => Ok(SpellcastType::AoeStandard),
+            3 => Ok(SpellcastType::AoeAlternate),
+            _ => Err(()),
+        }
+    }
+}
+
+impl SpellcastType {
+    pub fn to_position(self) -> usize {
+        self as usize
+    }
+
+    pub fn from_flags(alternate: bool, aoe: bool) -> Self {
+        match (alternate, aoe) {
+            (true, true) => Self::AoeAlternate,
+            (true, false) => Self::MonoAlternate,
+            (false, true) => Self::AoeStandard,
+            (false, false) => Self::MonoStandard,
+        }
+    }
+}

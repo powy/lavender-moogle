@@ -8,7 +8,7 @@ use crate::spell;
 use crate::spell::is_spell_available_in_x_gcd;
 use crate::types::{CharacterDetails, JobDetails};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool) {
+pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
     if let Some(job_details) = character_details.get_mut("SCH") {
         const MAX_WEAVE_NUMBER: i32 = 1;
         // update status
@@ -65,7 +65,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, next_spell_name);
+            memory::communicate_next_spellcast(job_details, next_spell_name, aoe, alternate);
         }
     } else {
         error!("JOB not found in spell book");

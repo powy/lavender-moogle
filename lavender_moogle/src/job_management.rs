@@ -33,14 +33,37 @@ pub fn update_current_job(character_details: &mut CharacterDetails, new_job: &st
 pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
     let current_job_string = get_current_job();
     let job_name = current_job_string.as_str();
+
+    // Define a function to handle the job rotations
+    let update_rotation = |update_fn: fn(&mut CharacterDetails, bool, bool),
+                           character_details: &mut CharacterDetails| {
+        // debug!("Calling update_fn with (false, false)");
+        update_fn(character_details, false, false);
+
+        // debug!("Calling update_fn with (true, false)");
+        update_fn(character_details, true, false);
+
+        // debug!("Calling update_fn with (false, true)");
+        update_fn(character_details, false, true);
+
+        // debug!("Calling update_fn with (true, true)");
+        update_fn(character_details, true, true);
+    };
+
     match job_name {
-        "PLD" => rotation_paladin::update_next_spellcast(character_details, false),
-        "DRK" => rotation_dark_knight::update_next_spellcast(character_details, false),
-        "GNB" => rotation_gunbreaker::update_next_spellcast(character_details, false),
-        "SMN" => rotation_summoner::update_next_spellcast(character_details, false),
-        "SCH" => rotation_scholar::update_next_spellcast(character_details, false),
-        "DNC" => rotation_dancer::update_next_spellcast(character_details, false),
-        "BRD" => rotation_bard::update_next_spellcast(character_details, false),
+        "PLD" => update_rotation(rotation_paladin::update_next_spellcast, character_details),
+        "DRK" => update_rotation(
+            rotation_dark_knight::update_next_spellcast,
+            character_details,
+        ),
+        "GNB" => update_rotation(
+            rotation_gunbreaker::update_next_spellcast,
+            character_details,
+        ),
+        "SMN" => update_rotation(rotation_summoner::update_next_spellcast, character_details),
+        "SCH" => update_rotation(rotation_scholar::update_next_spellcast, character_details),
+        "DNC" => update_rotation(rotation_dancer::update_next_spellcast, character_details),
+        "BRD" => update_rotation(rotation_bard::update_next_spellcast, character_details),
         _ => {}
     }
 }
