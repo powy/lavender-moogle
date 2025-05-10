@@ -3,12 +3,11 @@
 
 use log::error;
 
-use crate::types::{CharacterDetails, JobDetails};
-use crate::spell;
 use crate::memory;
+use crate::spell;
+use crate::types::{CharacterDetails, JobDetails};
 
-
-pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
+pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool) {
     if let Some(job_details) = character_details.get_mut("SMN") {
         // update status
 
@@ -33,20 +32,20 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
         // No clipping?
 
         // FIXME - accept some small clipping for the GNB reactional skills
-        if spell::ogcd_end_before_next_gcd(job_details)
-        {
+        if spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
             if spell::is_spell_available_now(job_details, "Searing Light") {
                 next_spell_name = "Searing Light";
 
             // --- Aerth charges
-            } else if spell::is_status_active_now(job_details, "Searing Light Buff") 
-                && job_details.stacks_a > 0 {
-                    next_spell_name = "Necrotize";
-
+            } else if spell::is_status_active_now(job_details, "Searing Light Buff")
+                && job_details.stacks_a > 0
+            {
+                next_spell_name = "Necrotize";
             } else if spell::is_spell_available_now(job_details, "Energy Drain")
-                && job_details.stacks_a <= 0 {
-                    next_spell_name = "Energy Drain";
+                && job_details.stacks_a <= 0
+            {
+                next_spell_name = "Energy Drain";
 
             // -- Summons special actions
             } else if spell::is_status_active_now(job_details, "Mountain Buster Ready") {
@@ -64,13 +63,12 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             }
         }
 
-        // No oGCD selected, prepare next GCD            
+        // No oGCD selected, prepare next GCD
 
         // no check on EXPIRING GCD because not an easy occurance for this job
 
         // check normal GCD
         if next_spell_name == "" {
-
             // Swiftcast has been activated for garuda
             if should_swiftcast_splitstream(job_details) {
                 next_spell_name = "Slipstream";
@@ -83,19 +81,22 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
             // lesser summons
             } else if spell::is_status_active_next_gcd(job_details, "Titan Ready")
-                && !is_lesser_summon_in_process(job_details) {
+                && !is_lesser_summon_in_process(job_details)
+            {
                 next_spell_name = "Summon Titan II";
             } else if spell::is_status_active_next_gcd(job_details, "Garuda Ready")
-                && !is_lesser_summon_in_process(job_details) {
+                && !is_lesser_summon_in_process(job_details)
+            {
                 next_spell_name = "Summon Garuda II";
             } else if spell::is_status_active_next_gcd(job_details, "Ifrit Ready")
-                && !is_lesser_summon_in_process(job_details) {
+                && !is_lesser_summon_in_process(job_details)
+            {
                 next_spell_name = "Summon Ifrit II";
 
             // Swiftcast has been activated for garuda
             } else if should_swiftcast_splitstream(job_details) {
                 next_spell_name = "Slipstream";
-            
+
             // If Crimson Stike is ready, Crimson Cyclone has been manually casted
             // And we should be in melee
             // WARNING :// Crimson Cyclone Ready and Crimson Cyclone ignored from auto mod
@@ -110,8 +111,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             } else if spell::is_status_active_next_gcd(job_details, "Slipstream Ready") {
                 next_spell_name = "Slipstream";
                 // FIXME FIXME BROKEN
-
-            } else if spell::is_status_active_next_gcd(job_details, "Further Ruin") {           
+            } else if spell::is_status_active_next_gcd(job_details, "Further Ruin") {
                 next_spell_name = "Ruin IV";
             } else {
                 next_spell_name = "Ruin III";
@@ -131,7 +131,6 @@ fn in_big_primal_phase_next_gcd(job_details: &mut JobDetails) -> bool {
         || spell::is_status_active_next_gcd(job_details, "Lightwyrm Trance");
 }
 
-
 fn in_dreadwyrm_phase(job_details: &mut JobDetails) -> bool {
     return spell::is_status_active_now(job_details, "Dreadwyrm Trance");
 }
@@ -148,8 +147,9 @@ fn should_flare(job_details: &mut JobDetails) -> bool {
     if spell::is_status_active_now(job_details, "Flare Ready") {
         if in_dreadwyrm_phase(job_details) || in_solar_phase(job_details) {
             return true;
-        } else if in_pheonix_phase(job_details) 
-            && !spell::is_status_still_active_in_two_gcd(job_details, "Firebird Trance") {
+        } else if in_pheonix_phase(job_details)
+            && !spell::is_status_still_active_in_two_gcd(job_details, "Firebird Trance")
+        {
             return true;
         }
     }
@@ -187,16 +187,15 @@ fn is_lesser_summon_in_process(job_details: &mut JobDetails) -> bool {
         || is_ifrit_in_process(job_details);
 }
 
-
 fn should_lux(job_details: &mut JobDetails) -> bool {
     let lux_available = spell::is_status_active_now(job_details, "Lux Solaris Ready");
-    let lux_will_go = ! spell::is_status_still_active_in_two_gcd(job_details, "Lux Solaris Ready");
+    let lux_will_go = !spell::is_status_still_active_in_two_gcd(job_details, "Lux Solaris Ready");
     return lux_available && lux_will_go;
 }
 
 fn should_swiftcast(job_details: &mut JobDetails) -> bool {
     let slipstream_ready = spell::is_status_active_next_gcd(job_details, "Slipstream Ready");
-    let garuda_active =  spell::is_status_active_next_gcd(job_details, "Garuda");
+    let garuda_active = spell::is_status_active_next_gcd(job_details, "Garuda");
     let swiftcast_available = spell::is_spell_available_now(job_details, "Swiftcast");
     return slipstream_ready && garuda_active && swiftcast_available;
     // return false;
@@ -204,13 +203,12 @@ fn should_swiftcast(job_details: &mut JobDetails) -> bool {
 
 fn should_swiftcast_splitstream(job_details: &mut JobDetails) -> bool {
     let slipstream_ready = spell::is_status_active_next_gcd(job_details, "Slipstream Ready");
-    let garuda_active =  spell::is_status_active_next_gcd(job_details, "Garuda");
+    let garuda_active = spell::is_status_active_next_gcd(job_details, "Garuda");
     let swiftcast_active = spell::is_status_active_next_gcd(job_details, "Swiftcast Buff");
 
     return slipstream_ready && garuda_active && swiftcast_active;
     // return false
 }
-
 
 pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
     match spell_name {
@@ -221,6 +219,6 @@ pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDet
         "Summon Bahamut" => job_details.stacks_b = 0,
         "Summon Phoenix" => job_details.stacks_b = 0,
         "Summon Solar Bahamut" => job_details.stacks_b = 0,
-        _ => {},
+        _ => {}
     }
 }

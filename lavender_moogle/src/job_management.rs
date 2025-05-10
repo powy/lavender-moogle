@@ -34,13 +34,13 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
     let current_job_string = get_current_job();
     let job_name = current_job_string.as_str();
     match job_name {
-        "PLD" => rotation_paladin::update_next_spellcast(character_details),
-        "DRK" => rotation_dark_knight::update_next_spellcast(character_details),
-        "GNB" => rotation_gunbreaker::update_next_spellcast(character_details),
-        "SMN" => rotation_summoner::update_next_spellcast(character_details),
-        "SCH" => rotation_scholar::update_next_spellcast(character_details),
-        "DNC" => rotation_dancer::update_next_spellcast(character_details),
-        "BRD" => rotation_bard::update_next_spellcast(character_details),
+        "PLD" => rotation_paladin::update_next_spellcast(character_details, false),
+        "DRK" => rotation_dark_knight::update_next_spellcast(character_details, false),
+        "GNB" => rotation_gunbreaker::update_next_spellcast(character_details, false),
+        "SMN" => rotation_summoner::update_next_spellcast(character_details, false),
+        "SCH" => rotation_scholar::update_next_spellcast(character_details, false),
+        "DNC" => rotation_dancer::update_next_spellcast(character_details, false),
+        "BRD" => rotation_bard::update_next_spellcast(character_details, false),
         _ => {}
     }
 }

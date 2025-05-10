@@ -8,8 +8,9 @@ use crate::spell;
 use crate::spell::is_spell_available_in_x_gcd;
 use crate::types::{CharacterDetails, JobDetails};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
+pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool) {
     if let Some(job_details) = character_details.get_mut("SCH") {
+        const MAX_WEAVE_NUMBER: i32 = 1;
         // update status
 
         // update stack min / max
@@ -25,7 +26,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
         //DEBUG TEST
 
-        if spell::ogcd_end_before_next_gcd(job_details) {
+        if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
             if spell::is_spell_available_now(job_details, "Chain Stratagem") {
                 next_spell_name = "Chain Stratagem";
@@ -38,7 +39,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             } else if should_dump_aether_charges(job_details) {
                 next_spell_name = "Energy Drain";
             // Refresh charges with Aetherflow
-            } else if spell::is_spell_available_now(job_details, "Aetherflow") {
+            } else if spell::is_spell_available_now(job_details, "Aetherflow")
+                && (job_details.stacks_a == 0)
+            {
                 next_spell_name = "Aetherflow";
             }
             // Refresh charges with drain
@@ -95,16 +98,14 @@ fn should_reset_dot_end_of_burst(job_details: &mut JobDetails) -> bool {
     let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
     let end_of_burst_situation = in_burst_next_gcd && !in_burst_in_2_gcd;
 
-    if end_of_burst_situation && dot_half_spent {
-        debug!("reset dot");
-    }
-
     return end_of_burst_situation && dot_half_spent;
 }
 
 pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {}
 
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
+    debug!("Updating job gauge scholar");
+
     let chunks: Vec<String> = data
         .as_bytes() // Convert the string to a byte slice
         .chunks(2) // Split into chunks of 2 bytes
@@ -117,4 +118,8 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     job_details.stacks_a = aether_charges;
 
     let _faery_gauge: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
+    debug!(
+        "Job gauge scholar updated, aether_charges = {}",
+        aether_charges
+    );
 }

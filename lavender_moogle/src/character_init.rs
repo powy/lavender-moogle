@@ -30,6 +30,7 @@ pub fn init_character_details_from_excel(
                 tertiary_bar: 0,
                 stacks_a: 0,
                 stacks_b: 0,
+                weaves: 0,
             };
 
             for row in range.rows().skip(1) {

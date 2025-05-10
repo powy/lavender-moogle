@@ -57,6 +57,10 @@ pub fn apply_gcd_on_cast(job_details: &mut JobDetails, spell_details: &SpellDeta
     if spell_details.spell_type == "GCD" {
         // Mutably borrow job_details again after the first mutable borrow has ended
         activate_status(job_details, "gcd unavailable", 0);
+        // reset weaves
+        job_details.weaves = 0;
+    } else {
+        job_details.weaves += 1;
     }
 }
 

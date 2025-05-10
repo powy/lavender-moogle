@@ -3,12 +3,11 @@
 
 use log::error;
 
-use crate::types::{CharacterDetails, JobDetails};
-use crate::spell;
 use crate::memory;
+use crate::spell;
+use crate::types::{CharacterDetails, JobDetails};
 
-
-pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
+pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool) {
     if let Some(job_details) = character_details.get_mut("DRK") {
         // update status
         // check oGCD
@@ -37,22 +36,19 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
             job_details.secondary_bar = 0;
         }
 
-
         // No clipping?
 
-        if spell::ogcd_end_before_next_gcd(job_details)
-        {
-
+        if spell::ogcd_end_before_next_gcd(job_details) {
             // === Trigger buffs
             if spell::is_spell_available_now(job_details, "Living Shadow") {
                 next_spell_name = "Living Shadow";
             } else if spell::is_spell_available_now(job_details, "Delirium") {
                 next_spell_name = "Delirium";
             }
-            
+
             // === Manage burst window
             // In delirium + clone but no immediate double weave
-            if next_spell_name == "" 
+            if next_spell_name == ""
                 && spell::is_status_active_now(job_details, "2m Burst")
                 && spell::is_status_active_now(job_details, "1m Burst")
                 && spell::spell_will_be_available_soon(job_details, "Delirium", 58000)
@@ -89,33 +85,30 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
                 {
                     next_spell_name = "Salt and Darkness";
                 } else if spell::is_spell_available_now(job_details, "Carve and Spit")
-                    && ! spell::spell_will_be_available_soon(job_details, "Delirium", 10000)
-                    && ! spell::is_status_active_now(job_details, "2m Burst")
+                    && !spell::spell_will_be_available_soon(job_details, "Delirium", 10000)
+                    && !spell::is_status_active_now(job_details, "2m Burst")
                 {
                     // If in 2m burst, use the above prioriy list instead
                     next_spell_name = "Carve and Spit";
                 } else if spell::is_spell_available_now(job_details, "Salted Earth")
-                    && ! spell::spell_will_be_available_soon(job_details, "Delirium", 10000)
-                    && ! spell::is_status_active_now(job_details, "2m Burst")
+                    && !spell::spell_will_be_available_soon(job_details, "Delirium", 10000)
+                    && !spell::is_status_active_now(job_details, "2m Burst")
                 {
                     // If in 2m burst, use the above prioriy list instead
                     // To be noted, it is usually only for the opener
                     next_spell_name = "Salted Earth";
-                } 
+                }
             }
 
             // safeguard no more EoS
-            if next_spell_name == "" 
-                && ! spell::is_status_active_now(job_details, "Recent EoS") 
-            {
+            if next_spell_name == "" && !spell::is_status_active_now(job_details, "Recent EoS") {
                 next_spell_name = "Edge of Shadow";
             }
-
         }
 
         // No oGCD selected, prepare next GCD
 
-        // check expiring GCD        
+        // check expiring GCD
         if next_spell_name == "" {
             if spell::is_status_expiring(job_details, "Souleater Ready") {
                 next_spell_name = "Souleater";
@@ -125,27 +118,27 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
         }
 
         // check burst GCD
-        if next_spell_name == "" 
+        if next_spell_name == ""
             && spell::is_status_active_next_gcd(job_details, "2m Burst")
             && spell::is_status_active_next_gcd(job_details, "1m Burst")
         {
-                if spell::is_status_active_next_gcd(job_details, "Scorn") {
-                    next_spell_name = "Disesteem";
-                } else if job_details.secondary_bar >= 50 {
-                    next_spell_name = "Bloodspiller";
-                }
+            if spell::is_status_active_next_gcd(job_details, "Scorn") {
+                next_spell_name = "Disesteem";
+            } else if job_details.secondary_bar >= 50 {
+                next_spell_name = "Bloodspiller";
+            }
         }
 
         // check standart GCD
         // Not in burst window - avoid overcap blood or classic combo
         if next_spell_name == "" {
-            if spell::is_status_active_next_gcd(job_details,"Souleater Ready") {
+            if spell::is_status_active_next_gcd(job_details, "Souleater Ready") {
                 if job_details.secondary_bar >= 70 {
                     next_spell_name = "Bloodspiller";
                 } else {
                     next_spell_name = "Souleater";
                 }
-            } else if spell::is_status_active_next_gcd(job_details, "Syphon Strike Ready") {                
+            } else if spell::is_status_active_next_gcd(job_details, "Syphon Strike Ready") {
                 next_spell_name = "Syphon Strike";
             } else {
                 next_spell_name = "Hard Slash";
@@ -161,6 +154,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
 
 pub fn apply_spell_additional_effects(spell_name: &str, _job_details: &mut JobDetails) {
     match spell_name {
-        _ => {},
+        _ => {}
     }
 }

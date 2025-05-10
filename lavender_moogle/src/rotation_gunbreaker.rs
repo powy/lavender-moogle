@@ -7,7 +7,7 @@ use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
+pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool) {
     if let Some(job_details) = character_details.get_mut("GNB") {
         // update status
 

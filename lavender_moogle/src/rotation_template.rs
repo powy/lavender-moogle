@@ -7,8 +7,9 @@ use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
+pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool) {
     if let Some(job_details) = character_details.get_mut("FIXME") {
+        const MAX_WEAVE_NUMBER: i32 = 2;
         // update status
         // check oGCD
         let mut next_spell_name = "";
@@ -24,6 +25,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails) {
         // High priority oGCD
 
         // No clipping? - oGCD
+        // if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
+        // }
 
         // if next_spell_name == "" && spell::ogcd_end_before_next_gcd(job_details)
         // {
