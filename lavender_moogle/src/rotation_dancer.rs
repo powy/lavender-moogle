@@ -75,7 +75,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             } else
             // Spend Dance 1
             if job_details.stacks_a >= 1 {
-                next_spell_name = "Fan Dance";
+                if aoe {
+                    next_spell_name = "Fan Dance II";
+                } else {
+                    next_spell_name = "Fan Dance";
+                }
             }
         }
 
@@ -141,9 +145,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         if next_spell_name == "" {
             // Basic combo procs
             if spell::is_status_active_next_gcd(job_details, "Silken Flow") {
-                next_spell_name = "Fountainfall";
+                if aoe {
+                    next_spell_name = "Bloodshower";
+                } else {
+                    next_spell_name = "Fountainfall";
+                }
             } else if spell::is_status_active_next_gcd(job_details, "Silken Symmetry") {
-                next_spell_name = "Reverse Cascade";
+                if aoe {
+                    next_spell_name = "Rising Windmill";
+                } else {
+                    next_spell_name = "Reverse Cascade";
+                }
             } else
             // Follow up dance
             if spell::is_status_active_next_gcd(job_details, "Last Dance Ready") {
@@ -151,9 +163,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             } else
             // Basic Combo
             if spell::is_status_active_next_gcd(job_details, "Fountain Ready") {
-                next_spell_name = "Fountain";
+                if aoe {
+                    next_spell_name = "Bladeshower";
+                } else {
+                    next_spell_name = "Fountain";
+                }
             } else {
-                next_spell_name = "Cascade";
+                if aoe {
+                    next_spell_name = "Windmill";
+                } else {
+                    next_spell_name = "Cascade";
+                }
             }
         }
         if next_spell_name != "" {

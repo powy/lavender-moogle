@@ -114,6 +114,7 @@ pub fn update_job_gauge(
             "DNC" => rotation_dancer::update_job_gauge(job_details, &final_data),
             "BRD" => rotation_bard::update_job_gauge(job_details, &final_data),
             "SCH" => rotation_scholar::update_job_gauge(job_details, &final_data),
+            "SMN" => rotation_summoner::update_job_gauge(job_details, &final_data),
             _ => {}
         }
     }
