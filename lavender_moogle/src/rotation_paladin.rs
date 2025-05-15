@@ -80,6 +80,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 next_spell_name = "Goring Blade";
             // USe sepulchre combo asap if in buff, otherwise delay it
             } else if aoe {
+                // Note on AOE : This will do a little mess if we missed a mob with Eclipse or Prominence
                 if spell::is_status_active_next_gcd(job_details, "Prominence Ready") {
                     if spell::is_status_active_next_gcd(job_details, "Divine Might") {
                         next_spell_name = "Holy Circle";
