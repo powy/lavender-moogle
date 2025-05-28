@@ -39,9 +39,8 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
                            character_details: &mut CharacterDetails| {
         update_fn(character_details, false, false);
         update_fn(character_details, true, false);
-        // Dead code because no Altenate spell in rotation yet
-        // update_fn(character_details, false, true);
-        // update_fn(character_details, true, true);s
+        update_fn(character_details, false, true);
+        update_fn(character_details, true, true);
     };
 
     match job_name {

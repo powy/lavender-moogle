@@ -1,7 +1,7 @@
 // rotation_scholar.rs
 // Rotation logic for scholar job
 
-use log::{debug, error};
+use log::error;
 
 use crate::memory;
 use crate::spell;
@@ -24,8 +24,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // check oGCD
         let mut next_spell_name = "";
 
-        //DEBUG TEST
-
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
             if spell::is_spell_available_now(job_details, "Chain Stratagem") {
@@ -35,16 +33,13 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 && !spell::is_spell_available_now(job_details, "Aetherflow")
             {
                 next_spell_name = "Baneful Impaction";
-            // Drain dump before using Aethercharge
-            } else if should_dump_aether_charges(job_details) {
-                next_spell_name = "Energy Drain";
-            // Refresh charges with Aetherflow
-            } else if spell::is_spell_available_now(job_details, "Aetherflow")
-                && (job_details.stacks_a == 0)
-            {
+            } else if should_aetherflow(job_details, aoe, alternate) {
+                // Refresh charges with Aetherflow
                 next_spell_name = "Aetherflow";
+            } else if should_dump_aether_charges(job_details, aoe) {
+                // Drain dump before using Aethercharge
+                next_spell_name = "Energy Drain";
             }
-            // Refresh charges with drain
         }
 
         // No oGCD selected, prepare next GCD
@@ -53,15 +48,24 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // check normal GCD
         if next_spell_name == "" {
-            // reset dot end of burst
-            if should_reset_dot_end_of_burst(job_details) {
-                next_spell_name = "Biolysis";
-            // Reset Dot on time
-            } else if spell::is_spell_available_next_gcd(job_details, "Biolysis") {
-                next_spell_name = "Biolysis";
-            // Default GCD
+            if aoe {
+                next_spell_name = "Art of War"
             } else {
-                next_spell_name = "Broil IV";
+                // reset dot end of burst
+                if should_reset_dot_end_of_burst(job_details) {
+                    next_spell_name = "Biolysis";
+                // Reset Dot on time
+                } else if spell::is_spell_available_next_gcd(job_details, "Biolysis") {
+                    next_spell_name = "Biolysis";
+                // Default GCD
+                } else {
+                    if alternate {
+                        // Alternate : movement phase - too busy for precise weaving.
+                        next_spell_name = "Ruin II"
+                    } else {
+                        next_spell_name = "Broil IV";
+                    }
+                }
             }
         }
         if next_spell_name != "" {
@@ -72,9 +76,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
     }
 }
 
-fn should_dump_aether_charges(job_details: &mut JobDetails) -> bool {
+fn should_dump_aether_charges(job_details: &mut JobDetails, aoe: bool) -> bool {
     // If there is 1 / 2 /3 GCD left, and 1 / 2 /3 charges left, we should use them
-    if job_details.stacks_a > 0 {
+    if !aoe && job_details.stacks_a > 0 {
         if (job_details.stacks_a >= 3) && is_spell_available_in_x_gcd(job_details, "Aetherflow", 3)
         {
             return true;
@@ -87,6 +91,25 @@ fn should_dump_aether_charges(job_details: &mut JobDetails) -> bool {
         {
             return true;
         }
+    }
+    return false;
+}
+
+fn should_aetherflow(job_details: &mut JobDetails, aoe: bool, alternate: bool) -> bool {
+    if spell::is_spell_available_now(job_details, "Aetherflow") {
+        // Mono target static, in burst : delay the cast to after dumping the remaining energy drains
+        // In the other cases, it is usually better not to delay its cast
+        if aoe || alternate {
+            return true;
+        } else {
+            // Not in burst - Don't wait
+            // In burst - wait for dumping the remanent charges
+            // Enable automatic gestion of dissipation opening
+            let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
+            return job_details.stacks_a == 0 || !in_burst_in_2_gcd;
+        }
+
+        // FIXME - delay use only if there is a burst
     }
     return false;
 }
@@ -104,8 +127,6 @@ fn should_reset_dot_end_of_burst(job_details: &mut JobDetails) -> bool {
 pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {}
 
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
-    debug!("Updating job gauge scholar");
-
     let chunks: Vec<String> = data
         .as_bytes() // Convert the string to a byte slice
         .chunks(2) // Split into chunks of 2 bytes
@@ -118,8 +139,4 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     job_details.stacks_a = aether_charges;
 
     let _faery_gauge: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
-    debug!(
-        "Job gauge scholar updated, aether_charges = {}",
-        aether_charges
-    );
 }

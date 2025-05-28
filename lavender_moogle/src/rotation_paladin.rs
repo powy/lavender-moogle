@@ -16,10 +16,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // No clipping?
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
-            if spell::is_spell_available_now(job_details, "Fight or Flight") {
+            if spell::is_spell_available_now(job_details, "Fight or Flight") && !alternate {
                 next_spell_name = "Fight or Flight";
             } else if spell::is_spell_available_now(job_details, "Imperator")
                 && !spell::spell_will_be_available_soon(job_details, "Fight or Flight", 10000)
+                && !alternate
             {
                 next_spell_name = "Imperator";
             } else if spell::is_spell_available_now(job_details, "Circle of Scorn") {
@@ -81,6 +82,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             // USe sepulchre combo asap if in buff, otherwise delay it
             } else if aoe {
                 // Note on AOE : This will do a little mess if we missed a mob with Eclipse or Prominence
+                // 3+ targets
                 if spell::is_status_active_next_gcd(job_details, "Prominence Ready") {
                     if spell::is_status_active_next_gcd(job_details, "Divine Might") {
                         next_spell_name = "Holy Circle";
@@ -91,6 +93,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     next_spell_name = "Total Eclipse";
                 }
             } else {
+                // Single Target
                 if spell::is_status_active_next_gcd(job_details, "Sepulchre Ready")
                     && spell::is_status_active_next_gcd(job_details, "Fight or Flight Buff")
                 {

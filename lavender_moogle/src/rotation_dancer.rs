@@ -24,7 +24,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         }
 
         // Dancing
-        if spell::is_status_active_now(job_details, "Standard Dancing") {
+        if spell::is_status_active_now(job_details, "Improvised Dancing") {
+            next_spell_name = "Improvised Finish";
+        } else if spell::is_status_active_now(job_details, "Standard Dancing") {
             next_spell_name = get_next_step(job_details, "Standard Finish");
         } else if spell::is_status_active_now(job_details, "Technical Dancing") {
             next_spell_name = get_next_step(job_details, "Technical Finish");
@@ -32,7 +34,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // Devilment - do not avoid clipping
         // Due to tech step "special" category
-        if spell::is_spell_available_now(job_details, "Devilment")
+        if next_spell_name == ""
+            && spell::is_spell_available_now(job_details, "Devilment")
             && spell::is_status_active_now(job_details, "Technical Finish Buff")
         {
             next_spell_name = "Devilment";
@@ -40,8 +43,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // Early dancing to avoid drifting
         // Start the burst Window
-        // Tech step to go into burst
-        if !spell::is_status_active_in(job_details, "Technical Step on CD", 1250) {
+        // Tech step to go into burst (unless alternate)
+        if next_spell_name == ""
+            && !alternate
+            && !spell::is_status_active_in(job_details, "Technical Step on CD", 1250)
+        {
             next_spell_name = "Technical Step";
         }
 
@@ -49,7 +55,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // HOLD stand step if 6s or less before tech step
         // Hold if finishing move available (last dance) Should happen only during burst
         // Hold if Flourish to have instant one
-        if next_spell_name == "" && should_standard_step(job_details) {
+        if next_spell_name == "" && should_standard_step(job_details, alternate) {
             next_spell_name = "Standard Step";
         }
 
@@ -219,7 +225,7 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     };
 }
 
-fn should_standard_step(job_details: &mut JobDetails) -> bool {
+fn should_standard_step(job_details: &mut JobDetails, alternate: bool) -> bool {
     let standart_available: bool =
         !spell::is_status_active_in(job_details, "Standard Step on CD", 1250);
     let technical_soon: bool =
@@ -230,6 +236,11 @@ fn should_standard_step(job_details: &mut JobDetails) -> bool {
     let devilment_running: bool = spell::is_status_active_now(job_details, "Devilment Buff");
 
     if standart_available {
+        // alternate - no delaying for burst
+        if alternate {
+            return true;
+        }
+
         // We have instant proc, not in burst, use
         if instant_possible && !devilment_running {
             return true;
@@ -241,6 +252,7 @@ fn should_standard_step(job_details: &mut JobDetails) -> bool {
         }
 
         // Delay to not drift technical step
+        // But not the case in alternate
         if technical_soon {
             return false;
         }
