@@ -320,7 +320,7 @@ pub fn is_status_finishing_before(
     return spell_1_end < spell_2_end;
 }
 
-pub fn disable_oldest_active_status(
+pub fn disable_oldest_of_2_active_status(
     job_details: &mut JobDetails,
     spell_name_1: &str,
     spell_name_2: &str,
@@ -338,4 +338,42 @@ pub fn disable_oldest_active_status(
             deactivate_status(job_details, spell_name_2);
         }
     }
+}
+
+pub fn disable_oldest_of_3_active_status(
+    job_details: &mut JobDetails,
+    spell_name_1: &str,
+    spell_name_2: &str,
+    spell_name_3: &str,
+) {
+    let spell_1_active = is_status_active_now(job_details, spell_name_1);
+    let spell_2_active = is_status_active_now(job_details, spell_name_2);
+    let spell_3_active = is_status_active_now(job_details, spell_name_3);
+
+    let mut active_spells = vec![];
+
+    if spell_1_active {
+        active_spells.push(spell_name_1);
+    }
+    if spell_2_active {
+        active_spells.push(spell_name_2);
+    }
+    if spell_3_active {
+        active_spells.push(spell_name_3);
+    }
+
+    if active_spells.len() <= 1 {
+        // Nothing to deactivate if 0 or only 1 is active
+        return;
+    }
+
+    // Find the one that finishes the earliest
+    let mut oldest = active_spells[0];
+    for &spell in &active_spells[1..] {
+        if is_status_finishing_before(job_details, spell, oldest) {
+            oldest = spell;
+        }
+    }
+
+    deactivate_status(job_details, oldest);
 }

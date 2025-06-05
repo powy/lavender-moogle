@@ -216,17 +216,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
     match spell_name {
         "Bloodshower" => {
-            spell::disable_oldest_active_status(job_details, "Silken Flow", "Flourishing Flow")
+            spell::disable_oldest_of_2_active_status(job_details, "Silken Flow", "Flourishing Flow")
         }
         "Fountainfall" => {
-            spell::disable_oldest_active_status(job_details, "Silken Flow", "Flourishing Flow")
+            spell::disable_oldest_of_2_active_status(job_details, "Silken Flow", "Flourishing Flow")
         }
-        "Rising Windmill" => spell::disable_oldest_active_status(
+        "Rising Windmill" => spell::disable_oldest_of_2_active_status(
             job_details,
             "Silken Symmetry",
             "Flourishing Symmetry",
         ),
-        "Reverse Cascade" => spell::disable_oldest_active_status(
+        "Reverse Cascade" => spell::disable_oldest_of_2_active_status(
             job_details,
             "Silken Symmetry",
             "Flourishing Symmetry",

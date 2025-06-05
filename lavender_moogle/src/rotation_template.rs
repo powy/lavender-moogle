@@ -25,7 +25,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // High priority oGCD
 
         // No clipping? - oGCD
-        // if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
+        // if (next_spell_name == "") && (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
         // }
 
         // if next_spell_name == "" && spell::ogcd_end_before_next_gcd(job_details)

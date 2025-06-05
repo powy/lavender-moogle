@@ -4,6 +4,7 @@ use crate::rotation_bard;
 use crate::rotation_dancer;
 use crate::rotation_dark_knight;
 use crate::rotation_gunbreaker;
+use crate::rotation_monk;
 use crate::rotation_paladin;
 use crate::rotation_scholar;
 use crate::rotation_summoner;
@@ -57,6 +58,7 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
         "SCH" => update_rotation(rotation_scholar::update_next_spellcast, character_details),
         "DNC" => update_rotation(rotation_dancer::update_next_spellcast, character_details),
         "BRD" => update_rotation(rotation_bard::update_next_spellcast, character_details),
+        "MNK" => update_rotation(rotation_monk::update_next_spellcast, character_details),
         _ => {}
     }
 }
@@ -74,6 +76,7 @@ pub fn apply_spell_additional_effects(
         "SCH" => rotation_scholar::apply_spell_additional_effects(spell_name, job_details),
         "DNC" => rotation_dancer::apply_spell_additional_effects(spell_name, job_details),
         "BRD" => rotation_bard::apply_spell_additional_effects(spell_name, job_details),
+        "MNK" => rotation_monk::apply_spell_additional_effects(spell_name, job_details),
         _ => {}
     }
 }
@@ -114,6 +117,7 @@ pub fn update_job_gauge(
             "BRD" => rotation_bard::update_job_gauge(job_details, &final_data),
             "SCH" => rotation_scholar::update_job_gauge(job_details, &final_data),
             "SMN" => rotation_summoner::update_job_gauge(job_details, &final_data),
+            "MNK" => rotation_monk::update_job_gauge(job_details, &final_data),
             _ => {}
         }
     }

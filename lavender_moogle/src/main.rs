@@ -13,6 +13,7 @@ mod rotation_bard;
 mod rotation_dancer;
 mod rotation_dark_knight;
 mod rotation_gunbreaker;
+mod rotation_monk;
 mod rotation_paladin;
 mod rotation_scholar;
 mod rotation_summoner;
