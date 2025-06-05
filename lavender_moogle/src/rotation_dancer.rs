@@ -24,9 +24,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         }
 
         // Dancing
-        if spell::is_status_active_now(job_details, "Improvised Dancing") {
-            next_spell_name = "Improvised Finish";
-        } else if spell::is_status_active_now(job_details, "Standard Dancing") {
+        if spell::is_status_active_now(job_details, "Standard Dancing") {
             next_spell_name = get_next_step(job_details, "Standard Finish");
         } else if spell::is_status_active_now(job_details, "Technical Dancing") {
             next_spell_name = get_next_step(job_details, "Technical Finish");
@@ -117,7 +115,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 && (spell::is_status_active_now(job_details, "Silken Symmetry")
                     || spell::is_status_active_now(job_details, "Silken Flow"))
             {
-                next_spell_name = "Fan Dance";
+                if aoe {
+                    next_spell_name = "Fan Dance II";
+                } else {
+                    next_spell_name = "Fan Dance";
+                }
             }
         }
 
