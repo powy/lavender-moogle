@@ -7,7 +7,7 @@ use log::{debug, error};
 pub fn apply_new_buff(character_details: &mut CharacterDetails, job_name: &str, buff_name: &str) {
     if let Some(job_details) = character_details.get_mut(job_name) {
         debug!("Directly applying new buff: {}", buff_name);
-        activate_status(job_details, buff_name, 0);
+        activate_status_default_time(job_details, buff_name, 0);
     }
 }
 
@@ -55,8 +55,11 @@ pub fn apply_spell_cooldown(job_details: &mut JobDetails, spell_name: &str) {
 
 pub fn apply_gcd_on_cast(job_details: &mut JobDetails, spell_details: &SpellDetails) {
     if spell_details.spell_type == "GCD" {
-        // Mutably borrow job_details again after the first mutable borrow has ended
-        activate_status(job_details, "gcd unavailable", 0);
+        if spell_details.cooldown > 0 {
+            activate_status_until(job_details, "gcd unavailable", spell_details.cooldown, 0);
+        } else {
+            activate_status_default_time(job_details, "gcd unavailable", 0);
+        }
         // reset weaves
         job_details.weaves = 0;
     } else {
@@ -64,9 +67,30 @@ pub fn apply_gcd_on_cast(job_details: &mut JobDetails, spell_details: &SpellDeta
     }
 }
 
-pub fn activate_status(job_details: &mut JobDetails, spell_name: &str, margin_time: i32) {
+pub fn activate_status_default_time(
+    job_details: &mut JobDetails,
+    spell_name: &str,
+    margin_time: i32,
+) {
     if let Some(spell_details) = job_details.get_spell(spell_name) {
         let duration = spell_details.duration;
+        spell_details.active_until = calculate_future_time(duration, margin_time);
+        debug!(
+            "Status {} activated for {} milliseconds, until {}",
+            spell_name, duration, spell_details.active_until
+        );
+    } else {
+        error!("Effect to activate {} not found in spell book", spell_name);
+    }
+}
+
+pub fn activate_status_until(
+    job_details: &mut JobDetails,
+    spell_name: &str,
+    duration: i32,
+    margin_time: i32,
+) {
+    if let Some(spell_details) = job_details.get_spell(spell_name) {
         spell_details.active_until = calculate_future_time(duration, margin_time);
         debug!(
             "Status {} activated for {} milliseconds, until {}",
@@ -91,7 +115,7 @@ pub fn deactivate_status(job_details: &mut JobDetails, spell_name: &str) {
 
 pub fn apply_new_status_on_cast(job_details: &mut JobDetails, spell_details: &SpellDetails) {
     for status_name in &spell_details.give_status {
-        activate_status(job_details, status_name, 0);
+        activate_status_default_time(job_details, status_name, 0);
     }
 }
 
@@ -272,4 +296,46 @@ pub fn is_status_active_in(job_details: &mut JobDetails, spell_name: &str, durat
         return spell_details.active_until > calculated_time;
     }
     return false;
+}
+
+pub fn is_status_finishing_before(
+    job_details: &mut JobDetails,
+    spell_name_1: &str,
+    spell_name_2: &str,
+) -> bool {
+    let spell_1_end: DateTime<Utc>;
+    let spell_2_end: DateTime<Utc>;
+    if let Some(spell_details) = job_details.get_spell(spell_name_1) {
+        spell_1_end = spell_details.active_until;
+    } else {
+        return false;
+    }
+
+    if let Some(spell_details) = job_details.get_spell(spell_name_2) {
+        spell_2_end = spell_details.active_until;
+    } else {
+        return false;
+    }
+
+    return spell_1_end < spell_2_end;
+}
+
+pub fn disable_oldest_active_status(
+    job_details: &mut JobDetails,
+    spell_name_1: &str,
+    spell_name_2: &str,
+) {
+    let spell_1_active: bool = is_status_active_now(job_details, spell_name_1);
+    let spell_2_active: bool = is_status_active_now(job_details, spell_name_2);
+    if spell_1_active && !spell_2_active {
+        deactivate_status(job_details, spell_name_1);
+    } else if !spell_1_active && spell_2_active {
+        deactivate_status(job_details, spell_name_2);
+    } else if spell_1_active && spell_2_active {
+        if is_status_finishing_before(job_details, spell_name_1, spell_name_2) {
+            deactivate_status(job_details, spell_name_1);
+        } else {
+            deactivate_status(job_details, spell_name_2);
+        }
+    }
 }

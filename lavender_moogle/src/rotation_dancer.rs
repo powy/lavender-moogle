@@ -125,6 +125,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // No oGCD selected, prepare next GCD
 
+        // FIXME - add a last GCD save on procs
+
         // No overcap on Esprit
         if next_spell_name == "" && job_details.secondary_bar >= 80 {
             next_spell_name = "Saber Dance";
@@ -152,6 +154,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // Not in burst window - avoid overcap blood or classic combo
         if next_spell_name == "" {
             // Basic combo procs
+            // Repetition is not pretty, but it is an simple way to give p^riority on procs rather than on Flourish
+            // FIXME - the system doesn't manage double proc with only one eaten by an ability
             if spell::is_status_active_next_gcd(job_details, "Silken Flow") {
                 if aoe {
                     next_spell_name = "Bloodshower";
@@ -159,6 +163,18 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     next_spell_name = "Fountainfall";
                 }
             } else if spell::is_status_active_next_gcd(job_details, "Silken Symmetry") {
+                if aoe {
+                    next_spell_name = "Rising Windmill";
+                } else {
+                    next_spell_name = "Reverse Cascade";
+                }
+            } else if spell::is_status_active_next_gcd(job_details, "Flourishing Flow") {
+                if aoe {
+                    next_spell_name = "Bloodshower";
+                } else {
+                    next_spell_name = "Fountainfall";
+                }
+            } else if spell::is_status_active_next_gcd(job_details, "Flourishing Symmetry") {
                 if aoe {
                     next_spell_name = "Rising Windmill";
                 } else {
@@ -192,8 +208,29 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
     }
 }
 
-pub fn apply_spell_additional_effects(spell_name: &str, _job_details: &mut JobDetails) {
+// Nouvelle strategie, si les 2 sonta ctifs, on erase 1 seul des deux
+
+// We are doing a hack to simulate two buff at the same time
+// on using a silken proc, the flourishing proc (if existing) is transfrmed into a silken proc
+// Silken proc is ended. Becaus eof this system, silken is removed from the normal status removal system
+pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
     match spell_name {
+        "Bloodshower" => {
+            spell::disable_oldest_active_status(job_details, "Silken Flow", "Flourishing Flow")
+        }
+        "Fountainfall" => {
+            spell::disable_oldest_active_status(job_details, "Silken Flow", "Flourishing Flow")
+        }
+        "Rising Windmill" => spell::disable_oldest_active_status(
+            job_details,
+            "Silken Symmetry",
+            "Flourishing Symmetry",
+        ),
+        "Reverse Cascade" => spell::disable_oldest_active_status(
+            job_details,
+            "Silken Symmetry",
+            "Flourishing Symmetry",
+        ),
         _ => {}
     }
 }
