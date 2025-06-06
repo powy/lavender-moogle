@@ -220,7 +220,8 @@ pub fn is_status_active_next_gcd(job_details: &mut JobDetails, spell_name: &str)
 
 // warning - hard coded value for oGCD clipping
 pub fn ogcd_end_before_next_gcd(job_details: &mut JobDetails) -> bool {
-    let ogcd_lock_duration = chrono::Duration::milliseconds(1250);
+    // let ogcd_lock_duration = chrono::Duration::milliseconds(1250);
+    let ogcd_lock_duration = chrono::Duration::milliseconds(750);
     let next_gcd_time = get_next_gcd_time(job_details);
     let expected_end_time_of_ogcd = Utc::now() + ogcd_lock_duration;
     return expected_end_time_of_ogcd < next_gcd_time;

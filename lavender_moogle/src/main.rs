@@ -18,6 +18,8 @@ mod rotation_paladin;
 mod rotation_scholar;
 mod rotation_summoner;
 
+mod monk_nadi;
+
 fn main() {
     // Force set the RUST_LOG environment variable
     use std::env;
