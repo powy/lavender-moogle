@@ -1,7 +1,7 @@
 // rotation_monk.rs
 // Rotation logic for Monk job
 
-use log::{debug, error};
+use log::error;
 
 use crate::memory;
 use crate::monk_nadi;
@@ -14,6 +14,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // update status
         // check oGCD
         let mut next_spell_name = "";
+        // let burst_allowed = spell::burst_allowed(job_details);
+        // let delayed_burst = !burst_allowed;
 
         // update stack min / max
 
@@ -24,7 +26,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             job_details.stacks_a = 0;
         }
 
-        // High priority oGCD
+        // High priority oGCDz
 
         // No clipping? - oGCD
 
@@ -32,14 +34,20 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             && (job_details.weaves < MAX_WEAVE_NUMBER)
             && spell::ogcd_end_before_next_gcd(job_details)
         {
+            // Fixme : delay burst if opener, 0 nadi and no finish buff
+            let should_delay_burst_for_opener = false;
+
             // 120 m Burst
-            if !alternate && spell::is_spell_available_now(job_details, "Brotherhood") {
+            if spell::is_spell_available_now(job_details, "Brotherhood")
+                && spell::burst_allowed(job_details)
+                && !should_delay_burst_for_opener
+            {
                 next_spell_name = "Brotherhood"
             } else {
                 // 1m burst
-                let bortherhood_soon =
-                    spell::spell_will_be_available_soon(job_details, "Brotherhood", 30000);
-                if !bortherhood_soon && spell::is_spell_available_now(job_details, "Riddle of Fire")
+                // Note - it could also be delayed with the trigger...
+                if spell::is_spell_available_now(job_details, "Riddle of Fire")
+                    && !spell::spell_will_be_available_soon(job_details, "Brotherhood", 30000)
                 {
                     next_spell_name = "Riddle of Fire"
                 }
@@ -52,11 +60,33 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     }
                 }
                 // 90 s bonus
-                else if spell::is_spell_available_now(job_details, "Riddle of Wind") {
+                else if spell::is_spell_available_now(job_details, "Riddle of Wind")
+                    && !spell::spell_will_be_available_soon(job_details, "Brotherhood", 15000)
+                {
                     next_spell_name = "Riddle of Wind"
                 }
             }
         }
+
+        // FIXME manage opener
+
+        // FIXME missing ogcd
+        // Perfect balance Solar Odd window "2 to 7s before fire trigger" -> 1 full gcd to 3,5 full gcd before fire
+        // We want to activate it after an opo, before the fire, and be sure that the finisher GCD is after the fire proc
+
+        // Perfect balance Lunar / Phantom Odd window AFTER fire trigger"
+        // Brother not coming (50s +)
+        // Fire is active
+        // !! Only One charge per odd window -> maybe use a buff to track it in case
+
+        // Even window
+        // When you press an Opo-opo GCD 2-4 GCDs before RoF and BH come off cooldown, follow it with a Perfect Balance
+        // Exact GCD to be checked again
+        // If Raptor and soon a brotherhood, AND BURST IS OK, pre even PB
+        // Note that the buirst oGCD are used on CD anyway
+        // If brotherhood is coming (exact time tbc) and on raptor form -> PB
+
+        // If in brotherhood, not in balance, not in finisher, not in free form, not waiting fire reply, activateit
 
         // No oGCD selected, prepare next GCD
 
@@ -64,11 +94,15 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // Expiring Buff follow ups
         if next_spell_name == "" {
-            let expiring_fire = spell::is_status_active_now(job_details, "Fire's Rumination")
+            let expiring_finisher = spell::is_status_active_next_gcd(job_details, "Finisher Buff")
+                && !spell::is_status_still_active_in_two_gcd(job_details, "Finisher Buff");
+            let expiring_fire = spell::is_status_active_next_gcd(job_details, "Fire's Rumination")
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Fire's Rumination");
-            let expiring_wind = spell::is_status_active_now(job_details, "Wind's Rumination")
+            let expiring_wind = spell::is_status_active_next_gcd(job_details, "Wind's Rumination")
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Wind's Rumination");
-            if expiring_fire {
+            if expiring_finisher {
+                next_spell_name = "Masterful Blitz";
+            } else if expiring_fire {
                 next_spell_name = "Fire's Reply";
             } else if expiring_wind {
                 next_spell_name = "Wind's Reply";
@@ -88,18 +122,24 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         //         }
         // }
 
-        // Perfect balance finisher
-        // TODO : Improve by checking if we should finish in a burst window...
-        if next_spell_name == "" && spell::is_status_active_now(job_details, "Finisher Buff") {
-            next_spell_name = "Masterful Blitz";
+        // Priority over the buff follow up to use fire's formless fist
+        // Formless fist = opportunity to get one more opo
+        if next_spell_name == "" && spell::is_status_active_next_gcd(job_details, "Formless Fist") {
+            next_spell_name = get_next_opoopo_spell(job_details, aoe);
         }
 
         // Buff follow ups
         if next_spell_name == "" {
-            let well_timed_fire = spell::is_status_active_now(job_details, "Fire's Rumination")
-                && spell::is_status_active_now(job_details, "Raptor Form");
+            let is_after_opo = spell::is_status_active_next_gcd(job_details, "Raptor Form");
+            let bortherhood_soon =
+                spell::spell_will_be_available_soon(job_details, "Brotherhood", 16000);
 
-            if well_timed_fire {
+            // Perfect balance finisher
+            if !bortherhood_soon && spell::is_status_active_next_gcd(job_details, "Finisher Buff") {
+                next_spell_name = "Masterful Blitz";
+            } else if is_after_opo
+                && spell::is_status_active_next_gcd(job_details, "Fire's Rumination")
+            {
                 next_spell_name = "Fire's Reply";
             } else if spell::is_status_active_now(job_details, "Wind's Rumination") {
                 next_spell_name = "Wind's Reply";
@@ -260,23 +300,19 @@ fn celestial_finish(job_details: &mut JobDetails) {
         monk_nadi::activate_lunar_nadi(job_details);
     }
     monk_nadi::reset_animal_charges(job_details);
-    spell::deactivate_status(job_details, "Finisher Buff");
 }
 
 fn elixir_finish(job_details: &mut JobDetails) {
     monk_nadi::activate_lunar_nadi(job_details);
     monk_nadi::reset_animal_charges(job_details);
-    spell::deactivate_status(job_details, "Finisher Buff");
 }
 
 fn phoenix_finish(job_details: &mut JobDetails) {
     monk_nadi::activate_solar_nadi(job_details);
     monk_nadi::reset_animal_charges(job_details);
-    spell::deactivate_status(job_details, "Finisher Buff");
 }
 
 fn phantom_finish(job_details: &mut JobDetails) {
     monk_nadi::reset_animal_charges(job_details);
     monk_nadi::reset_nadi(job_details);
-    spell::deactivate_status(job_details, "Finisher Buff");
 }

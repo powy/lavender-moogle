@@ -13,14 +13,16 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // update status
         // check oGCD
         let mut next_spell_name = "";
+        let burst_allowed = spell::burst_allowed(job_details);
+        // let delayed_burst = !burst_allowed;
 
         // No clipping?
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
-            if spell::is_spell_available_now(job_details, "Fight or Flight") && !alternate {
+            if spell::is_spell_available_now(job_details, "Fight or Flight") && burst_allowed {
                 next_spell_name = "Fight or Flight";
             } else if spell::is_spell_available_now(job_details, "Imperator")
                 && !spell::spell_will_be_available_soon(job_details, "Fight or Flight", 10000)
-                && !alternate
+                && burst_allowed
             {
                 next_spell_name = "Imperator";
             } else if spell::is_spell_available_now(job_details, "Circle of Scorn") {

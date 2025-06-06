@@ -341,7 +341,7 @@ pub fn disable_oldest_of_2_active_status(
     }
 }
 
-pub fn disable_oldest_of_3_active_status(
+pub fn _disable_oldest_of_3_active_status(
     job_details: &mut JobDetails,
     spell_name_1: &str,
     spell_name_2: &str,
@@ -377,4 +377,8 @@ pub fn disable_oldest_of_3_active_status(
     }
 
     deactivate_status(job_details, oldest);
+}
+
+pub fn burst_allowed(job_details: &mut JobDetails) -> bool {
+    return !is_status_active_now(job_details, "Delayed Burst");
 }

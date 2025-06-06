@@ -1,5 +1,4 @@
 use crate::spell;
-use crate::spell::is_status_active_now;
 use crate::types::JobDetails;
 use log::debug;
 
@@ -115,10 +114,13 @@ pub fn reduce_perfect_balance_charges(job_details: &mut JobDetails) {
     }
     job_details.secondary_bar = stats.to_i32();
     if stats.perfect_balance_charges == 0 {
-        debug!("End of balance 3 gcd ==================");
         spell::deactivate_status(job_details, "Balance Buff");
         spell::activate_status_default_time(job_details, "Finisher Buff", 0);
     }
+    // When using Perfect Balance charges, the spells don't give a form
+    spell::deactivate_status(job_details, "Opo-opo Form");
+    spell::deactivate_status(job_details, "Raptor Form");
+    spell::deactivate_status(job_details, "Coeurl Form");
 }
 
 pub fn add_three_perfect_balance_charges(job_details: &mut JobDetails) {
@@ -131,16 +133,16 @@ pub fn has_lunar_nadi(job_details: &JobDetails) -> bool {
     MonkNadiStats::from_i32(job_details.secondary_bar).lunar_nadi
 }
 
-pub fn has_solar_nadi(job_details: &JobDetails) -> bool {
+pub fn _has_solar_nadi(job_details: &JobDetails) -> bool {
     MonkNadiStats::from_i32(job_details.secondary_bar).solar_nadi
 }
 
-pub fn get_perfect_balance_charges(job_details: &JobDetails) -> u8 {
+pub fn _get_perfect_balance_charges(job_details: &JobDetails) -> u8 {
     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
     stats.perfect_balance_charges
 }
 
-fn debug_monk_nadi(job_details: &JobDetails) {
+fn _debug_monk_nadi(job_details: &JobDetails) {
     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
     debug!("=== Monk Nadi Debug ===");
     debug!("Opo-opo Charges     : {}", stats.opo_charges);
@@ -157,23 +159,32 @@ fn debug_monk_nadi(job_details: &JobDetails) {
 fn do_we_want_lunar_nadi(job_details: &mut JobDetails) -> bool {
     let opener = false; // FIXME in job details
     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-    if opener {
-        // IF emote to force the start
-        if spell::is_status_active_now(job_details, "Lunar Start Buff") {
-            return true;
-        }
-        if spell::is_status_active_now(job_details, "Solar Start Buff") {
-            return false;
-        }
+    // FIXME Forced even outside of opener
 
-        // FORCING the SOLAR LUNAR Start :
-        // We are in the opener, and are in the case 2 different animals. We want to complete it as a solar
-        if stats.total_animal_charges() == 2 {
-            if stats.opo_charges == 2 || stats.raptor_charges == 2 || stats.coeurl_charges == 2 {
-                // Forced solar start
-                return false;
-            }
-        }
+    if spell::is_status_active_now(job_details, "Force Lunar Action") {
+        return true;
+    }
+    if spell::is_status_active_now(job_details, "Force Solar Action") {
+        return false;
+    }
+
+    if opener {
+        // // IF emote to force the start
+        // if spell::is_status_active_now(job_details, "Lunar Start Buff") {
+        //     return true;
+        // }
+        // if spell::is_status_active_now(job_details, "Solar Start Buff") {
+        //     return false;
+        // }
+
+        // // FORCING the SOLAR LUNAR Start :
+        // // We are in the opener, and are in the case 2 different animals. We want to complete it as a solar
+        // if stats.total_animal_charges() == 2 {
+        //     if stats.opo_charges == 2 || stats.raptor_charges == 2 || stats.coeurl_charges == 2 {
+        //         // Forced solar start
+        //         return false;
+        //     }
+        // }
 
         // Otherwise, default to double lunar
         return true;

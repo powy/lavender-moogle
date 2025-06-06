@@ -23,17 +23,19 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // check oGCD
         let mut next_spell_name = "";
+        let burst_allowed = spell::burst_allowed(job_details);
+        let delayed_burst = !burst_allowed;
 
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
-            if spell::is_spell_available_now(job_details, "Chain Stratagem") {
+            if spell::is_spell_available_now(job_details, "Chain Stratagem") && burst_allowed {
                 next_spell_name = "Chain Stratagem";
             // Impact imminient is delayed because doing aetherflow is a priority
             } else if spell::is_status_active_now(job_details, "Impact Imminent")
                 && !spell::is_spell_available_now(job_details, "Aetherflow")
             {
                 next_spell_name = "Baneful Impaction";
-            } else if should_aetherflow(job_details, aoe, alternate) {
+            } else if should_aetherflow(job_details, aoe, delayed_burst) {
                 // Refresh charges with Aetherflow
                 next_spell_name = "Aetherflow";
             } else if should_dump_aether_charges(job_details, aoe) {
@@ -95,21 +97,20 @@ fn should_dump_aether_charges(job_details: &mut JobDetails, aoe: bool) -> bool {
     return false;
 }
 
-fn should_aetherflow(job_details: &mut JobDetails, aoe: bool, alternate: bool) -> bool {
+fn should_aetherflow(job_details: &mut JobDetails, aoe: bool, delayed_burst: bool) -> bool {
     if spell::is_spell_available_now(job_details, "Aetherflow") {
         // Mono target static, in burst : delay the cast to after dumping the remaining energy drains
         // In the other cases, it is usually better not to delay its cast
-        if aoe || alternate {
+        if aoe || delayed_burst {
             return true;
         } else {
             // Not in burst - Don't wait
             // In burst - wait for dumping the remanent charges
             // Enable automatic gestion of dissipation opening
+            // TODO to be fixed with opener trigger instead
             let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
             return job_details.stacks_a == 0 || !in_burst_in_2_gcd;
         }
-
-        // FIXME - delay use only if there is a burst
     }
     return false;
 }

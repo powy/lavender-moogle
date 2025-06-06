@@ -28,11 +28,12 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         }
 
         let mut next_spell_name = "";
+        let burst_allowed = spell::burst_allowed(job_details);
 
         // check oGCD
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
-            if spell::is_spell_available_now(job_details, "Searing Light") {
+            if spell::is_spell_available_now(job_details, "Searing Light") && burst_allowed {
                 next_spell_name = "Searing Light";
 
             // --- Aerth charges

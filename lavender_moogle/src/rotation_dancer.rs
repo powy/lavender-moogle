@@ -13,6 +13,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // update status
         // check oGCD
         let mut next_spell_name = "";
+        let burst_allowed = spell::burst_allowed(job_details);
+        let delayed_burst = !burst_allowed;
 
         // update stack min / max
 
@@ -41,9 +43,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // Early dancing to avoid drifting
         // Start the burst Window
-        // Tech step to go into burst (unless alternate)
+        // Tech step to go into burst (unless delayed_burst)
         if next_spell_name == ""
-            && !alternate
+            && !delayed_burst
             && !spell::is_status_active_in(job_details, "Technical Step on CD", 1250)
         {
             next_spell_name = "Technical Step";
@@ -264,7 +266,7 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     };
 }
 
-fn should_standard_step(job_details: &mut JobDetails, alternate: bool) -> bool {
+fn should_standard_step(job_details: &mut JobDetails, delayed_burst: bool) -> bool {
     let standart_available: bool =
         !spell::is_status_active_in(job_details, "Standard Step on CD", 1250);
     let technical_soon: bool =
@@ -275,8 +277,8 @@ fn should_standard_step(job_details: &mut JobDetails, alternate: bool) -> bool {
     let devilment_running: bool = spell::is_status_active_now(job_details, "Devilment Buff");
 
     if standart_available {
-        // alternate - no delaying for burst
-        if alternate {
+        // delayed_burst - not delaying standard step, as we don't know when is burst
+        if delayed_burst {
             return true;
         }
 
@@ -291,7 +293,7 @@ fn should_standard_step(job_details: &mut JobDetails, alternate: bool) -> bool {
         }
 
         // Delay to not drift technical step
-        // But not the case in alternate
+        // But not the case in delayed_burst
         if technical_soon {
             return false;
         }
