@@ -54,6 +54,22 @@ Browser_Forward:: {
     executeRaw(6, 7)
 }
 
+F13:: {
+    executeRaw(0, 1)
+}
+
+F15:: {
+    executeRaw(2, 3)
+}
+
+F14:: {
+    executeRaw(4, 5)
+}
+
+F16:: {
+    executeRaw(6, 7)
+}
+
 ; Execute the order using raw memory reading (byte by byte)
 ; Positions are zero-based (0-7) as in Rust
 executeRaw(modifier_pos, key_pos) {

@@ -133,11 +133,11 @@ pub fn has_lunar_nadi(job_details: &JobDetails) -> bool {
     MonkNadiStats::from_i32(job_details.secondary_bar).lunar_nadi
 }
 
-pub fn _has_solar_nadi(job_details: &JobDetails) -> bool {
+pub fn has_solar_nadi(job_details: &JobDetails) -> bool {
     MonkNadiStats::from_i32(job_details.secondary_bar).solar_nadi
 }
 
-pub fn _get_perfect_balance_charges(job_details: &JobDetails) -> u8 {
+pub fn get_perfect_balance_charges(job_details: &JobDetails) -> u8 {
     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
     stats.perfect_balance_charges
 }
@@ -156,8 +156,7 @@ fn _debug_monk_nadi(job_details: &JobDetails) {
     debug!("======================");
 }
 
-fn do_we_want_lunar_nadi(job_details: &mut JobDetails) -> bool {
-    let opener = false; // FIXME in job details
+pub fn do_we_want_lunar_nadi(job_details: &mut JobDetails) -> bool {
     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
     // FIXME Forced even outside of opener
 
@@ -168,25 +167,8 @@ fn do_we_want_lunar_nadi(job_details: &mut JobDetails) -> bool {
         return false;
     }
 
-    if opener {
-        // // IF emote to force the start
-        // if spell::is_status_active_now(job_details, "Lunar Start Buff") {
-        //     return true;
-        // }
-        // if spell::is_status_active_now(job_details, "Solar Start Buff") {
-        //     return false;
-        // }
-
-        // // FORCING the SOLAR LUNAR Start :
-        // // We are in the opener, and are in the case 2 different animals. We want to complete it as a solar
-        // if stats.total_animal_charges() == 2 {
-        //     if stats.opo_charges == 2 || stats.raptor_charges == 2 || stats.coeurl_charges == 2 {
-        //         // Forced solar start
-        //         return false;
-        //     }
-        // }
-
-        // Otherwise, default to double lunar
+    if job_details.opener {
+        // In opener, default to double lunar
         return true;
     } else {
         // Default is lunar if both are active or inactive
@@ -202,9 +184,61 @@ fn do_we_want_lunar_nadi(job_details: &mut JobDetails) -> bool {
     }
 }
 
+// pub fn next_animal_in_balance_phase(job_details: &mut JobDetails) -> &'static str {
+//     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
+//     let we_want_lunar_nadi = do_we_want_lunar_nadi(job_details);
+
+//     // TODO - the actual optimal way is to put Opo last in Solar windows
+
+//     // NO charge, always start with Opo
+//     if stats.total_animal_charges() == 0 {
+//         return "Opo-opo";
+//     } else if stats.total_animal_charges() == 1 {
+//         if we_want_lunar_nadi {
+//             // If we want lunar, we keep a different animal
+//             return existing_animal_chakra(stats);
+//         } else {
+//             // If we want solar, we need a different animal
+//             return missing_animal_chakra(stats);
+//         }
+//         //
+//     } else if stats.total_animal_charges() == 2 {
+//         // We prepare phantom rush -> just do Opo
+//         if stats.lunar_nadi && stats.solar_nadi {
+//             return "Opo-opo";
+//         }
+//         // Note - uselss test - just existing or missing depending what we want
+//         // 2 same charges - Lunar way
+//         if stats.opo_charges == 2 || stats.raptor_charges == 2 || stats.raptor_charges == 2 {
+//             if we_want_lunar_nadi {
+//                 // normal lunar
+//                 return existing_animal_chakra(stats);
+//             } else {
+//                 // We want solar but we started lunar. Go to celestial to save phantom rush
+//                 return missing_animal_chakra(stats);
+//             }
+//         } else {
+//             // 2 different charges - Solar way
+//             // stats.opo_charges == 1 || stats.raptor_charges == 1 || stats.raptor_charges == 1
+//             if we_want_lunar_nadi {
+//                 // We want lunar but we started solar. Go to celestial to save phantom rush
+//                 return existing_animal_chakra(stats);
+//             } else {
+//                 // normal solar
+//                 return missing_animal_chakra(stats);
+//             }
+//         }
+//     }
+
+//     // Default // should not reach here
+//     return "Opo-opo";
+// }
+
 pub fn next_animal_in_balance_phase(job_details: &mut JobDetails) -> &'static str {
     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
     let we_want_lunar_nadi = do_we_want_lunar_nadi(job_details);
+
+    // TODO - the actual optimal way is to put Opo last in Solar windows
 
     // NO charge, always start with Opo
     if stats.total_animal_charges() == 0 {
@@ -269,6 +303,20 @@ fn existing_animal_chakra(stats: MonkNadiStats) -> &'static str {
         return "Raptor";
     } else if stats.coeurl_charges > 0 {
         return "Coeurl";
+    }
+    // Default // should not reach here
+    return "Opo-opo";
+}
+
+// Similar to missing - but optimisation, we should finish with opo so it has more chnace to be inside buffs
+// Not active for now as to be less of a robot player
+fn _next_lunar_animal_chakra(stats: MonkNadiStats) -> &'static str {
+    if stats.raptor_charges == 0 {
+        return "Raptor";
+    } else if stats.coeurl_charges == 0 {
+        return "Coeurl";
+    } else if stats.opo_charges == 0 {
+        return "Opo-opo";
     }
     // Default // should not reach here
     return "Opo-opo";

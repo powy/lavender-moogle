@@ -30,15 +30,15 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             // --- A Priority: no drifting raid buffs
             if spell::is_spell_available_now(job_details, "Chain Stratagem") && burst_allowed {
                 next_spell_name = "Chain Stratagem";
+            } else if should_aetherflow(job_details, aoe, delayed_burst) {
+                // Refresh charges with Aetherflow
+                next_spell_name = "Aetherflow";
             // Impact imminient is delayed because doing aetherflow is a priority
             } else if spell::is_status_active_now(job_details, "Impact Imminent")
                 && !spell::is_spell_available_now(job_details, "Aetherflow")
             {
                 next_spell_name = "Baneful Impaction";
-            } else if should_aetherflow(job_details, aoe, delayed_burst) {
-                // Refresh charges with Aetherflow
-                next_spell_name = "Aetherflow";
-            } else if should_dump_aether_charges(job_details, aoe) {
+            } else if should_dump_aether_charges(job_details, alternate, aoe) {
                 // Drain dump before using Aethercharge
                 next_spell_name = "Energy Drain";
             }
@@ -57,15 +57,16 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 if should_reset_dot_end_of_burst(job_details) {
                     next_spell_name = "Biolysis";
                 // Reset Dot on time
-                } else if spell::is_spell_available_next_gcd(job_details, "Biolysis") {
+                } else if !spell::is_status_active_in(job_details, "Dot", 3000) {
                     next_spell_name = "Biolysis";
                 // Default GCD
                 } else {
                     if alternate {
-                        // Alternate : movement phase - too busy for precise weaving.
-                        next_spell_name = "Ruin II"
-                    } else {
+                        // Alternate : fixed phase - nopt usal
                         next_spell_name = "Broil IV";
+                    } else {
+                        // Normal - movement phase - too busy for precise weaving.
+                        next_spell_name = "Ruin II"
                     }
                 }
             }
@@ -78,9 +79,10 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
     }
 }
 
-fn should_dump_aether_charges(job_details: &mut JobDetails, aoe: bool) -> bool {
+fn should_dump_aether_charges(job_details: &mut JobDetails, alternate: bool, aoe: bool) -> bool {
     // If there is 1 / 2 /3 GCD left, and 1 / 2 /3 charges left, we should use them
-    if !aoe && job_details.stacks_a > 0 {
+    // Only on alternate, which is for casual play
+    if !aoe && alternate && job_details.stacks_a > 0 {
         if (job_details.stacks_a >= 3) && is_spell_available_in_x_gcd(job_details, "Aetherflow", 3)
         {
             return true;
@@ -97,32 +99,34 @@ fn should_dump_aether_charges(job_details: &mut JobDetails, aoe: bool) -> bool {
     return false;
 }
 
-fn should_aetherflow(job_details: &mut JobDetails, aoe: bool, delayed_burst: bool) -> bool {
-    if spell::is_spell_available_now(job_details, "Aetherflow") {
-        // Mono target static, in burst : delay the cast to after dumping the remaining energy drains
-        // In the other cases, it is usually better not to delay its cast
-        if aoe || delayed_burst {
-            return true;
-        } else {
-            // Not in burst - Don't wait
-            // In burst - wait for dumping the remanent charges
-            // Enable automatic gestion of dissipation opening
-            // TODO to be fixed with opener trigger instead
-            let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
-            return job_details.stacks_a == 0 || !in_burst_in_2_gcd;
-        }
-    }
-    return false;
+fn should_aetherflow(job_details: &mut JobDetails, _aoe: bool, _delayed_burst: bool) -> bool {
+    // if spell::is_spell_available_now(job_details, "Aetherflow") {
+    //     // Mono target static, in burst : delay the cast to after dumping the remaining energy drains
+    //     // In the other cases, it is usually better not to delay its cast
+    //     if aoe || delayed_burst {
+    //         return true;
+    //     } else {
+    //         // Not in burst - Don't wait
+    //         // In burst - wait for dumping the remanent charges
+    //         // Enable automatic gestion of dissipation opening
+    //         // TODO to be fixed with opener trigger instead
+    //         let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
+    //         return job_details.stacks_a == 0 || !in_burst_in_2_gcd;
+    //     }
+    // }
+    // return false;
+
+    return spell::is_spell_available_now(job_details, "Aetherflow");
 }
 
 // Opti suggested by guide, but makes the wound slide
 fn should_reset_dot_end_of_burst(job_details: &mut JobDetails) -> bool {
-    let dot_half_spent = !spell::is_status_active_in(job_details, "Dot", 15000); // 15s left on dot or less
+    let dot_mostly_spent = !spell::is_status_active_in(job_details, "Dot", 8000); // 8s left on dot or less
     let in_burst_next_gcd = spell::is_status_active_next_gcd(job_details, "Burst");
     let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
     let end_of_burst_situation = in_burst_next_gcd && !in_burst_in_2_gcd;
 
-    return end_of_burst_situation && dot_half_spent;
+    return end_of_burst_situation && dot_mostly_spent;
 }
 
 pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {}

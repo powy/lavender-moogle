@@ -1,7 +1,7 @@
 // rotation_monk.rs
 // Rotation logic for Monk job
 
-use log::error;
+use log::{debug, error};
 
 use crate::memory;
 use crate::monk_nadi;
@@ -16,6 +16,15 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         let mut next_spell_name = "";
         // let burst_allowed = spell::burst_allowed(job_details);
         // let delayed_burst = !burst_allowed;
+
+        // Check if we went out of opener (burst skill unavailable, burst buff over)
+        if job_details.opener {
+            if !spell::is_status_active_now(job_details, "Brother Buff")
+                && !spell::is_spell_available_now(job_details, "Brotherhood")
+            {
+                job_details.opener = false
+            }
+        }
 
         // update stack min / max
 
@@ -34,14 +43,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             && (job_details.weaves < MAX_WEAVE_NUMBER)
             && spell::ogcd_end_before_next_gcd(job_details)
         {
-            // Fixme : delay burst if opener, 0 nadi and no finish buff
-            let should_delay_burst_for_opener = false;
-
             // 120 m Burst
-            if spell::is_spell_available_now(job_details, "Brotherhood")
-                && spell::burst_allowed(job_details)
-                && !should_delay_burst_for_opener
-            {
+            if should_brotherhood(job_details) {
                 next_spell_name = "Brotherhood"
             } else {
                 // 1m burst
@@ -52,7 +55,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     next_spell_name = "Riddle of Fire"
                 }
                 // Chacka spending
-                else if job_details.stacks_b >= 5 {
+                else if should_dump_chakra(job_details) {
                     if aoe {
                         next_spell_name = "Enlightenment"
                     } else {
@@ -64,29 +67,16 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     && !spell::spell_will_be_available_soon(job_details, "Brotherhood", 15000)
                 {
                     next_spell_name = "Riddle of Wind"
+                } else
+                // Perfect balance check is last. It is very possibe to bug out (death, accidental use of charge)
+                //  so it should be last not to block out anything in case
+                if should_perfect_balance(job_details) {
+                    next_spell_name = "Perfect Balance";
                 }
             }
         }
 
         // FIXME manage opener
-
-        // FIXME missing ogcd
-        // Perfect balance Solar Odd window "2 to 7s before fire trigger" -> 1 full gcd to 3,5 full gcd before fire
-        // We want to activate it after an opo, before the fire, and be sure that the finisher GCD is after the fire proc
-
-        // Perfect balance Lunar / Phantom Odd window AFTER fire trigger"
-        // Brother not coming (50s +)
-        // Fire is active
-        // !! Only One charge per odd window -> maybe use a buff to track it in case
-
-        // Even window
-        // When you press an Opo-opo GCD 2-4 GCDs before RoF and BH come off cooldown, follow it with a Perfect Balance
-        // Exact GCD to be checked again
-        // If Raptor and soon a brotherhood, AND BURST IS OK, pre even PB
-        // Note that the buirst oGCD are used on CD anyway
-        // If brotherhood is coming (exact time tbc) and on raptor form -> PB
-
-        // If in brotherhood, not in balance, not in finisher, not in free form, not waiting fire reply, activateit
 
         // No oGCD selected, prepare next GCD
 
@@ -133,9 +123,14 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             let is_after_opo = spell::is_status_active_next_gcd(job_details, "Raptor Form");
             let bortherhood_soon =
                 spell::spell_will_be_available_soon(job_details, "Brotherhood", 16000);
+            let fire_soon =
+                spell::spell_will_be_available_soon(job_details, "Riddle of Fire", 5000);
 
             // Perfect balance finisher
-            if !bortherhood_soon && spell::is_status_active_next_gcd(job_details, "Finisher Buff") {
+            if !bortherhood_soon
+                && !fire_soon
+                && spell::is_status_active_next_gcd(job_details, "Finisher Buff")
+            {
                 next_spell_name = "Masterful Blitz";
             } else if is_after_opo
                 && spell::is_status_active_next_gcd(job_details, "Fire's Rumination")
@@ -204,7 +199,7 @@ pub fn get_next_coeurl_spell(job_details: &mut JobDetails, aoe: bool) -> &'stati
 
 pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
     match spell_name {
-        "Perfect Balance" => monk_nadi::add_three_perfect_balance_charges(job_details),
+        "Perfect Balance" => perfect_balance_follow_up(job_details),
         "Elixir Burst" => elixir_finish(job_details),
         "Rising Phoenix" => phoenix_finish(job_details),
         "Celestial Revolution" => celestial_finish(job_details),
@@ -235,6 +230,13 @@ pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDet
 
 // pub fn get_next_perfect_balance_gcd(_job_details: &mut JobDetails, _aoe: bool) {}
 
+fn perfect_balance_follow_up(job_details: &mut JobDetails) {
+    monk_nadi::add_three_perfect_balance_charges(job_details);
+    if spell::is_status_active_now(job_details, "Recent Balance") {
+        spell::activate_status_default_time(job_details, "In Second Balance", -500);
+    }
+}
+
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // debug!("Job gauge update: {}", data);
     let chunks: Vec<String> = data
@@ -243,43 +245,43 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
         .map(|chunk| String::from_utf8_lossy(chunk).to_string()) // Convert each chunk back to a String
         .collect();
 
-    // let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
+    let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
     // Chunck 2 = Chackra
     let chunk2: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
     job_details.stacks_b = chunk2;
-    // let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
-    // let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
-    // let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
+    let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
+    let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
+    let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
     // // Chunck 6 = Beast fury
-    // let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
-    // let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
-    // let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
-    // let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
-    // let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
-    // let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
-    // let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
-    // let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
-    // let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
-    // let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
-    // let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
+    let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
+    let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
+    let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
+    let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
+    let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
+    let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
+    let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
+    let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
+    let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
+    let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
+    let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
 
-    // // Debug output for each chunk
-    // debug!("chunk1 = {}", chunk1);
-    // debug!("chunk2 = {}", chunk2);
-    // debug!("chunk3 = {}", chunk3);
-    // debug!("chunk4 = {}", chunk4);
-    // debug!("chunk5 = {}", chunk5);
-    // debug!("chunk6 = {}", chunk6);
-    // debug!("chunk7 = {}", chunk7);
-    // debug!("chunk8 = {}", chunk8);
-    // debug!("chunk9 = {}", chunk9);
-    // debug!("chunk10 = {}", chunk10);
-    // debug!("chunk11 = {}", chunk11);
-    // debug!("chunk12 = {}", chunk12);
-    // debug!("chunk13 = {}", chunk13);
-    // debug!("chunk14 = {}", chunk14);
-    // debug!("chunk15 = {}", chunk15);
-    // debug!("chunk16 = {}", chunk16);
+    // Debug output for each chunk
+    debug!("chunk1 = {}", chunk1);
+    debug!("chunk2 = {}", chunk2);
+    debug!("chunk3 = {}", chunk3);
+    debug!("chunk4 = {}", chunk4);
+    debug!("chunk5 = {}", chunk5);
+    debug!("chunk6 = {}", chunk6);
+    debug!("chunk7 = {}", chunk7);
+    debug!("chunk8 = {}", chunk8);
+    debug!("chunk9 = {}", chunk9);
+    debug!("chunk10 = {}", chunk10);
+    debug!("chunk11 = {}", chunk11);
+    debug!("chunk12 = {}", chunk12);
+    debug!("chunk13 = {}", chunk13);
+    debug!("chunk14 = {}", chunk14);
+    debug!("chunk15 = {}", chunk15);
+    debug!("chunk16 = {}", chunk16);
 }
 
 fn get_next_balance_gcd(job_details: &mut JobDetails, aoe: bool) -> &'static str {
@@ -315,4 +317,153 @@ fn phoenix_finish(job_details: &mut JobDetails) {
 fn phantom_finish(job_details: &mut JobDetails) {
     monk_nadi::reset_animal_charges(job_details);
     monk_nadi::reset_nadi(job_details);
+}
+
+// FIXME forced pot usage in opener
+
+fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
+    // If we already chained 2 PB, don't do a third
+    // This is also tested further but testing here avoid some possible bug
+    if spell::is_status_active_now(job_details, "In Second Balance") {
+        return false;
+    }
+
+    // Fire used recently, Brotherhood used recently -> even window
+    // let in_even_window = spell::is_status_active_now(job_details, "Brother Buff");
+
+    // Fire used recently, Brotherhood in a while -> odd window
+    let in_odd_window = spell::is_status_active_now(job_details, "Fire Buff")
+        && !spell::is_status_active_now(job_details, "Brother Buff")
+        && !spell::spell_will_be_available_soon(job_details, "Brotherhood", 35000);
+
+    // Next usage of fire with brotherhood -> future even window
+    // let next_is_even_window = false;
+
+    // Next usage of fire without brotherhood -> future odd window
+    // let next_is_odd_window = false;
+
+    //
+    // let even_window_incoming = false;
+
+    let odd_window_lead_time = 7000;
+    let in_lead_time_of_odd_window =
+        spell::spell_will_be_available_soon(job_details, "Riddle of Fire", odd_window_lead_time)
+            && !spell::is_spell_available_in_x_gcd(job_details, "Brotherhood", 20);
+    // Set the right amount of GCD
+
+    // "2 to 4 GCD before RoF and Brotherhood"
+    // We want the finisher inside the buff - So 3 full GCD max - 7s
+    let even_window_lead_time = 7000;
+    let in_lead_time_of_even_window =
+        spell::spell_will_be_available_soon(job_details, "Brotherhood", even_window_lead_time);
+
+    // Emergency time : brotherhood available or will available before we can prepare a PB. Start the first PB immediately.
+    let in_emegency_time_of_even_window =
+        spell::spell_will_be_available_soon(job_details, "Brotherhood", 2500);
+
+    let lunar_nadi_next = monk_nadi::do_we_want_lunar_nadi(job_details);
+    let solar_nadi_next = !lunar_nadi_next;
+
+    let in_perfect_balance = spell::is_status_active_now(job_details, "Balance Buff")
+        || spell::is_status_active_now(job_details, "Finisher Buff");
+
+    if in_perfect_balance {
+        return false;
+    }
+
+    // Used to ensure that we don't throw too many balance in one window
+    let already_did_a_perfect_balance =
+        in_perfect_balance || spell::is_status_active_now(job_details, "Recent Balance");
+
+    // FIXME - case of a delayed burst. Need to do the 2m peferct balance ahead still
+    // FIXME - there is a design decision to do, because normaly we don't want to delay brotherhood.
+    // Because of the "trigger it on an oppo" the PB is not always aligned anyway.
+    // Maybe we should trigger PB anyway if we are 80 s from last one -> means we will cap the charges
+
+    // !! Only One charge per odd window -> we use a buff to track it in case
+
+    // let fire_riddle_soon_or_now = spell_will_be_available_soon(job_details, "spell_name", max_waiting_duration)
+
+    // Perfect balance Solar Odd window "2 to 7s before fire trigger" -> 1 full gcd to 3,5 full gcd before fire
+    // We want to activate it after an opo, before the fire, and be sure that the finisher GCD is after the fire pro
+    // in_lead_time_of_solar_odd_window // include solar and odd windows test
+    let should_start_solar_odd_window_perfect_balance = solar_nadi_next
+        && in_lead_time_of_odd_window
+        && spell::is_status_active_now(job_details, "Raptor Form")
+        && !already_did_a_perfect_balance;
+
+    // Perfect balance Lunar / Phantom Odd window AFTER fire trigger"
+    // Brother not coming (50s +)
+    // Fire is active
+    // Check it is the first in that odd window
+    // Note: in case of failed pre balance for solar, tihs should catch it in th odd burst window !
+    let should_start_lunar_odd_window_perfect_balance = in_odd_window // include fire has been pressed
+        && !already_did_a_perfect_balance;
+
+    // Even window
+    // When you press an Opo-opo GCD 2-4 GCDs before RoF and BH come off cooldown, follow it with a Perfect Balance
+    // Exact GCD to be checked again
+    // If Raptor and soon a brotherhood, AND BURST IS OK, pre even PB
+    // Note that the burst oGCD are used on CD anyway
+    // If brotherhood is coming (exact time tbc) and on raptor form -> PB
+    let should_start_even_window_first_perfect_balance = spell::burst_allowed(job_details)
+        && in_lead_time_of_even_window
+        && spell::is_status_active_now(job_details, "Raptor Form");
+
+    // Warning - to be tested - failed to start before BH is coming, we should start PB ASAP
+    let emergency_even_window_first_perfect_balance = spell::burst_allowed(job_details)
+        && in_emegency_time_of_even_window
+        && !already_did_a_perfect_balance;
+
+    //FIXME How to prevent third P-B in 2m burst FIXME FIXLE
+
+    // Second perfect balance in 2m burst
+    // If in brotherhood, not in balance, not in finisher, not in free form, not waiting fire reply, activateit
+    let should_start_even_window_second_perfect_balance =
+        spell::is_status_active_now(job_details, "Brother Buff")
+            && !spell::is_status_active_now(job_details, "In Second Balance")
+            && !spell::is_status_active_now(job_details, "Balance Buff")
+            && !spell::is_status_active_now(job_details, "Finisher Buff")
+            && !spell::is_status_active_now(job_details, "Fire's Rumination")
+            && !spell::is_status_active_now(job_details, "Formless Fist");
+
+    // default don't activate Perfect Balance
+    return should_start_even_window_first_perfect_balance
+        || should_start_even_window_second_perfect_balance
+        || emergency_even_window_first_perfect_balance
+        || should_start_lunar_odd_window_perfect_balance
+        || should_start_solar_odd_window_perfect_balance;
+}
+
+fn should_dump_chakra(job_details: &mut JobDetails) -> bool {
+    if job_details.stacks_b >= 5 {
+        if job_details.opener {
+            // In opener, the first usage is delayed to after the Buffing
+            return !spell::spell_will_be_available_soon(job_details, "Riddle of Fire", 5000);
+        } else {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Brothehood is the main burst CD - it is the one delayed with burst_allowed to false
+// In opener, we should wait 5s (2,5 gcd) befor eits usage, for buff alignement
+// "DK 5" opener
+fn should_brotherhood(job_details: &mut JobDetails) -> bool {
+    if spell::burst_allowed(job_details) {
+        if spell::is_spell_available_now(job_details, "Brotherhood") {
+            // Nadi means we finished a PB - no delay - here in case of bug
+            let has_nadi =
+                monk_nadi::has_solar_nadi(job_details) || monk_nadi::has_lunar_nadi(job_details);
+
+            // Third GCD is PB 1 charge left
+            let third_gcd = monk_nadi::get_perfect_balance_charges(job_details) == 1;
+
+            let should_delay_burst_for_opener = job_details.opener && !third_gcd && !has_nadi;
+
+            return !should_delay_burst_for_opener;
+        }
+    }
+    return false;
 }

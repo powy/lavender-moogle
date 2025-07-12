@@ -269,8 +269,10 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
 fn should_standard_step(job_details: &mut JobDetails, delayed_burst: bool) -> bool {
     let standart_available: bool =
         !spell::is_status_active_in(job_details, "Standard Step on CD", 1250);
+    // Note: If burst is not allowed, we ignore the fact that technical step is coming up
     let technical_soon: bool =
-        !spell::is_status_active_in(job_details, "Technical Step on CD", 7000);
+        !spell::is_status_active_in(job_details, "Technical Step on CD", 7000)
+            && spell::burst_allowed(job_details);
     let last_dance_ready: bool = spell::is_status_active_now(job_details, "Last Dance Ready");
     let flourish_soon: bool = spell::spell_will_be_available_soon(job_details, "Flourish", 5000);
     let instant_possible: bool = spell::is_status_active_now(job_details, "Finishing Move Ready");
