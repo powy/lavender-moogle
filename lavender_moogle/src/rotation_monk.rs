@@ -1,10 +1,11 @@
 // rotation_monk.rs
 // Rotation logic for Monk job
 
-use log::{debug, error};
+use log::error;
+// use log::{debug, error};
 
 use crate::memory;
-use crate::monk_nadi;
+use crate::monk_nadi::{self, Animal};
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails};
 
@@ -84,15 +85,16 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // Expiring Buff follow ups
         if next_spell_name == "" {
-            let expiring_finisher = spell::is_status_active_next_gcd(job_details, "Finisher Buff")
-                && !spell::is_status_still_active_in_two_gcd(job_details, "Finisher Buff");
+            // let expiring_finisher = spell::is_status_active_next_gcd(job_details, "Finisher Buff")
+            //     && !spell::is_status_still_active_in_two_gcd(job_details, "Finisher Buff");
             let expiring_fire = spell::is_status_active_next_gcd(job_details, "Fire's Rumination")
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Fire's Rumination");
             let expiring_wind = spell::is_status_active_next_gcd(job_details, "Wind's Rumination")
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Wind's Rumination");
-            if expiring_finisher {
-                next_spell_name = "Masterful Blitz";
-            } else if expiring_fire {
+            // if expiring_finisher {
+            //     next_spell_name = "Masterful Blitz";
+            // } else
+            if expiring_fire {
                 next_spell_name = "Fire's Reply";
             } else if expiring_wind {
                 next_spell_name = "Wind's Reply";
@@ -126,11 +128,10 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             let fire_soon =
                 spell::spell_will_be_available_soon(job_details, "Riddle of Fire", 5000);
 
+            let finisher_time = 3 <= monk_nadi::get_nb_beast_chakra(&job_details);
+
             // Perfect balance finisher
-            if !bortherhood_soon
-                && !fire_soon
-                && spell::is_status_active_next_gcd(job_details, "Finisher Buff")
-            {
+            if !bortherhood_soon && !fire_soon && finisher_time {
                 next_spell_name = "Masterful Blitz";
             } else if is_after_opo
                 && spell::is_status_active_next_gcd(job_details, "Fire's Rumination")
@@ -197,45 +198,45 @@ pub fn get_next_coeurl_spell(job_details: &mut JobDetails, aoe: bool) -> &'stati
     }
 }
 
-pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
+pub fn apply_spell_additional_effects(spell_name: &str, _job_details: &mut JobDetails) {
     match spell_name {
-        "Perfect Balance" => perfect_balance_follow_up(job_details),
-        "Elixir Burst" => elixir_finish(job_details),
-        "Rising Phoenix" => phoenix_finish(job_details),
-        "Celestial Revolution" => celestial_finish(job_details),
-        "Phantom Rush" => phantom_finish(job_details),
+        // "Perfect Balance" => perfect_balance_follow_up(job_details),
+        // "Elixir Burst" => elixir_finish(job_details),
+        // "Rising Phoenix" => phoenix_finish(job_details),
+        // "Celestial Revolution" => celestial_finish(job_details),
+        // "Phantom Rush" => phantom_finish(job_details),
         _ => {}
     }
 
-    if spell::is_status_active_now(job_details, "Balance Buff") {
-        if matches!(
-            spell_name,
-            "Leaping Opo" | "Shadow of the Destroyer" | "Dragon Kick"
-        ) {
-            monk_nadi::add_opo_charge(job_details);
-        }
+    // reduce_perfect_balance_charges
 
-        if matches!(
-            spell_name,
-            "Four-point Fury" | "Rising Raptor" | "Twin Snakes"
-        ) {
-            monk_nadi::add_raptor_charge(job_details);
-        }
-
-        if matches!(spell_name, "Rockbreaker" | "Pouncing Coeurl" | "Demolish") {
-            monk_nadi::add_coeurl_charge(job_details);
-        }
-    }
+    // if spell::is_status_active_now(job_details, "Balance Buff") {
+    //     if matches!(
+    //         spell_name,
+    //         "Leaping Opo"
+    //             | "Shadow of the Destroyer"
+    //             | "Dragon Kick"
+    //             | "Four-point Fury"
+    //             | "Rising Raptor"
+    //             | "Twin Snakes"
+    //             | "Rockbreaker"
+    //             | "Pouncing Coeurl"
+    //             | "Demolish"
+    //     ) {
+    //         // Fixme may ,not be reliable
+    //         monk_nadi::reduce_perfect_balance_charges(job_details);
+    //     }
+    // }
 }
 
 // pub fn get_next_perfect_balance_gcd(_job_details: &mut JobDetails, _aoe: bool) {}
 
-fn perfect_balance_follow_up(job_details: &mut JobDetails) {
-    monk_nadi::add_three_perfect_balance_charges(job_details);
-    if spell::is_status_active_now(job_details, "Recent Balance") {
-        spell::activate_status_default_time(job_details, "In Second Balance", -500);
-    }
-}
+// fn perfect_balance_follow_up(job_details: &mut JobDetails) {
+//     // monk_nadi::add_three_perfect_balance_charges(job_details);
+//     if spell::is_status_active_now(job_details, "Recent Balance") {
+//         spell::activate_status_default_time(job_details, "In Second Balance", -500);
+//     }
+// }
 
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // debug!("Job gauge update: {}", data);
@@ -245,43 +246,65 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
         .map(|chunk| String::from_utf8_lossy(chunk).to_string()) // Convert each chunk back to a String
         .collect();
 
-    let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
+    // let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
     // Chunck 2 = Chackra
     let chunk2: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
     job_details.stacks_b = chunk2;
-    let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
-    let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
-    let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
-    // // Chunck 6 = Beast fury
-    let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
-    let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
-    let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
-    let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
-    let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
-    let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
-    let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
-    let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
-    let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
-    let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
-    let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
 
-    // Debug output for each chunk
-    debug!("chunk1 = {}", chunk1);
-    debug!("chunk2 = {}", chunk2);
-    debug!("chunk3 = {}", chunk3);
-    debug!("chunk4 = {}", chunk4);
-    debug!("chunk5 = {}", chunk5);
-    debug!("chunk6 = {}", chunk6);
-    debug!("chunk7 = {}", chunk7);
-    debug!("chunk8 = {}", chunk8);
-    debug!("chunk9 = {}", chunk9);
-    debug!("chunk10 = {}", chunk10);
-    debug!("chunk11 = {}", chunk11);
-    debug!("chunk12 = {}", chunk12);
-    debug!("chunk13 = {}", chunk13);
-    debug!("chunk14 = {}", chunk14);
-    debug!("chunk15 = {}", chunk15);
-    debug!("chunk16 = {}", chunk16);
+    let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
+    let beast_chackra_1 = Animal::from_i32(chunk3);
+    // monk_nadi::set_animal_slot_1(job_details, beast_chackra_1);
+
+    let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
+    let beast_chackra_2 = Animal::from_i32(chunk4);
+    // monk_nadi::set_animal_slot_2(job_details, beast_chackra_2);
+
+    let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
+    let beast_chackra_3 = Animal::from_i32(chunk5);
+    // monk_nadi::set_animal_slot_3(job_details, beast_chackra_3);
+
+    // // Chunck 6 = Beast fury
+    // let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
+
+    // Chunk 7 : nadi
+    let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
+    let lunar_nadi = (chunk7 & 1) != 0;
+    let solar_nadi = ((chunk7 >> 1) & 1) != 0;
+
+    // let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
+    // let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
+    // let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
+    // let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
+    // let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
+    // let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
+    // let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
+    // let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
+    // let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
+
+    monk_nadi::set_nadi_state(
+        job_details,
+        [beast_chackra_1, beast_chackra_2, beast_chackra_3],
+        lunar_nadi,
+        solar_nadi,
+    );
+
+    // // Debug output for each chunk
+    // debug!("chunk1 = {}", chunk1);
+    // debug!("chunk2 = {}", chunk2);
+    // debug!("chunk3 = {}", chunk3);
+    // debug!("chunk4 = {}", chunk4);
+    // debug!("chunk5 = {}", chunk5);
+    // debug!("chunk6 = {}", chunk6);
+    // debug!("chunk7 = {}", chunk7);
+    // debug!("chunk8 = {}", chunk8);
+    // debug!("chunk9 = {}", chunk9);
+    // debug!("chunk10 = {}", chunk10);
+    // debug!("chunk11 = {}", chunk11);
+    // debug!("chunk12 = {}", chunk12);
+    // debug!("chunk13 = {}", chunk13);
+    // debug!("chunk14 = {}", chunk14);
+    // debug!("chunk15 = {}", chunk15);
+    // debug!("chunk16 = {}", chunk16);
 }
 
 fn get_next_balance_gcd(job_details: &mut JobDetails, aoe: bool) -> &'static str {
@@ -295,29 +318,29 @@ fn get_next_balance_gcd(job_details: &mut JobDetails, aoe: bool) -> &'static str
     return get_next_opoopo_spell(job_details, aoe);
 }
 
-fn celestial_finish(job_details: &mut JobDetails) {
-    if monk_nadi::has_lunar_nadi(job_details) {
-        monk_nadi::activate_solar_nadi(job_details);
-    } else {
-        monk_nadi::activate_lunar_nadi(job_details);
-    }
-    monk_nadi::reset_animal_charges(job_details);
-}
+// fn celestial_finish(job_details: &mut JobDetails) {
+//     if monk_nadi::has_lunar_nadi(job_details) {
+//         monk_nadi::activate_solar_nadi(job_details);
+//     } else {
+//         monk_nadi::activate_lunar_nadi(job_details);
+//     }
+//     monk_nadi::reset_animal_charges(job_details);
+// }
 
-fn elixir_finish(job_details: &mut JobDetails) {
-    monk_nadi::activate_lunar_nadi(job_details);
-    monk_nadi::reset_animal_charges(job_details);
-}
+// fn elixir_finish(job_details: &mut JobDetails) {
+//     monk_nadi::activate_lunar_nadi(job_details);
+//     monk_nadi::reset_animal_charges(job_details);
+// }
 
-fn phoenix_finish(job_details: &mut JobDetails) {
-    monk_nadi::activate_solar_nadi(job_details);
-    monk_nadi::reset_animal_charges(job_details);
-}
+// fn phoenix_finish(job_details: &mut JobDetails) {
+//     monk_nadi::activate_solar_nadi(job_details);
+//     monk_nadi::reset_animal_charges(job_details);
+// }
 
-fn phantom_finish(job_details: &mut JobDetails) {
-    monk_nadi::reset_animal_charges(job_details);
-    monk_nadi::reset_nadi(job_details);
-}
+// fn phantom_finish(job_details: &mut JobDetails) {
+//     monk_nadi::reset_animal_charges(job_details);
+//     monk_nadi::reset_nadi(job_details);
+// }
 
 // FIXME forced pot usage in opener
 
@@ -364,8 +387,10 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
     let lunar_nadi_next = monk_nadi::do_we_want_lunar_nadi(job_details);
     let solar_nadi_next = !lunar_nadi_next;
 
-    let in_perfect_balance = spell::is_status_active_now(job_details, "Balance Buff")
-        || spell::is_status_active_now(job_details, "Finisher Buff");
+    let finisher_time = 3 <= monk_nadi::get_nb_beast_chakra(&job_details);
+
+    let in_perfect_balance =
+        spell::is_status_active_now(job_details, "Balance Buff") || finisher_time;
 
     if in_perfect_balance {
         return false;
@@ -423,7 +448,7 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
         spell::is_status_active_now(job_details, "Brother Buff")
             && !spell::is_status_active_now(job_details, "In Second Balance")
             && !spell::is_status_active_now(job_details, "Balance Buff")
-            && !spell::is_status_active_now(job_details, "Finisher Buff")
+            && !finisher_time
             && !spell::is_status_active_now(job_details, "Fire's Rumination")
             && !spell::is_status_active_now(job_details, "Formless Fist");
 
@@ -458,7 +483,7 @@ fn should_brotherhood(job_details: &mut JobDetails) -> bool {
                 monk_nadi::has_solar_nadi(job_details) || monk_nadi::has_lunar_nadi(job_details);
 
             // Third GCD is PB 1 charge left
-            let third_gcd = monk_nadi::get_perfect_balance_charges(job_details) == 1;
+            let third_gcd = get_perfect_balance_charges(job_details) == 1;
 
             let should_delay_burst_for_opener = job_details.opener && !third_gcd && !has_nadi;
 
@@ -466,4 +491,12 @@ fn should_brotherhood(job_details: &mut JobDetails) -> bool {
         }
     }
     return false;
+}
+
+pub fn get_perfect_balance_charges(job_details: &mut JobDetails) -> u8 {
+    if spell::is_status_active_now(job_details, "Balance Buff") {
+        let nb_active_beast_chakra = monk_nadi::get_nb_beast_chakra(job_details);
+        return 3 - nb_active_beast_chakra;
+    }
+    return 0;
 }
