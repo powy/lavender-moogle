@@ -2,7 +2,6 @@
 // Rotation logic for Monk job
 
 use log::error;
-// use log::{debug, error};
 
 use crate::memory;
 use crate::monk_nadi::{self, Animal};
@@ -77,16 +76,12 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             }
         }
 
-        // FIXME manage opener
-
         // No oGCD selected, prepare next GCD
 
         // check expiring GCD
 
         // Expiring Buff follow ups
         if next_spell_name == "" {
-            // let expiring_finisher = spell::is_status_active_next_gcd(job_details, "Finisher Buff")
-            //     && !spell::is_status_still_active_in_two_gcd(job_details, "Finisher Buff");
             let expiring_fire = spell::is_status_active_next_gcd(job_details, "Fire's Rumination")
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Fire's Rumination");
             let expiring_wind = spell::is_status_active_next_gcd(job_details, "Wind's Rumination")
@@ -100,19 +95,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 next_spell_name = "Wind's Reply";
             }
         }
-
-        // check 2m burst GCD
-        // check 1m burst GCD
-        // if next_spell_name == ""
-        //     && spell::is_status_active_next_gcd(job_details, "2m Burst")
-        //     && spell::is_status_active_next_gcd(job_details, "1m Burst")
-        // {
-        //         if spell::is_status_active_next_gcd(job_details, "Scorn") {
-        //             next_spell_name = "Disesteem";
-        //         } else if job_details.secondary_bar >= 50 {
-        //             next_spell_name = "Bloodspiller";
-        //         }
-        // }
 
         // Priority over the buff follow up to use fire's formless fist
         // Formless fist = opportunity to get one more opo
@@ -128,16 +110,22 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             let fire_soon =
                 spell::spell_will_be_available_soon(job_details, "Riddle of Fire", 5000);
 
-            let finisher_time = 3 <= monk_nadi::get_nb_beast_chakra(&job_details);
+            let in_balance = spell::is_status_active_now(job_details, "Balance Buff");
+            let finisher_time = 3 <= monk_nadi::get_nb_beast_chakra(&job_details) && in_balance;
 
             // Perfect balance finisher
-            if !bortherhood_soon && !fire_soon && finisher_time {
+            if finisher_time && !bortherhood_soon && !fire_soon {
                 next_spell_name = "Masterful Blitz";
             } else if is_after_opo
                 && spell::is_status_active_next_gcd(job_details, "Fire's Rumination")
+                && !in_balance
+                && !finisher_time
             {
                 next_spell_name = "Fire's Reply";
-            } else if spell::is_status_active_now(job_details, "Wind's Rumination") {
+            } else if spell::is_status_active_now(job_details, "Wind's Rumination")
+                && !in_balance
+                && !finisher_time
+            {
                 next_spell_name = "Wind's Reply";
                 // TODO : improve by delaying wind if we need to align fire on Opo ?
             }
@@ -200,43 +188,9 @@ pub fn get_next_coeurl_spell(job_details: &mut JobDetails, aoe: bool) -> &'stati
 
 pub fn apply_spell_additional_effects(spell_name: &str, _job_details: &mut JobDetails) {
     match spell_name {
-        // "Perfect Balance" => perfect_balance_follow_up(job_details),
-        // "Elixir Burst" => elixir_finish(job_details),
-        // "Rising Phoenix" => phoenix_finish(job_details),
-        // "Celestial Revolution" => celestial_finish(job_details),
-        // "Phantom Rush" => phantom_finish(job_details),
         _ => {}
     }
-
-    // reduce_perfect_balance_charges
-
-    // if spell::is_status_active_now(job_details, "Balance Buff") {
-    //     if matches!(
-    //         spell_name,
-    //         "Leaping Opo"
-    //             | "Shadow of the Destroyer"
-    //             | "Dragon Kick"
-    //             | "Four-point Fury"
-    //             | "Rising Raptor"
-    //             | "Twin Snakes"
-    //             | "Rockbreaker"
-    //             | "Pouncing Coeurl"
-    //             | "Demolish"
-    //     ) {
-    //         // Fixme may ,not be reliable
-    //         monk_nadi::reduce_perfect_balance_charges(job_details);
-    //     }
-    // }
 }
-
-// pub fn get_next_perfect_balance_gcd(_job_details: &mut JobDetails, _aoe: bool) {}
-
-// fn perfect_balance_follow_up(job_details: &mut JobDetails) {
-//     // monk_nadi::add_three_perfect_balance_charges(job_details);
-//     if spell::is_status_active_now(job_details, "Recent Balance") {
-//         spell::activate_status_default_time(job_details, "In Second Balance", -500);
-//     }
-// }
 
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // debug!("Job gauge update: {}", data);
@@ -318,30 +272,6 @@ fn get_next_balance_gcd(job_details: &mut JobDetails, aoe: bool) -> &'static str
     return get_next_opoopo_spell(job_details, aoe);
 }
 
-// fn celestial_finish(job_details: &mut JobDetails) {
-//     if monk_nadi::has_lunar_nadi(job_details) {
-//         monk_nadi::activate_solar_nadi(job_details);
-//     } else {
-//         monk_nadi::activate_lunar_nadi(job_details);
-//     }
-//     monk_nadi::reset_animal_charges(job_details);
-// }
-
-// fn elixir_finish(job_details: &mut JobDetails) {
-//     monk_nadi::activate_lunar_nadi(job_details);
-//     monk_nadi::reset_animal_charges(job_details);
-// }
-
-// fn phoenix_finish(job_details: &mut JobDetails) {
-//     monk_nadi::activate_solar_nadi(job_details);
-//     monk_nadi::reset_animal_charges(job_details);
-// }
-
-// fn phantom_finish(job_details: &mut JobDetails) {
-//     monk_nadi::reset_animal_charges(job_details);
-//     monk_nadi::reset_nadi(job_details);
-// }
-
 // FIXME forced pot usage in opener
 
 fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
@@ -351,22 +281,10 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
         return false;
     }
 
-    // Fire used recently, Brotherhood used recently -> even window
-    // let in_even_window = spell::is_status_active_now(job_details, "Brother Buff");
-
     // Fire used recently, Brotherhood in a while -> odd window
     let in_odd_window = spell::is_status_active_now(job_details, "Fire Buff")
         && !spell::is_status_active_now(job_details, "Brother Buff")
         && !spell::spell_will_be_available_soon(job_details, "Brotherhood", 35000);
-
-    // Next usage of fire with brotherhood -> future even window
-    // let next_is_even_window = false;
-
-    // Next usage of fire without brotherhood -> future odd window
-    // let next_is_odd_window = false;
-
-    //
-    // let even_window_incoming = false;
 
     let odd_window_lead_time = 7000;
     let in_lead_time_of_odd_window =
@@ -381,24 +299,23 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
         spell::spell_will_be_available_soon(job_details, "Brotherhood", even_window_lead_time);
 
     // Emergency time : brotherhood available or will available before we can prepare a PB. Start the first PB immediately.
-    let in_emegency_time_of_even_window =
-        spell::spell_will_be_available_soon(job_details, "Brotherhood", 2500);
+    let in_emegency_time_of_even_window = !job_details.opener
+        && spell::spell_will_be_available_soon(job_details, "Brotherhood", 2500);
 
     let lunar_nadi_next = monk_nadi::do_we_want_lunar_nadi(job_details);
     let solar_nadi_next = !lunar_nadi_next;
 
     let finisher_time = 3 <= monk_nadi::get_nb_beast_chakra(&job_details);
-
-    let in_perfect_balance =
-        spell::is_status_active_now(job_details, "Balance Buff") || finisher_time;
+    let in_perfect_balance = spell::is_status_active_now(job_details, "Balance Buff");
+    // let in_extended_perfect_balance =
+    //     spell::is_status_active_now(job_details, "Balance Buff") || finisher_time;
 
     if in_perfect_balance {
         return false;
     }
 
     // Used to ensure that we don't throw too many balance in one window
-    let already_did_a_perfect_balance =
-        in_perfect_balance || spell::is_status_active_now(job_details, "Recent Balance");
+    let already_did_a_perfect_balance = spell::is_status_active_now(job_details, "Recent Balance");
 
     // FIXME - case of a delayed burst. Need to do the 2m peferct balance ahead still
     // FIXME - there is a design decision to do, because normaly we don't want to delay brotherhood.
@@ -422,7 +339,7 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
     // Fire is active
     // Check it is the first in that odd window
     // Note: in case of failed pre balance for solar, tihs should catch it in th odd burst window !
-    let should_start_lunar_odd_window_perfect_balance = in_odd_window // include fire has been pressed
+    let should_start_lunar_odd_window_perfect_balance = lunar_nadi_next && in_odd_window // include fire has been pressed
         && !already_did_a_perfect_balance;
 
     // Even window
@@ -440,8 +357,6 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
         && in_emegency_time_of_even_window
         && !already_did_a_perfect_balance;
 
-    //FIXME How to prevent third P-B in 2m burst FIXME FIXLE
-
     // Second perfect balance in 2m burst
     // If in brotherhood, not in balance, not in finisher, not in free form, not waiting fire reply, activateit
     let should_start_even_window_second_perfect_balance =
@@ -450,7 +365,9 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
             && !spell::is_status_active_now(job_details, "Balance Buff")
             && !finisher_time
             && !spell::is_status_active_now(job_details, "Fire's Rumination")
-            && !spell::is_status_active_now(job_details, "Formless Fist");
+            && !spell::is_status_active_now(job_details, "Formless Fist")
+            && !spell::is_status_active_now(job_details, "Wind's Rumination")
+            && spell::is_status_active_in(job_details, "Brother Buff", 6000); // avoid 3rd PB
 
     // default don't activate Perfect Balance
     return should_start_even_window_first_perfect_balance

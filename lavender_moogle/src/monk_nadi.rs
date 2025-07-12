@@ -1,6 +1,5 @@
 use crate::spell;
 use crate::types::JobDetails;
-// use log::debug;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Animal {
@@ -78,28 +77,6 @@ impl MonkNadiStats {
             .count() as u8
     }
 
-    // fn _set_animal_slot(&mut self, slot: usize, animal: Animal) {
-    //     if (1..=3).contains(&slot) {
-    //         self.animal_slots[slot - 1] = animal;
-    //     } else {
-    //         panic!("Invalid slot index: {}", slot);
-    //     }
-    // }
-
-    // fn add_animal(&mut self, animal: Animal) -> bool {
-    //     for slot in &mut self.animal_slots {
-    //         if *slot == Animal::Nothing {
-    //             *slot = animal;
-    //             return true;
-    //         }
-    //     }
-    //     false // no empty slot found
-    // }
-
-    // fn _reset_animal_slots(&mut self) {
-    //     self.animal_slots = [Animal::Nothing; 3];
-    // }
-
     pub fn count_animals(&self) -> (u8, u8, u8) {
         let mut nb_opo = 0;
         let mut nb_raptor = 0;
@@ -131,91 +108,6 @@ pub fn set_nadi_state(
     job_details.secondary_bar = stats.to_i32();
 }
 
-// pub fn set_animal_slot_1(job_details: &mut JobDetails, animal: Animal) {
-//     debug!("set_animal_slot_1: {:?}", animal);
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     stats.set_animal_slot(1, animal);
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
-// pub fn set_animal_slot_2(job_details: &mut JobDetails, animal: Animal) {
-//     debug!("set_animal_slot_2: {:?}", animal);
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     stats.set_animal_slot(2, animal);
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
-// pub fn set_animal_slot_3(job_details: &mut JobDetails, animal: Animal) {
-//     debug!("set_animal_slot_3: {:?}", animal);
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     stats.set_animal_slot(3, animal);
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
-// pub fn add_animal(job_details: &mut JobDetails, animal: Animal) {
-//     debug!("add_animal: {:?}", animal);
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     if stats.total_animal_charges() < 3 {
-//         if stats.add_animal(animal) {
-//             stats.perfect_balance_charges = stats.perfect_balance_charges.saturating_sub(1);
-//         }
-//     }
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
-// pub fn activate_lunar_nadi(job_details: &mut JobDetails) {
-//     debug!("activate_lunar_nadi");
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     stats.lunar_nadi = true;
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
-// pub fn activate_solar_nadi(job_details: &mut JobDetails) {
-//     debug!("activate_solar_nadi");
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     stats.solar_nadi = true;
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
-// pub fn reset_animal_charges(job_details: &mut JobDetails) {
-//     debug!("reset_animal_charges");
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     stats.reset_animal_slots();
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
-// pub fn reset_nadi(job_details: &mut JobDetails) {
-//     debug!("reset_nadi");
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     stats.lunar_nadi = false;
-//     stats.solar_nadi = false;
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
-// pub fn reduce_perfect_balance_charges(job_details: &mut JobDetails) {
-//     // FIXME non reliable?
-//     debug!("reduce_perfect_balance_charges");
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     if stats.perfect_balance_charges > 0 {
-//         stats.perfect_balance_charges -= 1;
-//     }
-//     job_details.secondary_bar = stats.to_i32();
-//     if stats.perfect_balance_charges == 0 {
-//         spell::deactivate_status(job_details, "Balance Buff");
-//         spell::activate_status_default_time(job_details, "Finisher Buff", 0);
-//     }
-//     spell::deactivate_status(job_details, "Opo-opo Form");
-//     spell::deactivate_status(job_details, "Raptor Form");
-//     spell::deactivate_status(job_details, "Coeurl Form");
-// }
-
-// pub fn add_three_perfect_balance_charges(job_details: &mut JobDetails) {
-//     // FIXME non reliable?
-//     let mut stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     stats.perfect_balance_charges = 3;
-//     job_details.secondary_bar = stats.to_i32();
-// }
-
 pub fn has_lunar_nadi(job_details: &JobDetails) -> bool {
     MonkNadiStats::from_i32(job_details.secondary_bar).lunar_nadi
 }
@@ -227,18 +119,6 @@ pub fn has_solar_nadi(job_details: &JobDetails) -> bool {
 pub fn get_nb_beast_chakra(job_details: &JobDetails) -> u8 {
     return MonkNadiStats::from_i32(job_details.secondary_bar).total_animal_charges();
 }
-
-// fn _debug_monk_nadi(job_details: &JobDetails) {
-//     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
-//     debug!("=== Monk Nadi Debug ===");
-//     debug!("Animal Slots        : {:?}", stats.animal_slots);
-//     debug!("Lunar Nadi Active   : {}", stats.lunar_nadi);
-//     debug!("Solar Nadi Active   : {}", stats.solar_nadi);
-//     debug!("Perfect Balance     : {}", stats.perfect_balance_charges);
-//     // debug!("Total Animal Charges: {}", stats.total_animal_charges());
-//     debug!("Raw secondary_bar   : {}", job_details.secondary_bar);
-//     debug!("======================");
-// }
 
 pub fn do_we_want_lunar_nadi(job_details: &mut JobDetails) -> bool {
     let stats = MonkNadiStats::from_i32(job_details.secondary_bar);
@@ -329,6 +209,5 @@ pub fn next_animal_in_balance_phase(job_details: &mut JobDetails) -> &'static st
         }
     };
 
-    //  PLaceholder
     return next;
 }
