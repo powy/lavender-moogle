@@ -394,7 +394,13 @@ fn should_dump_chakra(job_details: &mut JobDetails) -> bool {
 // "DK 5" opener
 fn should_brotherhood(job_details: &mut JobDetails) -> bool {
     if spell::burst_allowed(job_details) {
-        if spell::is_spell_available_now(job_details, "Brotherhood") {
+        // Fire alignment checks are supposed to reduce drift between bortherhood and riddle of fire.
+        let in_fire = spell::is_status_active_now(job_details, "Fire Buff");
+        let fire_ready = spell::spell_will_be_available_soon(job_details, "Riddle of Fire", 750)
+            && spell::is_spell_available_next_gcd(job_details, "Riddle of Fire");
+        let fire_alignement_ok = in_fire || fire_ready;
+
+        if spell::is_spell_available_now(job_details, "Brotherhood") && fire_alignement_ok {
             // Nadi means we finished a PB - no delay - here in case of bug
             let has_nadi =
                 monk_nadi::has_solar_nadi(job_details) || monk_nadi::has_lunar_nadi(job_details);

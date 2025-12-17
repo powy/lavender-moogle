@@ -1,2 +1,13 @@
 /local_saves
 /temp_tests
+
+
+.claude/
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Executables
+*.exe
+*.msi
+*.dll
