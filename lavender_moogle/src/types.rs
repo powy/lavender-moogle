@@ -19,6 +19,7 @@ pub struct SpellDetails {
     pub tertiary_bar: i32,
     pub stacks_a: i32,
     pub stacks_b: i32,
+    pub max_charges: i32,
 }
 
 // Represent all spells associated with a specific job
