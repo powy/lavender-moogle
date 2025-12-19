@@ -1,4 +1,5 @@
 ; Requires AutoHotKey 2
+#Include ..\XInput.ahk
 
 ; Read values in the shared memory to execute a command modifier + keystroke
 ; There is 4 possible actions, depending on the modifiers used at the time of pressing the key
@@ -11,8 +12,21 @@ MODIFIER_ALT := "a"
 MODIFIER_SHIFT := "s"
 MODIFIER_CTRL := "c"
 
+; Controller polling configuration
+global CONTROLLER_POLL_RATE := 100  ; Milliseconds between polls (100ms = 10Hz)
+
 ; Used to block actions after stopping the script and before init
 global stopScript := true
+
+; 2025-12-19: Testing - track spam state for X key spam function
+global spamming := false
+
+; 2025-12-19: Track controller button states to detect press/release
+global joy3WasPressed := false
+
+; Controller state tracking for edge detection
+global lastControllerButtons := 0
+global controllerInitialized := false
 
 ; Wait 5 seconds in case it is started at the same time than the shared memory owner
 ; It allows time for the shared memory to be inbitialized
@@ -21,11 +35,25 @@ stopScript := false
 
 ; Shared Memory Mapping setup
 ; This script is the reader, the Shared Memory shall be created, Written and kept alive outside
-mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 8)
+; TEMPORARY: Commented out for testing without admin rights - UNCOMMENT after testing
+; mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 8)
+
+; Initialize XInput for controller support
+try {
+    XInput_Init()
+    controllerInitialized := true
+    ; Start polling controller
+    SetTimer(PollController, CONTROLLER_POLL_RATE)
+} catch Error as err {
+    ; Controller not available - not a fatal error, script continues
+    controllerInitialized := false
+}
 
 ; Hotkey to stop the script
 Insert:: {
     stopScript := true
+    if (controllerInitialized)
+        XInput_Term()
     MsgBox "Your computer tastes Lavender. The color."
     ExitApp
 }
@@ -68,6 +96,60 @@ F14:: {
 
 F16:: {
     executeRaw(6, 7)
+}
+
+; 2025-12-19: Testing hotkey - spam key 4 while X is held down
+X:: {
+    global spamming
+    spamming := true
+    SetTimer(SpamKey4, 100)  ; Trigger every 100ms
+}
+
+X Up:: {
+    global spamming
+    spamming := false
+    SetTimer(SpamKey4, 0)  ; Stop timer
+}
+
+; 2025-12-19: Controller test hotkeys using legacy Joy1-Joy32
+; WARNING: These Joy hotkeys only work when this AHK window is in FOCUS
+; For modern Xbox controllers (2013+), they DON'T work in background mode
+; This is a Windows limitation with XInput controllers and DirectInput API
+; For background controller support, use XInput.ahk library instead
+; See: controller_test.ahk for a working XInput example
+;
+; These are kept for basic connectivity testing only - not for production use
+
+Joy1:: {
+    MsgBox "Joy1 pressed (A/Cross/B)`n`nWARNING: Only works when AHK window is focused!"
+}
+
+Joy2:: {
+    MsgBox "Joy2 pressed (B/Circle/A)`n`nWARNING: Only works when AHK window is focused!"
+}
+
+Joy3:: {
+    MsgBox "Joy3 pressed (X/Square/Y)`n`nWARNING: Only works when AHK window is focused!"
+}
+
+Joy4:: {
+    MsgBox "Joy4 pressed (Y/Triangle/X)`n`nWARNING: Only works when AHK window is focused!"
+}
+
+Joy5:: {
+    MsgBox "Joy5 pressed (LB/L1)`n`nWARNING: Only works when AHK window is focused!"
+}
+
+Joy6:: {
+    MsgBox "Joy6 pressed (RB/R1)`n`nWARNING: Only works when AHK window is focused!"
+}
+
+Joy7:: {
+    MsgBox "Joy7 pressed (Back/Select/Minus)`n`nWARNING: Only works when AHK window is focused!"
+}
+
+Joy8:: {
+    MsgBox "Joy8 pressed (Start/Plus)`n`nWARNING: Only works when AHK window is focused!"
 }
 
 ; Execute the order using raw memory reading (byte by byte)
@@ -116,6 +198,53 @@ executeRaw(modifier_pos, key_pos) {
             Sleep(1)
         }
     }
+}
+
+; 2025-12-19: Testing function - spam key 4 at 100ms intervals
+SpamKey4() {
+    if (!stopScript && spamming) {
+        SendEvent("4")
+    }
+}
+
+; Helper function to check if a button was just pressed (rising edge)
+; Returns true if button is currently pressed but wasn't pressed last poll
+CheckButtonPressed(currentButtons, lastButtons, buttonMask) {
+    return (currentButtons & buttonMask) && !(lastButtons & buttonMask)
+}
+
+; 2025-12-19: Poll Xbox controller buttons A, B, X, Y
+; All buttons trigger the same action (executeRaw 0,1 like F13/Browser_Favorites)
+PollController() {
+    global lastControllerButtons, controllerInitialized, stopScript
+
+    if (stopScript || !controllerInitialized)
+        return
+
+    ; Get controller state (controller 0)
+    state := XInput_GetState(0)
+
+    ; Controller disconnected
+    if (!state) {
+        lastControllerButtons := 0
+        return
+    }
+
+    currentButtons := state.wButtons
+
+    ; Check if any face button was pressed (A, B, X, or Y)
+    if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_A)
+        || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_B)
+        || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_X)
+        || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)) {
+
+        ; Any of A/B/X/Y pressed - all trigger same action
+        ; executeRaw(0, 1)  ; Same as Browser_Favorites/F13 - COMMENTED for testing
+        ; TODO: Uncomment when ready to integrate with rotation engine
+    }
+
+    ; Save current state for next poll (edge detection)
+    lastControllerButtons := currentButtons
 }
 
 ; Display full memory contents for debugging
