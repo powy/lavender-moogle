@@ -27,10 +27,6 @@ global stopScript := true
 global lastControllerButtons := 0
 global controllerInitialized := false
 
-; Track trigger states for edge detection
-global lastLeftTrigger := 0
-global lastRightTrigger := 0
-
 ; Wait 5 seconds in case it is started at the same time than the shared memory owner
 ; It allows time for the shared memory to be inbitialized
 Sleep 5000
@@ -221,11 +217,11 @@ CheckTriggerPressed(currentValue, lastValue, threshold := 30) {
     return (currentValue >= threshold) && (lastValue < threshold)
 }
 
-; 2025-12-19: Poll Xbox controller buttons A, B, X, Y and triggers L2, R2
-; All buttons trigger the same action (executeRaw 0,1 like F13/Browser_Favorites)
-; L2 and R2 triggers can trigger different actions
+; 2025-12-20: Poll Xbox controller buttons A, B, X, Y and shoulder buttons L1, R1
+; All face buttons trigger the same action (executeRaw 0,1 like F13/Browser_Favorites)
+; L1 and R1 shoulder buttons can trigger different actions
 PollController() {
-    global lastControllerButtons, lastLeftTrigger, lastRightTrigger, controllerInitialized, stopScript
+    global lastControllerButtons, controllerInitialized, stopScript
 
     if (stopScript || !controllerInitialized)
         return
@@ -236,14 +232,10 @@ PollController() {
     ; Controller disconnected
     if (!state) {
         lastControllerButtons := 0
-        lastLeftTrigger := 0
-        lastRightTrigger := 0
         return
     }
 
     currentButtons := state.wButtons
-    currentLeftTrigger := state.bLeftTrigger
-    currentRightTrigger := state.bRightTrigger
 
     ; Check if any face button was pressed (A, B, X, or Y)
     if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_A)
@@ -256,24 +248,22 @@ PollController() {
         ; TODO: Uncomment when ready to integrate with rotation engine
     }
 
-    ; Check if L2 (Left Trigger) was pressed
-    if (CheckTriggerPressed(currentLeftTrigger, lastLeftTrigger, XINPUT_GAMEPAD_TRIGGER_THRESHOLD)) {
-        ; L2 pressed - trigger specific action
+    ; Check if L1 (Left Shoulder) was pressed
+    if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_LEFT_SHOULDER)) {
+        ; L1 pressed - trigger specific action
         ; executeRaw(2, 3)  ; Same as Browser_Refresh/F15 - COMMENTED for testing
         ; TODO: Uncomment and customize action when ready
     }
 
-    ; Check if R2 (Right Trigger) was pressed
-    if (CheckTriggerPressed(currentRightTrigger, lastRightTrigger, XINPUT_GAMEPAD_TRIGGER_THRESHOLD)) {
-        ; R2 pressed - trigger different action
+    ; Check if R1 (Right Shoulder) was pressed
+    if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER)) {
+        ; R1 pressed - trigger different action
         ; executeRaw(4, 5)  ; Same as Browser_Back/F14 - COMMENTED for testing
         ; TODO: Uncomment and customize action when ready
     }
 
     ; Save current state for next poll (edge detection)
     lastControllerButtons := currentButtons
-    lastLeftTrigger := currentLeftTrigger
-    lastRightTrigger := currentRightTrigger
 }
 
 ; Display full memory contents for debugging
