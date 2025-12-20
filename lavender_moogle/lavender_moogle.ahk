@@ -1,6 +1,11 @@
 ; Requires AutoHotKey 2
 #Include ..\XInput.ahk
 
+; Configuration directives for robust spam functionality
+#MaxThreadsPerHotkey 2  ; Allow hotkey to interrupt itself
+SendMode "Event"        ; Explicit send mode
+SetKeyDelay -1          ; Remove artificial delays
+
 ; Read values in the shared memory to execute a command modifier + keystroke
 ; There is 4 possible actions, depending on the modifiers used at the time of pressing the key
 ; The goal is to automate some action decision - the next action to do is written in the shared memory.
@@ -18,15 +23,13 @@ global CONTROLLER_POLL_RATE := 100  ; Milliseconds between polls (100ms = 10Hz)
 ; Used to block actions after stopping the script and before init
 global stopScript := true
 
-; 2025-12-19: Testing - track spam state for X key spam function
-global spamming := false
-
-; 2025-12-19: Track controller button states to detect press/release
-global joy3WasPressed := false
-
 ; Controller state tracking for edge detection
 global lastControllerButtons := 0
 global controllerInitialized := false
+
+; Track trigger states for edge detection
+global lastLeftTrigger := 0
+global lastRightTrigger := 0
 
 ; Wait 5 seconds in case it is started at the same time than the shared memory owner
 ; It allows time for the shared memory to be inbitialized
@@ -82,33 +85,39 @@ Browser_Forward:: {
     executeRaw(6, 7)
 }
 
-F13:: {
-    executeRaw(0, 1)
-}
+; Spam executeRaw() calls using robust While+GetKeyState pattern
+; Hold each key to spam its corresponding shared memory action
 
-F15:: {
-    executeRaw(2, 3)
+F13:: {
+    executeRaw(0, 1)  ; Execute immediately
+    While GetKeyState("F13", "P") {
+        Sleep(100)
+        executeRaw(0, 1)  ; Spam the executeRaw call
+    }
 }
 
 F14:: {
     executeRaw(4, 5)
+    While GetKeyState("F14", "P") {
+        Sleep(100)
+        executeRaw(4, 5)
+    }
+}
+
+F15:: {
+    executeRaw(2, 3)
+    While GetKeyState("F15", "P") {
+        Sleep(100)
+        executeRaw(2, 3)
+    }
 }
 
 F16:: {
     executeRaw(6, 7)
-}
-
-; 2025-12-19: Testing hotkey - spam key 4 while X is held down
-X:: {
-    global spamming
-    spamming := true
-    SetTimer(SpamKey4, 100)  ; Trigger every 100ms
-}
-
-X Up:: {
-    global spamming
-    spamming := false
-    SetTimer(SpamKey4, 0)  ; Stop timer
+    While GetKeyState("F16", "P") {
+        Sleep(100)
+        executeRaw(6, 7)
+    }
 }
 
 ; 2025-12-19: Controller test hotkeys using legacy Joy1-Joy32
@@ -200,23 +209,23 @@ executeRaw(modifier_pos, key_pos) {
     }
 }
 
-; 2025-12-19: Testing function - spam key 4 at 100ms intervals
-SpamKey4() {
-    if (!stopScript && spamming) {
-        SendEvent("4")
-    }
-}
-
 ; Helper function to check if a button was just pressed (rising edge)
 ; Returns true if button is currently pressed but wasn't pressed last poll
 CheckButtonPressed(currentButtons, lastButtons, buttonMask) {
     return (currentButtons & buttonMask) && !(lastButtons & buttonMask)
 }
 
-; 2025-12-19: Poll Xbox controller buttons A, B, X, Y
+; Helper function to check if a trigger was just pressed (rising edge)
+; Returns true if trigger crossed the threshold from below to above
+CheckTriggerPressed(currentValue, lastValue, threshold := 30) {
+    return (currentValue >= threshold) && (lastValue < threshold)
+}
+
+; 2025-12-19: Poll Xbox controller buttons A, B, X, Y and triggers L2, R2
 ; All buttons trigger the same action (executeRaw 0,1 like F13/Browser_Favorites)
+; L2 and R2 triggers can trigger different actions
 PollController() {
-    global lastControllerButtons, controllerInitialized, stopScript
+    global lastControllerButtons, lastLeftTrigger, lastRightTrigger, controllerInitialized, stopScript
 
     if (stopScript || !controllerInitialized)
         return
@@ -227,10 +236,14 @@ PollController() {
     ; Controller disconnected
     if (!state) {
         lastControllerButtons := 0
+        lastLeftTrigger := 0
+        lastRightTrigger := 0
         return
     }
 
     currentButtons := state.wButtons
+    currentLeftTrigger := state.bLeftTrigger
+    currentRightTrigger := state.bRightTrigger
 
     ; Check if any face button was pressed (A, B, X, or Y)
     if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_A)
@@ -243,8 +256,24 @@ PollController() {
         ; TODO: Uncomment when ready to integrate with rotation engine
     }
 
+    ; Check if L2 (Left Trigger) was pressed
+    if (CheckTriggerPressed(currentLeftTrigger, lastLeftTrigger, XINPUT_GAMEPAD_TRIGGER_THRESHOLD)) {
+        ; L2 pressed - trigger specific action
+        ; executeRaw(2, 3)  ; Same as Browser_Refresh/F15 - COMMENTED for testing
+        ; TODO: Uncomment and customize action when ready
+    }
+
+    ; Check if R2 (Right Trigger) was pressed
+    if (CheckTriggerPressed(currentRightTrigger, lastRightTrigger, XINPUT_GAMEPAD_TRIGGER_THRESHOLD)) {
+        ; R2 pressed - trigger different action
+        ; executeRaw(4, 5)  ; Same as Browser_Back/F14 - COMMENTED for testing
+        ; TODO: Uncomment and customize action when ready
+    }
+
     ; Save current state for next poll (edge detection)
     lastControllerButtons := currentButtons
+    lastLeftTrigger := currentLeftTrigger
+    lastRightTrigger := currentRightTrigger
 }
 
 ; Display full memory contents for debugging
