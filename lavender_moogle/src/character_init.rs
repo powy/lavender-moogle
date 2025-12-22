@@ -3,7 +3,7 @@
 use crate::types::{CharacterDetails, JobDetails, SpellDetails};
 use calamine::{open_workbook_auto, DataType, Reader};
 use chrono::Utc;
-use log::debug;
+use log::{debug, warn};
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -51,6 +51,7 @@ pub fn init_character_details_from_excel(
                     tertiary_bar: 0,
                     stacks_a: 0,
                     stacks_b: 0,
+                    max_charges: 0,
                 };
 
                 for (col_idx, cell) in row.iter().enumerate() {
@@ -177,6 +178,41 @@ pub fn init_character_details_from_excel(
                                 debug!(
                                     "spell : {}, stack b: {}",
                                     spell_details.name, spell_details.stacks_b
+                                );
+                            }
+                        }
+
+                        Some("max_charges") => {
+                            // Parse the value from Excel cell, handling different data types
+                            let mut parsed_value = match cell {
+                                DataType::Int(value) => *value as i32,
+                                DataType::Float(value) => *value as i32,
+                                DataType::Empty => 0, // Default to 0 if empty
+                                _ => cell.to_string().parse().unwrap_or(0), // Fallback to parsing, default to 0 on failure
+                            };
+
+                            // Validation: cap at 3, floor at 0
+                            if parsed_value > 3 {
+                                warn!(
+                                    "Spell '{}': max_charges value {} exceeds maximum of 3. Capping at 3.",
+                                    spell_details.name, parsed_value
+                                );
+                                parsed_value = 3;
+                            } else if parsed_value < 0 {
+                                warn!(
+                                    "Spell '{}': max_charges value {} is negative. Setting to 0.",
+                                    spell_details.name, parsed_value
+                                );
+                                parsed_value = 0;
+                            }
+
+                            spell_details.max_charges = parsed_value;
+
+                            // Debug log for non-zero charges (similar to stacks_b pattern)
+                            if spell_details.max_charges != 0 {
+                                debug!(
+                                    "spell: {}, max_charges: {}",
+                                    spell_details.name, spell_details.max_charges
                                 );
                             }
                         }
