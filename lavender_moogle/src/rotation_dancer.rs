@@ -1,7 +1,7 @@
 // rotation_dancer.rs
 // Rotation logic for dancer job
 
-use log::error;
+use log::{debug, error};
 
 use crate::memory;
 use crate::spell;
@@ -238,20 +238,62 @@ pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDet
 }
 
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
-    // debug!("Job gauge update: {}", data);
+    debug!("Job gauge update: {}", data);
     let chunks: Vec<String> = data
         .as_bytes() // Convert the string to a byte slice
         .chunks(2) // Split into chunks of 2 bytes
         .map(|chunk| String::from_utf8_lossy(chunk).to_string()) // Convert each chunk back to a String
         .collect();
 
-    let feathers: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
-    let esprit: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
-    let step1: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
-    let step2: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
-    let step3: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
-    let step4: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
-    let current_step: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
+    // let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
+    // let chunk2: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
+    // let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
+    // let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
+    // let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
+    // let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
+    // let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
+    // let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
+    // let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
+    // let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
+    // let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
+    // let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
+    // let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
+    // let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
+    // let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
+    // let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
+
+    // // // Debug output for each chunk
+    // debug!("chunk1 = {}", chunk1);
+    // debug!("chunk2 = {}", chunk2);
+    // debug!("chunk3 = {}", chunk3);
+    // debug!("chunk4 = {}", chunk4);
+    // debug!("chunk5 = {}", chunk5);
+    // debug!("chunk6 = {}", chunk6);
+    // debug!("chunk7 = {}", chunk7);
+    // debug!("chunk8 = {}", chunk8);
+    // debug!("chunk9 = {}", chunk9);
+    // debug!("chunk10 = {}", chunk10);
+    // debug!("chunk11 = {}", chunk11);
+    // debug!("chunk12 = {}", chunk12);
+    // debug!("chunk13 = {}", chunk13);
+    // debug!("chunk14 = {}", chunk14);
+    // debug!("chunk15 = {}", chunk15);
+    // debug!("chunk16 = {}", chunk16);
+
+    let feathers: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk2");
+    debug!("feathers 1: {}", feathers);
+    let esprit: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk3");
+    debug!("esprit 1: {}", esprit);
+    let step1: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk4");
+    debug!("Step 1: {}", step1);
+    let step2: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk5");
+    debug!("Step 2: {}", step2);
+    let step3: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk6");
+    debug!("Step 3: {}", step3);
+    let step4: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk7");
+    debug!("Step 4: {}", step4);
+    let current_step: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk8");
+    debug!("current_step: {}", current_step);
 
     job_details.secondary_bar = esprit;
     job_details.stacks_a = feathers; // Stacks_a is feathers in DNC job
@@ -264,6 +306,7 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
             0 // Default value if current_step is not 1, 2, 3, or 4
         }
     };
+    debug!("job_details.stacks_b: {}", job_details.stacks_b);
 }
 
 fn should_standard_step(job_details: &mut JobDetails, delayed_burst: bool) -> bool {
