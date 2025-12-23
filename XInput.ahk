@@ -98,6 +98,10 @@ XInput_GetState(UserIndex)
 {
     global _XInput_GetState
 
+    ; Guard against calling after XInput_Term()
+    if (!_XInput_GetState)
+        return 0  ; Return 0 to indicate device not connected
+
     xiState := Buffer(16)
 
     if err := DllCall(_XInput_GetState ,"uint",UserIndex ,"ptr",xiState) {
