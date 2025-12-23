@@ -195,17 +195,17 @@ executeRaw(modifier_pos, key_pos) {
                 existing_modifiers .= "{Alt down}"
 
             SendEvent("{Blind}{Ctrl up}{Shift up}{Alt up}")
-            Sleep(1)
+            Sleep(5)
 
             if target_modifier {
                 SendEvent("{" target_modifier " down}")
-                Sleep(1)
+                Sleep(5)
             }
             SendEvent(key_char)
             if target_modifier {
-                Sleep(1)
+                Sleep(5)
                 SendEvent("{" target_modifier " up}")
-                Sleep(1)
+                Sleep(5)
             }
 
             SendEvent(existing_modifiers)
@@ -253,7 +253,7 @@ PollController() {
     || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)) {
 
         ; Any of A/B/X/Y pressed - all trigger same action
-        ; executeRaw(0, 1)  ; Same as Browser_Favorites/F13 - COMMENTED for testing
+        executeRaw(0, 1)  ; Same as Browser_Favorites/F13 - COMMENTED for testing
         ; TODO: Uncomment when ready to integrate with rotation engine
     }
 

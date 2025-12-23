@@ -1,7 +1,7 @@
 // rotation_gunbreaker.rs
 // Rotation logic for gunbreaker job
 
-use log::error;
+use log::{debug, error};
 
 use crate::memory;
 use crate::spell;
@@ -13,11 +13,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // update stack min / max
 
-        if job_details.stacks_a > 3 {
-            job_details.stacks_a = 3;
-        } else if job_details.stacks_a < 0 {
-            job_details.stacks_a = 0;
-        }
+        // if job_details.stacks_a > 3 {
+        // job_details.stacks_a = 3;
+        // } else if job_details.stacks_a < 0 {
+        // job_details.stacks_a = 0;
+        // }
 
         // check oGCD
         let mut next_spell_name = "";
@@ -217,7 +217,8 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     //     println!("Chunk {}: {}", i + 1, chunk_int);
     // }
 
-    let cartridges: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk");
+    let cartridges: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk");
+    debug!("cartridges: {}", cartridges);
 
     job_details.stacks_a = cartridges;
 }
