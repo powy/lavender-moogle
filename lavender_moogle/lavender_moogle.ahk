@@ -1,4 +1,5 @@
 ; Requires AutoHotKey 2
+#Requires AutoHotkey v2.0
 #Include ..\XInput.ahk
 
 ; Configuration directives for robust spam functionality
@@ -18,7 +19,8 @@ MODIFIER_SHIFT := "s"
 MODIFIER_CTRL := "c"
 
 ; Controller polling configuration
-global CONTROLLER_POLL_RATE := 100  ; Milliseconds between polls (100ms = 10Hz)
+global SPAM_INTERVAL := 150  ; milliseconds (100ms = 10 times/second)
+global CONTROLLER_POLL_RATE := SPAM_INTERVAL  ; Milliseconds between polls (100ms = 10Hz)
 
 ; Used to block actions after stopping the script and before init
 global stopScript := true
@@ -34,8 +36,7 @@ stopScript := false
 
 ; Shared Memory Mapping setup
 ; This script is the reader, the Shared Memory shall be created, Written and kept alive outside
-; TEMPORARY: Commented out for testing without admin rights - UNCOMMENT after testing
-; mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 8)
+mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 8)
 
 ; Initialize XInput for controller support
 try {
@@ -86,32 +87,40 @@ Browser_Forward:: {
 
 F13:: {
     executeRaw(0, 1)  ; Execute immediately
-    While GetKeyState("F13", "P") {
-        Sleep(100)
+    while GetKeyState("F13", "P") {
+        Sleep(SPAM_INTERVAL)
+        executeRaw(0, 1)  ; Spam the executeRaw call
+    }
+}
+
+X:: {
+    executeRaw(0, 1)  ; Execute immediately
+    while GetKeyState("X", "P") {
+        Sleep(SPAM_INTERVAL)
         executeRaw(0, 1)  ; Spam the executeRaw call
     }
 }
 
 F14:: {
     executeRaw(4, 5)
-    While GetKeyState("F14", "P") {
-        Sleep(100)
+    while GetKeyState("F14", "P") {
+        Sleep(SPAM_INTERVAL)
         executeRaw(4, 5)
     }
 }
 
 F15:: {
     executeRaw(2, 3)
-    While GetKeyState("F15", "P") {
-        Sleep(100)
+    while GetKeyState("F15", "P") {
+        Sleep(SPAM_INTERVAL)
         executeRaw(2, 3)
     }
 }
 
 F16:: {
     executeRaw(6, 7)
-    While GetKeyState("F16", "P") {
-        Sleep(100)
+    while GetKeyState("F16", "P") {
+        Sleep(SPAM_INTERVAL)
         executeRaw(6, 7)
     }
 }
@@ -239,9 +248,9 @@ PollController() {
 
     ; Check if any face button was pressed (A, B, X, or Y)
     if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_A)
-        || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_B)
-        || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_X)
-        || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)) {
+    || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_B)
+    || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_X)
+    || CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)) {
 
         ; Any of A/B/X/Y pressed - all trigger same action
         ; executeRaw(0, 1)  ; Same as Browser_Favorites/F13 - COMMENTED for testing
