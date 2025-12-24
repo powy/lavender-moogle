@@ -1,7 +1,7 @@
 // rotation_monk.rs
 // Rotation logic for Monk job
 
-use log::error;
+use log::{debug, error};
 
 use crate::memory;
 use crate::monk_nadi::{self, Animal};
@@ -202,18 +202,18 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
 
     // let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
     // Chunck 2 = Chackra
-    let chunk2: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
+    let chunk2: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk2");
     job_details.stacks_b = chunk2;
 
-    let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
+    let chunk3: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk3");
     let beast_chackra_1 = Animal::from_i32(chunk3);
     // monk_nadi::set_animal_slot_1(job_details, beast_chackra_1);
 
-    let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
+    let chunk4: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk4");
     let beast_chackra_2 = Animal::from_i32(chunk4);
     // monk_nadi::set_animal_slot_2(job_details, beast_chackra_2);
 
-    let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
+    let chunk5: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk5");
     let beast_chackra_3 = Animal::from_i32(chunk5);
     // monk_nadi::set_animal_slot_3(job_details, beast_chackra_3);
 
@@ -221,19 +221,19 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
 
     // Chunk 7 : nadi
-    let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
+    let chunk7: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk7");
     let lunar_nadi = (chunk7 & 1) != 0;
     let solar_nadi = ((chunk7 >> 1) & 1) != 0;
 
-    // let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
-    // let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
-    // let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
-    // let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
-    // let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
-    // let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
-    // let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
-    // let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
-    // let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
+    let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
+    let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
+    let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
+    let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
+    let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
+    let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
+    let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
+    let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
+    let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
 
     monk_nadi::set_nadi_state(
         job_details,
@@ -242,23 +242,23 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
         solar_nadi,
     );
 
-    // // Debug output for each chunk
+    // Debug output for each chunk
     // debug!("chunk1 = {}", chunk1);
-    // debug!("chunk2 = {}", chunk2);
-    // debug!("chunk3 = {}", chunk3);
-    // debug!("chunk4 = {}", chunk4);
-    // debug!("chunk5 = {}", chunk5);
+    debug!("chunk2 = {}", chunk2);
+    debug!("chunk3 = {}", chunk3);
+    debug!("chunk4 = {}", chunk4);
+    debug!("chunk5 = {}", chunk5);
     // debug!("chunk6 = {}", chunk6);
-    // debug!("chunk7 = {}", chunk7);
-    // debug!("chunk8 = {}", chunk8);
-    // debug!("chunk9 = {}", chunk9);
-    // debug!("chunk10 = {}", chunk10);
-    // debug!("chunk11 = {}", chunk11);
-    // debug!("chunk12 = {}", chunk12);
-    // debug!("chunk13 = {}", chunk13);
-    // debug!("chunk14 = {}", chunk14);
-    // debug!("chunk15 = {}", chunk15);
-    // debug!("chunk16 = {}", chunk16);
+    debug!("chunk7 = {}", chunk7);
+    debug!("chunk8 = {}", chunk8);
+    debug!("chunk9 = {}", chunk9);
+    debug!("chunk10 = {}", chunk10);
+    debug!("chunk11 = {}", chunk11);
+    debug!("chunk12 = {}", chunk12);
+    debug!("chunk13 = {}", chunk13);
+    debug!("chunk14 = {}", chunk14);
+    debug!("chunk15 = {}", chunk15);
+    debug!("chunk16 = {}", chunk16);
 }
 
 fn get_next_balance_gcd(job_details: &mut JobDetails, aoe: bool) -> &'static str {
