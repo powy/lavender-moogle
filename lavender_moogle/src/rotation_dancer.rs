@@ -2,6 +2,7 @@
 // Rotation logic for dancer job
 
 use log::{debug, error};
+// use log::error;
 
 use crate::memory;
 use crate::spell;
@@ -283,17 +284,17 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     let feathers: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk2");
     debug!("feathers 1: {}", feathers);
     let esprit: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk3");
-    debug!("esprit 1: {}", esprit);
+    // debug!("esprit 1: {}", esprit);
     let step1: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk4");
-    debug!("Step 1: {}", step1);
+    // debug!("Step 1: {}", step1);
     let step2: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk5");
-    debug!("Step 2: {}", step2);
+    // debug!("Step 2: {}", step2);
     let step3: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk6");
-    debug!("Step 3: {}", step3);
+    // debug!("Step 3: {}", step3);
     let step4: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk7");
     debug!("Step 4: {}", step4);
     let current_step: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk8");
-    debug!("current_step: {}", current_step);
+    // debug!("current_step: {}", current_step);
 
     job_details.secondary_bar = esprit;
     job_details.stacks_a = feathers; // Stacks_a is feathers in DNC job
@@ -306,7 +307,7 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
             0 // Default value if current_step is not 1, 2, 3, or 4
         }
     };
-    debug!("job_details.stacks_b: {}", job_details.stacks_b);
+    // debug!("job_details.stacks_b: {}", job_details.stacks_b);
 }
 
 fn should_standard_step(job_details: &mut JobDetails, delayed_burst: bool) -> bool {

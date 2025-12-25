@@ -27,6 +27,8 @@ global stopScript := true
 
 ; Controller state tracking for edge detection
 global lastControllerButtons := 0
+global lastLeftTrigger := 0
+global lastRightTrigger := 0
 global controllerInitialized := false
 
 ; Wait 5 seconds in case it is started at the same time than the shared memory owner
@@ -153,11 +155,11 @@ executeRaw(modifier_pos, key_pos) {
 
             if target_modifier {
                 SendEvent("{" target_modifier " down}")
-                Sleep(25)
+                Sleep(40)
             }
             SendEvent(key_char)
             if target_modifier {
-                Sleep(25)
+                Sleep(5)
                 SendEvent("{" target_modifier " up}")
                 Sleep(1)
             }
@@ -184,7 +186,7 @@ CheckTriggerPressed(currentValue, lastValue, threshold := 30) {
 ; All face buttons trigger the same action (executeRaw 0,1 like F13/Browser_Favorites)
 ; L1 and R1 shoulder buttons can trigger different actions
 PollController() {
-    global lastControllerButtons, controllerInitialized, stopScript
+    global lastControllerButtons, lastLeftTrigger, lastRightTrigger, controllerInitialized, stopScript
 
     if (stopScript || !controllerInitialized)
         return
@@ -195,32 +197,51 @@ PollController() {
     ; Controller disconnected
     if (!state) {
         lastControllerButtons := 0
+        lastLeftTrigger := 0
+        lastRightTrigger := 0
         return
     }
 
     currentButtons := state.wButtons
+    currentLeftTrigger := state.bLeftTrigger
+    currentRightTrigger := state.bRightTrigger
 
-    ; Check if any face button was pressed (A, B, X, or Y)
-    if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)) {
+    ; DEBUG: Check if L1 (Left Shoulder) was pressed
+    if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_LEFT_SHOULDER)) {
+        ToolTip "DEBUG: L1 (Left Shoulder) pressed!", 10, 10
+        SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+        ; L1 pressed - trigger specific action
+        ; executeRaw(0, 1)  ; COMMENTED for testing
+    }
 
-        ; Check if L1 (Left Shoulder) was pressed
-        if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_LEFT_SHOULDER)) {
-            ; L1 pressed - trigger specific action
-            executeRaw(0, 1)  ; Same as Browser_Back/F14 - COMMENTED for testing
-            ; TODO: Uncomment and customize action when ready
-        }
+    ; DEBUG: Check if R1 (Right Shoulder) was pressed
+    if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER)) {
+        ToolTip "DEBUG: R1 (Right Shoulder) pressed!", 10, 30
+        SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+        ; R1 pressed - trigger different action
+        ; executeRaw(4, 5)  ; COMMENTED for testing
+    }
 
-        ; Check if R1 (Right Shoulder) was pressed
-        if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER)) {
-            ; R1 pressed - trigger different action
-            executeRaw(4, 5)  ; Same as Browser_Back/F14 - COMMENTED for testing
-            ; TODO: Uncomment and customize action when ready
-        }
+    ; DEBUG: Check if L2 (Left Trigger) was pressed
+    if (CheckTriggerPressed(currentLeftTrigger, lastLeftTrigger)) {
+        ToolTip "DEBUG: L2 (Left Trigger) pressed!", 10, 50
+        SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+        ; L2 pressed - trigger specific action
+        ; executeRaw(2, 3)  ; COMMENTED for testing
+    }
 
+    ; DEBUG: Check if R2 (Right Trigger) was pressed
+    if (CheckTriggerPressed(currentRightTrigger, lastRightTrigger)) {
+        ToolTip "DEBUG: R2 (Right Trigger) pressed!", 10, 70
+        SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+        ; R2 pressed - trigger different action
+        ; executeRaw(6, 7)  ; COMMENTED for testing
     }
 
     ; Save current state for next poll (edge detection)
     lastControllerButtons := currentButtons
+    lastLeftTrigger := currentLeftTrigger
+    lastRightTrigger := currentRightTrigger
 }
 
 ; Display full memory contents for debugging
