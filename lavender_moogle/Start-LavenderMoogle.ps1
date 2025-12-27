@@ -8,11 +8,12 @@
 #   - Must be placed in lavender_moogle/ directory
 #   - AutoHotkey v2.0 installed
 #   - Rust toolchain (cargo) installed
-#   - Run as Administrator for proper functionality
+#   - Administrator privileges (script auto-elevates with UAC prompt)
 #
 # Portability:
 #   - Uses only relative paths - works on any computer without modification
 #   - Auto-detects AutoHotkey installation location
+#   - Auto-elevates to Administrator (just double-click to run!)
 #   - No hardcoded paths
 ##############################################################################
 
@@ -35,16 +36,23 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Check if running as Administrator
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
 if (-not $isAdmin) {
-    Write-Host "WARNING: This script should be run as Administrator." -ForegroundColor Yellow
-    Write-Host "Shared memory operations and keypress simulation may fail without admin privileges.`n" -ForegroundColor Yellow
-    $continue = Read-Host "Continue anyway? (y/N)"
-    if ($continue -ne 'y' -and $continue -ne 'Y') {
-        Write-Host "Exiting..." -ForegroundColor Gray
-        exit 0
+    # Auto-elevate: Re-launch script with admin privileges
+    Write-Host "Not running as Administrator. Requesting elevation...`n" -ForegroundColor Yellow
+    try {
+        $scriptPath = $MyInvocation.MyCommand.Path
+        Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -File `"$scriptPath`"" -Verb RunAs
+        exit
+    } catch {
+        Write-Host "ERROR: Failed to elevate to Administrator." -ForegroundColor Red
+        Write-Host "Please right-click the script and select 'Run as Administrator' manually." -ForegroundColor Yellow
+        exit 1
     }
-    Write-Host ""
 }
+
+Write-Host "Running with Administrator privileges" -ForegroundColor Green
+Write-Host ""
 
 ##############################################################################
 # SECTION 2: File Path Validation
@@ -147,10 +155,10 @@ try {
 ##############################################################################
 
 Write-Host "`nWaiting for Rust application to initialize shared memory..." -ForegroundColor Cyan
-Write-Host "This takes 60 seconds to ensure proper startup.`n" -ForegroundColor Yellow
+Write-Host "This takes 20 seconds to ensure proper startup.`n" -ForegroundColor Yellow
 
 # Progress indication during wait
-$waitSeconds = 60
+$waitSeconds = 20
 1..$waitSeconds | ForEach-Object {
     Start-Sleep -Seconds 1
     if ($_ % 10 -eq 0) {
