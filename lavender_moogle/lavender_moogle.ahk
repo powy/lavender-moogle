@@ -19,7 +19,7 @@ MODIFIER_SHIFT := "s"
 MODIFIER_CTRL := "c"
 
 ; Controller polling configuration
-global SPAM_INTERVAL := 100  ; milliseconds (100ms = 10 times/second)
+global SPAM_INTERVAL := 150  ; milliseconds (100ms = 10 times/second)
 global CONTROLLER_POLL_RATE := SPAM_INTERVAL  ; Milliseconds between polls (100ms = 10Hz)
 
 ; Used to block actions after stopping the script and before init
@@ -45,7 +45,9 @@ try {
     XInput_Init()
     controllerInitialized := true
     ; Start polling controller
-    SetTimer(PollController, CONTROLLER_POLL_RATE)
+    SetTimer(PollTrigger, pollMs)
+    ; SetTimer(PollController, CONTROLLER_POLL_RATE)
+    ; SetTimer(PollFunctions, CONTROLLER_POLL_RATE)
 } catch Error as err {
     ; Controller not available - not a fatal error, script continues
     controllerInitialized := false
@@ -90,84 +92,182 @@ Browser_Forward:: {
 ; Spam executeRaw() calls using robust While+GetKeyState pattern
 ; Hold each key to spam its corresponding shared memory action
 
-F13:: {
-    executeRaw(0, 1)  ; Execute immediately
-    while GetKeyState("F13", "P") {
-        Sleep(SPAM_INTERVAL)
-        executeRaw(0, 1)  ; Spam the executeRaw call
+; F13:: {
+;     executeRaw(0, 1)  ; Execute immediately
+;     while GetKeyState("F13", "P") {
+;         Sleep(SPAM_INTERVAL)
+;         executeRaw(0, 1)  ; Spam the executeRaw call
+;     }
+; }
+
+; F14:: {
+;     executeRaw(4, 5)
+;     while GetKeyState("F14", "P") {
+;         Sleep(SPAM_INTERVAL)
+;         executeRaw(4, 5)
+;     }
+; }
+
+; F15:: {
+;     executeRaw(2, 3)
+;     while GetKeyState("F15", "P") {
+;         Sleep(SPAM_INTERVAL)
+;         executeRaw(2, 3)
+;     }
+; }
+
+; F16:: {
+;     executeRaw(6, 7)
+;     while GetKeyState("F16", "P") {
+;         Sleep(SPAM_INTERVAL)
+;         executeRaw(6, 7)
+;     }
+; }
+
+; Fixme organize variables
+pollMs := 20      ; fast detection
+repeatMs := 175     ; how often action may run
+
+lastSend := 0
+sending := false
+
+; SetTimer(PollTrigger, pollMs)
+
+PollTrigger() {
+    global lastSend, repeatMs, sending
+
+    if sending
+        return
+
+    if (A_TickCount - lastSend < repeatMs)
+        return
+
+    lastSend := A_TickCount
+    sending := true
+
+    ; Actual call - could be reoragnized TODO
+    if GetKeyState("F13") {
+        executeRaw(0, 1)
+    } else if GetKeyState("F14") {
+        executeRaw(4, 5)
+    } else if GetKeyState("F15") {
+        executeRaw(2, 3)
+    } else if GetKeyState("F16") {
+        executeRaw(6, 7)
+    } else {
+        CheckController()
     }
+
+    ; FIXME : add gamepad work maybe
+
+    sending := false
 }
 
-F14:: {
-    executeRaw(4, 5)
-    while GetKeyState("F14", "P") {
-        Sleep(SPAM_INTERVAL)
+executeRaw(modifier_pos, key_pos) {
+    if stopScript
+        return
+
+    buf := Buffer(8)
+    mapping.ReadToBuffer(buf)
+
+    modifier_char := Chr(NumGet(buf, modifier_pos, "UChar"))
+    key_char := Chr(NumGet(buf, key_pos, "UChar"))
+
+    target_modifier := GetModifierString(modifier_char)
+    if (target_modifier = "invalid")
+        return
+
+    ; ---- HARD logical cleanup (intentional) ----
+    SendEvent "{Ctrl up}{Shift up}{Alt up}"
+    Sleep 10
+
+    ; ---- Latch modifier ----
+    if target_modifier {
+        SendEvent "{" target_modifier " down}"
+        Sleep 90      ; CRITICAL
+    }
+
+    ; ---- Send key ----
+    SendEvent key_char
+    Sleep 30
+
+    ; ---- Release modifier ----
+    if target_modifier
+        SendEvent "{" target_modifier " up}"
+}
+
+CheckController() {
+    global lastControllerButtons, lastLeftTrigger, lastRightTrigger, controllerInitialized, stopScript
+
+    if (stopScript || !controllerInitialized)
+        return
+
+    ; Get controller state (controller 0)
+    state := XInput_GetState(0)
+
+    ; Controller disconnected
+    if (!state) {
+        lastControllerButtons := 0
+        lastLeftTrigger := 0
+        lastRightTrigger := 0
+        return
+    }
+
+    currentButtons := state.wButtons
+    currentLeftTrigger := state.bLeftTrigger
+    currentRightTrigger := state.bRightTrigger
+
+    l1Pressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_LEFT_SHOULDER)
+    ; l2Pressed := CheckTriggerPressed(currentLeftTrigger, lastLeftTrigger)
+    r1Pressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER)
+    ; r2Pressed := CheckTriggerPressed(currentRightTrigger, lastRightTrigger)
+    trianglePressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)
+
+    if (trianglePressed) {
+        ToolTip "DEBUG: Y (xbox) pressed!", 10, 10
+        SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+        ; L1 pressed - trigger specific action
+        ; executeRaw(0, 1)  ; COMMENTED for testing
+    }
+
+    if (l1Pressed && trianglePressed) {
+        executeRaw(0, 1)
+    } else if (r1Pressed && trianglePressed) {
         executeRaw(4, 5)
     }
-}
-
-F15:: {
-    executeRaw(2, 3)
-    while GetKeyState("F15", "P") {
-        Sleep(SPAM_INTERVAL)
-        executeRaw(2, 3)
-    }
-}
-
-F16:: {
-    executeRaw(6, 7)
-    while GetKeyState("F16", "P") {
-        Sleep(SPAM_INTERVAL)
-        executeRaw(6, 7)
-    }
-}
-
-; Execute the order using raw memory reading (byte by byte)
-; Positions are zero-based (0-7) as in Rust
-executeRaw(modifier_pos, key_pos) {
-    if (!stopScript) {
-        ; Get a raw buffer of all 8 bytes
-        buf := Buffer(8)
-        mapping.ReadToBuffer(buf)
-
-        ; Extract the specific bytes we need
-        modifier_byte := NumGet(buf, modifier_pos, "UChar")
-        key_byte := NumGet(buf, key_pos, "UChar")
-
-        ; Convert to character
-        modifier_char := Chr(modifier_byte)
-        key_char := Chr(key_byte)
-
-        ; Process the keypress
-        target_modifier := GetModifierString(modifier_char)
-
-        if (target_modifier != "invalid") {
-            existing_modifiers := ""
-            if GetKeyState("Ctrl", "P")
-                existing_modifiers .= "{Ctrl down}"
-            if GetKeyState("Shift", "P")
-                existing_modifiers .= "{Shift down}"
-            if GetKeyState("Alt", "P")
-                existing_modifiers .= "{Alt down}"
-
-            SendEvent("{Blind}{Ctrl up}{Shift up}{Alt up}")
-            Sleep(1)
-
-            if target_modifier {
-                SendEvent("{" target_modifier " down}")
-                Sleep(40)
-            }
-            SendEvent(key_char)
-            if target_modifier {
-                Sleep(5)
-                SendEvent("{" target_modifier " up}")
-                Sleep(1)
-            }
-
-            SendEvent(existing_modifiers)
-            Sleep(1)
-        }
-    }
+    ; if l1Pressed
+    ; ; DEBUG: Check if L1 (Left Shoulder) was pressed
+    ; if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_LEFT_SHOULDER)) {
+    ;     ToolTip "DEBUG: L1 (Left Shoulder) pressed!", 10, 10
+    ;     SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+    ;     ; L1 pressed - trigger specific action
+    ;     ; executeRaw(0, 1)  ; COMMENTED for testing
+    ; }
+    ; ; DEBUG: Check if R1 (Right Shoulder) was pressed
+    ; if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER)) {
+    ;     ToolTip "DEBUG: R1 (Right Shoulder) pressed!", 10, 30
+    ;     SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+    ;     ; R1 pressed - trigger different action
+    ;     ; executeRaw(4, 5)  ; COMMENTED for testing
+    ; }
+    ; ; DEBUG: Check if L2 (Left Trigger) was pressed
+    ; if (CheckTriggerPressed(currentLeftTrigger, lastLeftTrigger)) {
+    ;     ToolTip "DEBUG: L2 (Left Trigger) pressed!", 10, 50
+    ;     SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+    ;     ; L2 pressed - trigger specific action
+    ;     ; executeRaw(2, 3)  ; COMMENTED for testing
+    ; }
+    ; ; DEBUG: Check if R2 (Right Trigger) was pressed
+    ; if (CheckTriggerPressed(currentRightTrigger, lastRightTrigger)) {
+    ;     ToolTip "DEBUG: R2 (Right Trigger) pressed!", 10, 70
+    ;     SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
+    ;     ; R2 pressed - trigger different action
+    ;     ; executeRaw(6, 7)  ; COMMENTED for testing
+    ; }
+    ; Save current state for next poll (edge detection)
+    lastControllerButtons := currentButtons
+    lastLeftTrigger := currentLeftTrigger
+    lastRightTrigger := currentRightTrigger
 }
 
 ; Helper function to check if a button was just pressed (rising edge)
