@@ -40,6 +40,12 @@ stopScript := false
 ; This script is the reader, the Shared Memory shall be created, Written and kept alive outside
 mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 8)
 
+; Controller polling variables (MUST be declared before use)
+pollMs := 20        ; fast detection
+repeatMs := 175     ; how often action may run
+lastSend := 0
+sending := false
+
 ; Initialize XInput for controller support
 try {
     XInput_Init()
@@ -57,7 +63,7 @@ try {
 Insert:: {
     stopScript := true
     if (controllerInitialized) {
-        SetTimer(PollController, 0)    ; Stop the timer first
+        SetTimer(PollTrigger, 0)    ; Stop the timer first
         Sleep(200)                      ; Wait for any in-flight timer calls
         XInput_Term()                   ; Then safely unload DLL
     }
@@ -124,17 +130,10 @@ Browser_Forward:: {
 ;     }
 ; }
 
-; Fixme organize variables
-pollMs := 20      ; fast detection
-repeatMs := 175     ; how often action may run
-
-lastSend := 0
-sending := false
-
 ; SetTimer(PollTrigger, pollMs)
 
 PollTrigger() {
-    global lastSend, repeatMs, sending
+    global lastSend, repeatMs, sending, controllerInitialized, stopScript
 
     if sending
         return
@@ -217,53 +216,20 @@ CheckController() {
     currentLeftTrigger := state.bLeftTrigger
     currentRightTrigger := state.bRightTrigger
 
+
     l1Pressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_LEFT_SHOULDER)
     ; l2Pressed := CheckTriggerPressed(currentLeftTrigger, lastLeftTrigger)
     r1Pressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER)
     ; r2Pressed := CheckTriggerPressed(currentRightTrigger, lastRightTrigger)
     trianglePressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)
 
-    if (trianglePressed) {
-        ToolTip "DEBUG: Y (xbox) pressed!", 10, 10
-        SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
-        ; L1 pressed - trigger specific action
-        ; executeRaw(0, 1)  ; COMMENTED for testing
-    }
 
     if (l1Pressed && trianglePressed) {
         executeRaw(0, 1)
     } else if (r1Pressed && trianglePressed) {
         executeRaw(4, 5)
     }
-    ; if l1Pressed
-    ; ; DEBUG: Check if L1 (Left Shoulder) was pressed
-    ; if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_LEFT_SHOULDER)) {
-    ;     ToolTip "DEBUG: L1 (Left Shoulder) pressed!", 10, 10
-    ;     SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
-    ;     ; L1 pressed - trigger specific action
-    ;     ; executeRaw(0, 1)  ; COMMENTED for testing
-    ; }
-    ; ; DEBUG: Check if R1 (Right Shoulder) was pressed
-    ; if (CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER)) {
-    ;     ToolTip "DEBUG: R1 (Right Shoulder) pressed!", 10, 30
-    ;     SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
-    ;     ; R1 pressed - trigger different action
-    ;     ; executeRaw(4, 5)  ; COMMENTED for testing
-    ; }
-    ; ; DEBUG: Check if L2 (Left Trigger) was pressed
-    ; if (CheckTriggerPressed(currentLeftTrigger, lastLeftTrigger)) {
-    ;     ToolTip "DEBUG: L2 (Left Trigger) pressed!", 10, 50
-    ;     SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
-    ;     ; L2 pressed - trigger specific action
-    ;     ; executeRaw(2, 3)  ; COMMENTED for testing
-    ; }
-    ; ; DEBUG: Check if R2 (Right Trigger) was pressed
-    ; if (CheckTriggerPressed(currentRightTrigger, lastRightTrigger)) {
-    ;     ToolTip "DEBUG: R2 (Right Trigger) pressed!", 10, 70
-    ;     SetTimer(() => ToolTip(), -2000)  ; Clear tooltip after 2 seconds
-    ;     ; R2 pressed - trigger different action
-    ;     ; executeRaw(6, 7)  ; COMMENTED for testing
-    ; }
+
     ; Save current state for next poll (edge detection)
     lastControllerButtons := currentButtons
     lastLeftTrigger := currentLeftTrigger
@@ -273,7 +239,8 @@ CheckController() {
 ; Helper function to check if a button was just pressed (rising edge)
 ; Returns true if button is currently pressed but wasn't pressed last poll
 CheckButtonPressed(currentButtons, lastButtons, buttonMask) {
-    return (currentButtons & buttonMask) && !(lastButtons & buttonMask)
+    ; return (currentButtons & buttonMask) && !(lastButtons & buttonMask)
+    return (currentButtons & buttonMask)
 }
 
 ; Helper function to check if a trigger was just pressed (rising edge)
