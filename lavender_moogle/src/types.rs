@@ -20,6 +20,7 @@ pub struct SpellDetails {
     pub stacks_a: i32,
     pub stacks_b: i32,
     pub max_charges: i32,
+    pub charge_timers: Vec<DateTime<Utc>>,
 }
 
 // Represent all spells associated with a specific job
@@ -66,6 +67,7 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
         for spell in job_details.spells.values_mut() {
             spell.active_until = now_minus_500ms;
             spell.unavailable_before = now_minus_500ms;
+            spell.charge_timers.clear();
         }
     }
 }

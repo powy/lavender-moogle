@@ -52,6 +52,7 @@ pub fn init_character_details_from_excel(
                     stacks_a: 0,
                     stacks_b: 0,
                     max_charges: 0,
+                    charge_timers: Vec::new(),
                 };
 
                 for (col_idx, cell) in row.iter().enumerate() {

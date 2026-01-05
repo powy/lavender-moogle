@@ -41,11 +41,25 @@ pub fn apply_spell_cast(
 pub fn apply_spell_cooldown(job_details: &mut JobDetails, spell_name: &str) {
     if let Some(spell_details) = job_details.get_spell(spell_name) {
         if spell_details.cooldown > 0 {
-            spell_details.unavailable_before = calculate_future_time(spell_details.cooldown, 0);
-            debug!(
-                "Apply CD for ability: {}, next avaibility {}",
-                spell_details.name, spell_details.unavailable_before
-            );
+            if spell_details.max_charges > 0 {
+                // CHARGE SYSTEM: Add recovery timestamp to queue
+                let recovery_time = calculate_future_time(spell_details.cooldown, 0);
+                spell_details.charge_timers.push(recovery_time);
+                spell_details.charge_timers.sort();  // Keep oldest first
+
+                debug!(
+                    "Apply charge CD for {}: {} charges on cooldown",
+                    spell_details.name,
+                    spell_details.charge_timers.len()
+                );
+            } else {
+                // LEGACY SYSTEM: Use unavailable_before (unchanged)
+                spell_details.unavailable_before = calculate_future_time(spell_details.cooldown, 0);
+                debug!(
+                    "Apply CD for ability: {}, next avaibility {}",
+                    spell_details.name, spell_details.unavailable_before
+                );
+            }
         }
     } else {
         error!("Spell {} not found", spell_name);
@@ -187,14 +201,26 @@ pub fn get_next_gcd_time(job_details: &mut JobDetails) -> DateTime<Utc> {
 pub fn is_spell_available_next_gcd(job_details: &mut JobDetails, spell_name: &str) -> bool {
     let next_gcd_time = get_next_gcd_time(job_details);
     if let Some(spell_details) = job_details.get_spell(spell_name) {
-        return spell_details.unavailable_before < next_gcd_time;
+        if spell_details.max_charges > 0 {
+            // CHARGE SYSTEM: Check if at least 1 charge available at next GCD
+            return get_charges_available_at_time(job_details, spell_name, next_gcd_time) > 0;
+        } else {
+            // LEGACY SYSTEM
+            return spell_details.unavailable_before < next_gcd_time;
+        }
     }
     false
 }
 
 pub fn is_spell_available_now(job_details: &mut JobDetails, spell_name: &str) -> bool {
     if let Some(spell_details) = job_details.get_spell(spell_name) {
-        return spell_details.unavailable_before < Utc::now();
+        if spell_details.max_charges > 0 {
+            // CHARGE SYSTEM: Check if at least 1 charge available
+            return get_charges_available_now(job_details, spell_name) > 0;
+        } else {
+            // LEGACY SYSTEM: Check unavailable_before
+            return spell_details.unavailable_before < Utc::now();
+        }
     }
     false
 }
@@ -234,7 +260,13 @@ pub fn spell_will_be_available_soon(
 ) -> bool {
     let max_waiting_time = Utc::now() + chrono::Duration::milliseconds(max_waiting_duration.into());
     if let Some(spell_details) = job_details.get_spell(spell_name) {
-        return spell_details.unavailable_before < max_waiting_time;
+        if spell_details.max_charges > 0 {
+            // CHARGE SYSTEM
+            return get_charges_available_at_time(job_details, spell_name, max_waiting_time) > 0;
+        } else {
+            // LEGACY SYSTEM
+            return spell_details.unavailable_before < max_waiting_time;
+        }
     }
     false
 }
@@ -264,8 +296,102 @@ pub fn is_spell_available_in_x_gcd(
     spell_name: &str,
     nb_gcd: i32,
 ) -> bool {
-    if let Some(gcd_desciption) = job_details.get_spell("gcd unavailable") {
-        let mut next_gcd_time = gcd_desciption.active_until;
+    // Check max_charges first to determine which system to use
+    let max_charges = if let Some(spell_details) = job_details.get_spell(spell_name) {
+        spell_details.max_charges
+    } else {
+        return false;
+    };
+
+    if max_charges > 0 {
+        // CHARGE SYSTEM: Use charge-aware function
+        return get_charges_available_in_x_gcd(job_details, spell_name, nb_gcd) > 0;
+    } else {
+        // LEGACY SYSTEM (unchanged)
+        if let Some(gcd_desciption) = job_details.get_spell("gcd unavailable") {
+            let mut next_gcd_time = gcd_desciption.active_until;
+            let gcd_duration_value = gcd_desciption.duration;
+
+            // Replace with current time if in the past
+            let now = Utc::now();
+            if next_gcd_time < now {
+                next_gcd_time = now;
+            }
+
+            let gcd_duration =
+                chrono::Duration::milliseconds(((nb_gcd - 1) * gcd_duration_value).into());
+            let several_gcd_time = next_gcd_time + gcd_duration;
+
+            if let Some(spell_details) = job_details.get_spell(spell_name) {
+                return spell_details.unavailable_before < several_gcd_time;
+            }
+        }
+    }
+    false
+}
+
+/// Returns the number of charges available RIGHT NOW
+/// For legacy spells (max_charges=0), returns 1 if available, 0 if on cooldown
+pub fn get_charges_available_now(job_details: &mut JobDetails, spell_name: &str) -> i32 {
+    if let Some(spell_details) = job_details.get_spell(spell_name) {
+        if spell_details.max_charges > 0 {
+            // CHARGE SYSTEM: Count charges not on cooldown
+            let now = Utc::now();
+            let charges_on_cooldown = spell_details
+                .charge_timers
+                .iter()
+                .filter(|&&time| time > now)
+                .count() as i32;
+
+            return spell_details.max_charges - charges_on_cooldown;
+        } else {
+            // LEGACY SYSTEM: Return 1 or 0
+            return if spell_details.unavailable_before < Utc::now() {
+                1
+            } else {
+                0
+            };
+        }
+    }
+    0
+}
+
+/// Returns the number of charges available at a specific time
+pub fn get_charges_available_at_time(
+    job_details: &mut JobDetails,
+    spell_name: &str,
+    time: DateTime<Utc>,
+) -> i32 {
+    if let Some(spell_details) = job_details.get_spell(spell_name) {
+        if spell_details.max_charges > 0 {
+            // CHARGE SYSTEM: Count charges that will be ready by target time
+            let charges_still_on_cooldown = spell_details
+                .charge_timers
+                .iter()
+                .filter(|&&recovery_time| recovery_time > time)
+                .count() as i32;
+
+            return spell_details.max_charges - charges_still_on_cooldown;
+        } else {
+            // LEGACY SYSTEM: Return 1 or 0
+            return if spell_details.unavailable_before < time {
+                1
+            } else {
+                0
+            };
+        }
+    }
+    0
+}
+
+/// Returns the number of charges available in X GCDs
+pub fn get_charges_available_in_x_gcd(
+    job_details: &mut JobDetails,
+    spell_name: &str,
+    nb_gcd: i32,
+) -> i32 {
+    if let Some(gcd_description) = job_details.get_spell("gcd unavailable") {
+        let mut next_gcd_time = gcd_description.active_until;
 
         // Replace with current time if in the past
         let now = Utc::now();
@@ -274,12 +400,65 @@ pub fn is_spell_available_in_x_gcd(
         }
 
         let gcd_duration =
-            chrono::Duration::milliseconds(((nb_gcd - 1) * gcd_desciption.duration).into());
-        let several_gcd_time = next_gcd_time + gcd_duration;
+            chrono::Duration::milliseconds(((nb_gcd - 1) * gcd_description.duration).into());
+        let target_time = next_gcd_time + gcd_duration;
 
-        if let Some(spell_details) = job_details.get_spell(spell_name) {
-            return spell_details.unavailable_before < several_gcd_time;
+        return get_charges_available_at_time(job_details, spell_name, target_time);
+    }
+    0
+}
+
+/// Returns true if the spell will reach max charges before target time
+/// This is critical for charge overcapping detection
+pub fn will_overcap_before_time(
+    job_details: &mut JobDetails,
+    spell_name: &str,
+    time: DateTime<Utc>,
+) -> bool {
+    // Extract max_charges first to avoid multiple borrows
+    let max_charges = if let Some(spell_details) = job_details.get_spell(spell_name) {
+        spell_details.max_charges
+    } else {
+        return false;
+    };
+
+    if max_charges > 0 {
+        // Check if any charge timer will expire before target time
+        // AND we're not already at max charges
+        let current_charges = get_charges_available_now(job_details, spell_name);
+
+        if current_charges >= max_charges {
+            return true; // Already overcapped
         }
+
+        // Check if recovery would cause overcap
+        let charges_at_time = get_charges_available_at_time(job_details, spell_name, time);
+        return charges_at_time >= max_charges;
+    } else {
+        // LEGACY SYSTEM: Not applicable
+        return false;
+    }
+}
+
+/// Returns true if the spell will hit max charges in X GCDs
+pub fn will_overcap_in_x_gcd(
+    job_details: &mut JobDetails,
+    spell_name: &str,
+    nb_gcd: i32,
+) -> bool {
+    if let Some(gcd_description) = job_details.get_spell("gcd unavailable") {
+        let mut next_gcd_time = gcd_description.active_until;
+
+        let now = Utc::now();
+        if next_gcd_time < now {
+            next_gcd_time = now;
+        }
+
+        let gcd_duration =
+            chrono::Duration::milliseconds(((nb_gcd - 1) * gcd_description.duration).into());
+        let target_time = next_gcd_time + gcd_duration;
+
+        return will_overcap_before_time(job_details, spell_name, target_time);
     }
     false
 }
@@ -406,7 +585,9 @@ pub fn handle_character_death(character_details: &mut CharacterDetails) {
             if spell.name != "gcd unavailable" {
                 spell.active_until = now_minus_500ms;
             }
-            // IMPORTANT: Do NOT touch unavailable_before - preserve cooldowns
+            // IMPORTANT: Preserve cooldowns (FFXIV behavior)
+            // Do NOT touch unavailable_before
+            // Do NOT touch charge_timers
         }
     }
 }
