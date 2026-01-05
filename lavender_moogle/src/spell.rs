@@ -382,3 +382,31 @@ pub fn _disable_oldest_of_3_active_status(
 pub fn burst_allowed(job_details: &mut JobDetails) -> bool {
     return !is_status_active_now(job_details, "Delayed Burst");
 }
+
+/// Handles character death by clearing all buffs while preserving cooldowns.
+///
+/// This function:
+/// - Clears all active_until timestamps (buffs) except "gcd unavailable"
+/// - Preserves all unavailable_before timestamps (cooldowns)
+/// - Resets all resource gauges to 0
+pub fn handle_character_death(character_details: &mut CharacterDetails) {
+    let now_minus_500ms = Utc::now() - chrono::Duration::milliseconds(500);
+
+    for job_details in character_details.values_mut() {
+        // Reset all resources to zero
+        job_details.mana = 0;
+        job_details.secondary_bar = 0;
+        job_details.tertiary_bar = 0;
+        job_details.stacks_a = 0;
+        job_details.stacks_b = 0;
+        job_details.weaves = 0;
+
+        // Clear all buffs (active_until) EXCEPT "gcd unavailable"
+        for spell in job_details.spells.values_mut() {
+            if spell.name != "gcd unavailable" {
+                spell.active_until = now_minus_500ms;
+            }
+            // IMPORTANT: Do NOT touch unavailable_before - preserve cooldowns
+        }
+    }
+}

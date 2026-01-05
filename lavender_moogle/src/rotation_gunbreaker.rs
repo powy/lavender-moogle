@@ -11,18 +11,16 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
     if let Some(job_details) = character_details.get_mut("GNB") {
         // update status
 
-        // update stack min / max
-
-        // if job_details.stacks_a > 3 {
-        // job_details.stacks_a = 3;
-        // } else if job_details.stacks_a < 0 {
-        // job_details.stacks_a = 0;
-        // }
-
         // check oGCD
         let mut next_spell_name = "";
-        // let burst_allowed = spell::burst_allowed(job_details);
+        let burst_allowed = spell::burst_allowed(job_details);
         // let delayed_burst = !burst_allowed;
+
+        //     No mercy available
+        // let available = spell::is_spell_available_next_gcd(job_details, "Gnashing Fang");
+        // // let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 17000);
+        let no_mercy_soon: bool =
+            spell::spell_will_be_available_soon(job_details, "No Mercy", 10000);
 
         // No clipping?
 
@@ -44,15 +42,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             } else if spell::is_status_active_now(job_details, "Ready to Gouge") {
                 next_spell_name = "Eye Gouge";
 
-            // --- C cartbridges reloader on CD
-            } else if should_bloodfest(job_details) {
-                next_spell_name = "Bloodfest";
-
-            // --- D ON-CD OGCD
-            } else if spell::is_spell_available_now(job_details, "Bow Shock") {
+            // -- C on Cd oGCD - with small delay to fit in no mercy especially opener
+            } else if spell::is_spell_available_now(job_details, "Bow Shock") && !no_mercy_soon {
                 next_spell_name = "Bow Shock";
-            } else if spell::is_spell_available_now(job_details, "Blasting Zone") {
+            } else if spell::is_spell_available_now(job_details, "Blasting Zone") && !no_mercy_soon
+            {
                 next_spell_name = "Blasting Zone";
+            }
+            // --- D cartbridges reloader on CD. Usually few GCD of margin so it runs after the "Bow Shock" "Blasting Zone"
+            // In practice they may be delayed anyway to fit in the no mercy buff window
+            else if should_bloodfest(job_details, burst_allowed) {
+                next_spell_name = "Bloodfest";
             }
         }
 
@@ -140,46 +140,50 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
     }
 }
 
-fn should_bloodfest(job_details: &mut JobDetails) -> bool {
+// Bloodfest is used on CD. It is delayed if we are expecting to delay the next burst. Note the danger that it will get popped several GCD before burst
+fn should_bloodfest(job_details: &mut JobDetails, burst_allowed: bool) -> bool {
     let available = spell::is_spell_available_now(job_details, "Bloodfest");
+    return available && burst_allowed;
 
-    // If available and no overcap - let's use it
-    // expected : first use at pull
-    // later used when we reach 0 cartbridge in burst
-    // Should happen after Double down and gnashing fang in a 2 m combo
-    if available && job_details.stacks_a == 0 {
-        return true;
-    }
+    // // If available and no overcap - let's use it
+    // // expected : first use at pull
+    // // later used when we reach 0 cartbridge in burst
+    // // Should happen after Double down and gnashing fang in a 2 m combo
+    // if available && job_details.stacks_a == 0 {
+    //     return true;
+    // }
 
-    // Error case - starting No mercy with 3 cartbridge
-    // Double down just been used
-    // Gnashing fang has been used
-    // Still one cartbridge left
-    // Ideally, burst strike in combo befor using this
+    // // Error case - starting No mercy with 3 cartbridge
+    // // Double down just been used
+    // // Gnashing fang has been used
+    // // Still one cartbridge left
+    // // Ideally, burst strike in combo befor using this
 
-    // If everything goes well, we stay at 2 cartbridge all the time
-    // And this should be casted only right after double down.
-    // Top ensure no drifting, just call after double down...
+    // // If everything goes well, we stay at 2 cartbridge all the time
+    // // And this should be casted only right after double down.
+    // // Top ensure no drifting, just call after double down...
 
-    let double_down_used = !spell::spell_will_be_available_soon(job_details, "Double Down", 30000);
-    let in_burst = spell::is_status_active_next_gcd(job_details, "No Mercy Buff");
-    if available && double_down_used && in_burst && job_details.stacks_a <= 2 {
-        return true;
-    }
+    // let double_down_used = !spell::spell_will_be_available_soon(job_details, "Double Down", 30000);
+    // let in_burst = spell::is_status_active_next_gcd(job_details, "No Mercy Buff");
+    // if available && double_down_used && in_burst && job_details.stacks_a <= 2 {
+    //     return true;
+    // }
 
-    false
+    // false
 }
 
 // FIXME need to see that Double down has been used
+// Note - with 7.4 Double down is used as soon as no mercy is started.
 fn should_double_down(job_details: &mut JobDetails) -> bool {
     // Default behavior - 1 cartbridge = 1 double
-    let enough_cartbridge = job_details.stacks_a >= 1;
+    let enough_cartbridge = job_details.stacks_a >= 2;
     let available = spell::is_spell_available_next_gcd(job_details, "Double Down");
     // let available = spell::is_status_active_next_gcd(job_details, "Ready to Reign");
-    let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 30000);
-    return enough_cartbridge && available && !no_mercy_soon;
+    let no_mercy_active = spell::is_status_active_now(job_details, "No Mercy");
+    return enough_cartbridge && available && !no_mercy_active;
 }
 
+// FIXME, should be redone following rework 7.4
 fn should_gnashing_fang(job_details: &mut JobDetails) -> bool {
     // Default behavior - 1 cartbridge = 1 gnashing
     // Delay if no mercy is very close and no overcap? To be seen after longer usage

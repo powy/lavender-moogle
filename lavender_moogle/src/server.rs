@@ -64,6 +64,9 @@ async fn handle_request(
                         if let Some(buff_name) = data.get("buff_name").and_then(|v| v.as_str()) {
                             spell::apply_new_buff(&mut character_details, &job, buff_name);
                         }
+                    } else if spell_name == "death" {
+                        // Handle character death - clear buffs but preserve cooldowns
+                        spell::handle_character_death(&mut character_details);
                     } else {
                         // Update the status following received spell, and apply rotation
                         spell::apply_spell_cast(&mut character_details, &job, &spell_name);
