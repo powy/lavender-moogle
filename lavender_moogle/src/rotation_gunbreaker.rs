@@ -5,6 +5,7 @@ use log::{debug, error};
 
 use crate::memory;
 use crate::spell;
+use crate::spell::is_status_active_next_gcd;
 use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
@@ -19,20 +20,56 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         //     No mercy available
         // let available = spell::is_spell_available_next_gcd(job_details, "Gnashing Fang");
         // // let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 17000);
-        let no_mercy_soon: bool =
-            spell::spell_will_be_available_soon(job_details, "No Mercy", 10000);
+        // let no_mercy_soon: bool =
+        //     spell::spell_will_be_available_soon(job_details, "No Mercy", 10000);
 
         // No clipping?
+
+        // prepare all test for more clear code
+        // Basic combo: Keen Edge -> Brutal Shell -> Solid Barrel
+        let basic_combo_2nd_brutal_shell_ready: bool =
+            spell::is_status_active_next_gcd(job_details, "Brutal Shell Ready") && !aoe;
+        let basic_combo_3rd_solid_barrel_ready: bool =
+            spell::is_status_active_next_gcd(job_details, "Solid Barrel Ready") && !aoe;
+
+        // Gnash combo :
+        let gnash_combo_1st_gnashing_fang_ready: bool =
+            spell::is_spell_available_next_gcd(job_details, "Gnashing Fang") && !aoe;
+        let gnash_combo_2nd_savage_claw_ready: bool =
+            spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") && !aoe;
+        let gnash_combo_3rd_wicked_talon_ready: bool =
+            spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") && !aoe;
+        let in_gnash_combo =
+            gnash_combo_2nd_savage_claw_ready || gnash_combo_3rd_wicked_talon_ready;
+
+        // lion combo, during burst
+        let lion_combo_1st_reign_of_beasts_ready: bool =
+            spell::is_status_active_next_gcd(job_details, "Ready to Reign");
+        let lion_combo_2nd_noble_blood_ready: bool =
+            spell::is_status_active_next_gcd(job_details, "Noble Blood Ready");
+        let lion_combo_3rd_lion_heart_ready: bool =
+            spell::is_status_active_next_gcd(job_details, "Lion Heart Ready");
+
+        // overcap gnash
+        let gnash_overcap: bool = false; //  (if don't use next GCD) // fixme
+        let gnash_will_overlap_before_next_burst: bool = false; //  (fixme)
+
+        // Burst status
+        // 13s before no_mercy (20s no mercy + 10s pou cd + 3s margin) // For oGCD ...
+        let no_mercy_soon_ogcd: bool =
+            spell::spell_will_be_available_soon(job_details, "No Mercy", 13000);
+        let in_burst_gcd = spell::is_status_active_next_gcd(job_details, "No Mercy Buff");
 
         // OGCD casting ///////////////////////////////
 
         // TODO - accept some small clipping for the GNB reactional skills
         if spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
+            // FIXME OPENER
             if spell::is_spell_available_now(job_details, "No Mercy") {
                 next_spell_name = "No Mercy";
 
-            // --- B No wait for reaction oGCD
+            // --- B No wait for reaction oGCD (continuation)
             } else if spell::is_status_active_now(job_details, "Ready to Blast") {
                 next_spell_name = "Hypervelocity";
             } else if spell::is_status_active_now(job_details, "Ready to Rip") {
@@ -41,22 +78,26 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 next_spell_name = "Abdomen Tear";
             } else if spell::is_status_active_now(job_details, "Ready to Gouge") {
                 next_spell_name = "Eye Gouge";
+            } else if spell::is_status_active_now(job_details, "Ready to Raze") {
+                next_spell_name = "Fated Brand";
 
             // -- C on Cd oGCD - with small delay to fit in no mercy especially opener
-            } else if spell::is_spell_available_now(job_details, "Bow Shock") && !no_mercy_soon {
+            } else if spell::is_spell_available_now(job_details, "Bow Shock") && !no_mercy_soon_ogcd
+            {
                 next_spell_name = "Bow Shock";
-            } else if spell::is_spell_available_now(job_details, "Blasting Zone") && !no_mercy_soon
+            } else if spell::is_spell_available_now(job_details, "Blasting Zone")
+                && !no_mercy_soon_ogcd
             {
                 next_spell_name = "Blasting Zone";
             }
             // --- D cartbridges reloader on CD. Usually few GCD of margin so it runs after the "Bow Shock" "Blasting Zone"
             // In practice they may be delayed anyway to fit in the no mercy buff window
             else if should_bloodfest(job_details, burst_allowed) {
-                next_spell_name = "Bloodfest";
+                next_spell_name = "Bloodfest"; // fixme bug
             }
         }
 
-        // Reaction oGCD used even if GCD available - clipping allowed
+        // Reaction oGCD used even if GCD available - clipping allowed for GNB TBC
         if next_spell_name == "" {
             // --- B No wait for reaction oGCD
             if spell::is_status_active_now(job_details, "Ready to Blast") {
@@ -67,6 +108,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 next_spell_name = "Abdomen Tear";
             } else if spell::is_status_active_now(job_details, "Ready to Gouge") {
                 next_spell_name = "Eye Gouge";
+            } else if spell::is_status_active_now(job_details, "Ready to Raze") {
+                next_spell_name = "Fated Brand";
             }
         }
 
@@ -76,62 +119,109 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // GCD under burst ///////////////////
 
+        if next_spell_name == "" && in_burst_gcd {
+            // prevent gnash overcap (also helpful for opener)
+            if gnash_overcap && !in_gnash_combo && !aoe {
+                next_spell_name = "Gnashing Fang";
+                // Double Down asap to avoid any drift
+            } else if should_double_down(job_details) {
+                next_spell_name = "Double Down"; // fixme bug
+
+            // Gnash will overcap in burst, ! in_gnash_combo  -> start Gnash
+            // FIXME solve after charges done. Maybe start Gnash systemtically if doesn't brake with lion
+            // Follow up no mercy (flexible)
+            } else if spell::is_status_active_next_gcd(job_details, "Ready to Break") && !aoe {
+                next_spell_name = "Sonic Break";
+
+            // in_gnash_combo -> Finish Combo
+            } else if gnash_combo_2nd_savage_claw_ready {
+                next_spell_name = "Savage Claw";
+            } else if gnash_combo_3rd_wicked_talon_ready {
+                next_spell_name = "Wicked Talon";
+
+            // Lion combo (if available)
+            // Note : lion combo is never triggerd auto of not in burst
+            } else if lion_combo_1st_reign_of_beasts_ready {
+                next_spell_name = "Reign of Beasts";
+            } else if lion_combo_2nd_noble_blood_ready {
+                next_spell_name = "Noble Blood";
+            } else if lion_combo_3rd_lion_heart_ready {
+                next_spell_name = "Lion Heart";
+
+            // Start Gnash combo (if available) (charges > 0)
+            // Fixme manage charges
+            } else if can_gnashing_fang(job_details, aoe) {
+                next_spell_name = "Gnashing Fang";
+
+            // empty extra cartbridges
+            } else if job_details.stacks_a >= 1 {
+                if aoe {
+                    next_spell_name = "Fated Circle"
+                } else {
+                    next_spell_name = "Burst Strike";
+                }
+            }
+        }
+
         // normal GCD /////////////////
 
-        // check normal GCD
         if next_spell_name == "" {
-            // --- CARTBRIDGE usage
-            // Note: Gnashing fang before double down - evolution of patch 7.1
-            // "should conditions include delaying if burst is coming"
-            if should_gnashing_fang(job_details) {
-                next_spell_name = "Gnashing Fang";
-            } else if should_double_down(job_details) {
-                // FIXME DOUBLE DOWN AVAILABLE FAIL
-                next_spell_name = "Double Down";
+            // in_gnash_combo => Finish Gnash combo
+            // Gnash up, Cartbridge > 0, gnash_will_overlap_before_next_burst-> Gnash
+            // overcap_cartbridge ->  Boom
+            // Finish basic combo
+            // Start Basic combo
 
-            // -- Finish started combo
+            // Gnashing will overcap - FIXME
 
-            //--- GNASHING FANG FOLLOW UP
+            // Sonic break out of burst - edge case
+            if spell::is_status_active_next_gcd(job_details, "Ready to Break") && !aoe {
+                next_spell_name = "Sonic Break";
+
+                // Finish Lion combo. Edge case
+            } else if lion_combo_2nd_noble_blood_ready {
+                next_spell_name = "Noble Blood";
+            } else if lion_combo_3rd_lion_heart_ready {
+                next_spell_name = "Lion Heart";
+
+            // Finish Ganshing fang combo
             } else if spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") {
                 next_spell_name = "Savage Claw";
             } else if spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") {
                 next_spell_name = "Wicked Talon";
 
-            // --- LION HEART COMBO
-            } else if spell::is_status_active_next_gcd(job_details, "Noble Blood Ready") {
-                next_spell_name = "Noble Blood";
-            } else if spell::is_status_active_next_gcd(job_details, "Lion Heart Ready") {
-                next_spell_name = "Lion Heart";
-
-            // FIXME - start of No Mercy burst depending on the cartbridge usage
-            // Lion Heart during burst after Gnashing fang combo
-            // If the burst is not started, don't trigger it. The spell is available BEFORE the burst starts
-            } else if spell::is_status_active_next_gcd(job_details, "Ready to Reign")
-                && !spell::spell_will_be_available_soon(job_details, "No Mercy", 10000)
-            {
-                next_spell_name = "Reign of Beasts";
-
-            // --- Sonic break in the no mercy burst - no need to test it because it can't be otherwise
-            } else if spell::is_status_active_next_gcd(job_details, "Ready to Break") {
-                next_spell_name = "Sonic Break";
-
-            // -- STANDART ROTATION and Special burst strike cases
-            // // -- Fit Burst strike in the no mercy burst
-            } else if should_add_a_boom_in_the_burst(job_details) {
-                // Still in burst and some GCD + cartbridge left, let's spend them
-                next_spell_name = "Burst Strike";
-            } else if job_details.stacks_a >= 3 {
-                // Never sit at 3 cartbridge after patch 7.1
-                next_spell_name = "Burst Strike";
-            } else if spell::is_status_active_next_gcd(job_details, "Solid Barrel Ready") {
-                // Note: a test on cartbridge used to sit there, but not needed anymore because we never sit at 3 cartbridge after patch 7.1
-                next_spell_name = "Solid Barrel";
-            } else if spell::is_status_active_next_gcd(job_details, "Brutal Shell Ready") {
-                next_spell_name = "Brutal Shell";
+            // Gnash up, Cartbridge > 0, gnash_will_overlap_before_next_burst-> Gnash
+            // gnash_will_overlap_before_next_burst
+            // FIXME, for now, simply use gnash on CD
+            } else if can_gnashing_fang(job_details, aoe) {
+                next_spell_name = "Gnashing Fang";
+            // overcap_cartbridge ->  Boom
+            } else if cartbridges_will_overcap(job_details, basic_combo_3rd_solid_barrel_ready) {
+                if aoe {
+                    next_spell_name = "Fated Brand"
+                } else {
+                    next_spell_name = "Burst Strike";
+                }
+            // Basic combo
+            } else if aoe {
+                if spell::is_status_active_next_gcd(job_details, "Demon Slaughter Ready") {
+                    next_spell_name = "Demon Slaughter";
+                } else {
+                    // Start combo AOE
+                    next_spell_name = "Demon Slice";
+                }
             } else {
-                next_spell_name = "Keen Edge";
+                if basic_combo_3rd_solid_barrel_ready {
+                    // Note: a test on cartbridge used to sit there, but not needed anymore because we never sit at 3 cartbridge after patch 7.1
+                    next_spell_name = "Solid Barrel";
+                } else if basic_combo_2nd_brutal_shell_ready {
+                    next_spell_name = "Brutal Shell";
+                } else {
+                    next_spell_name = "Keen Edge";
+                }
             }
         }
+
         if next_spell_name != "" {
             memory::communicate_next_spellcast(job_details, next_spell_name, aoe, alternate);
         }
@@ -144,31 +234,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 fn should_bloodfest(job_details: &mut JobDetails, burst_allowed: bool) -> bool {
     let available = spell::is_spell_available_now(job_details, "Bloodfest");
     return available && burst_allowed;
-
-    // // If available and no overcap - let's use it
-    // // expected : first use at pull
-    // // later used when we reach 0 cartbridge in burst
-    // // Should happen after Double down and gnashing fang in a 2 m combo
-    // if available && job_details.stacks_a == 0 {
-    //     return true;
-    // }
-
-    // // Error case - starting No mercy with 3 cartbridge
-    // // Double down just been used
-    // // Gnashing fang has been used
-    // // Still one cartbridge left
-    // // Ideally, burst strike in combo befor using this
-
-    // // If everything goes well, we stay at 2 cartbridge all the time
-    // // And this should be casted only right after double down.
-    // // Top ensure no drifting, just call after double down...
-
-    // let double_down_used = !spell::spell_will_be_available_soon(job_details, "Double Down", 30000);
-    // let in_burst = spell::is_status_active_next_gcd(job_details, "No Mercy Buff");
-    // if available && double_down_used && in_burst && job_details.stacks_a <= 2 {
-    //     return true;
-    // }
-
     // false
 }
 
@@ -179,12 +244,13 @@ fn should_double_down(job_details: &mut JobDetails) -> bool {
     let enough_cartbridge = job_details.stacks_a >= 2;
     let available = spell::is_spell_available_next_gcd(job_details, "Double Down");
     // let available = spell::is_status_active_next_gcd(job_details, "Ready to Reign");
-    let no_mercy_active = spell::is_status_active_now(job_details, "No Mercy");
-    return enough_cartbridge && available && !no_mercy_active;
+    // let no_mercy_active = spell::is_status_active_now(job_details, "No Mercy");
+    // return enough_cartbridge && available && no_mercy_active;
+    return enough_cartbridge && available;
 }
 
 // FIXME, should be redone following rework 7.4
-fn should_gnashing_fang(job_details: &mut JobDetails) -> bool {
+fn can_gnashing_fang(job_details: &mut JobDetails, aoe: bool) -> bool {
     // Default behavior - 1 cartbridge = 1 gnashing
     // Delay if no mercy is very close and no overcap? To be seen after longer usage
     // With perfect usage, never need to delay gnashing. Otherwise, the logic would be to delay it if we can't fit a full combo in no mercy
@@ -193,15 +259,27 @@ fn should_gnashing_fang(job_details: &mut JobDetails) -> bool {
     let enough_cartbridge = job_details.stacks_a >= 1;
     let available = spell::is_spell_available_next_gcd(job_details, "Gnashing Fang");
     // let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 17000);
-    let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 10000);
-    return enough_cartbridge && available && !no_mercy_soon;
-    // return enough_cartbridge && available;
+    // let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 10000);
+    // return enough_cartbridge && available && !no_mercy_soon;
+    return !aoe && enough_cartbridge && available;
 }
 
-// Opti suggested by guide, but makes the wound slide
-fn should_add_a_boom_in_the_burst(job_details: &mut JobDetails) -> bool {
-    return spell::is_status_active_next_gcd(job_details, "No Mercy Buff")
-        && job_details.stacks_a >= 1;
+// overcap_cartbridge = 3 cartbridge (6 Bloodfest Buff) and basic_combo_3rd
+// may_lose_cartbridge ->
+// 1) Bloodfest Buff gone in X and X + 3 cartbridge left (3 cas)
+// 2) Bloodfest Buff gone in X and in basic combo (3 cas au moins)
+
+// FIXME
+fn cartbridges_will_overcap(job_details: &mut JobDetails, will_generate: bool) -> bool {
+    if spell::is_status_active_next_gcd(job_details, "Bloodfest Buff") {
+        // 6 cartbridges max
+        let too_many_cartbridges: bool = job_details.stacks_a >= 5;
+        let will_get_too_many_cartbridges: bool = will_generate && job_details.stacks_a >= 4;
+        return too_many_cartbridges || will_get_too_many_cartbridges;
+    } else {
+        // 3 cartbridges max
+        return will_generate && job_details.stacks_a >= 3;
+    }
 }
 
 // note: may opti get at 0 cartbridge when Bloodfest is coming
