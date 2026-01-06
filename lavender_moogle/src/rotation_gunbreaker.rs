@@ -121,11 +121,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         if next_spell_name == "" && in_burst_gcd {
             // prevent gnash overcap (also helpful for opener)
-            if gnash_overcap && !in_gnash_combo && !aoe {
+            if gnash_overcap && can_gnashing_fang(job_details, aoe) {
                 next_spell_name = "Gnashing Fang";
                 // Double Down asap to avoid any drift
-            } else if should_double_down(job_details) {
-                next_spell_name = "Double Down"; // fixme bug
+            } else if can_double_down(job_details) {
+                next_spell_name = "Double Down";
 
             // Gnash will overcap in burst, ! in_gnash_combo  -> start Gnash
             // FIXME solve after charges done. Maybe start Gnash systemtically if doesn't brake with lion
@@ -140,8 +140,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 next_spell_name = "Wicked Talon";
 
             // Lion combo (if available)
-            // Note : lion combo is never triggerd auto of not in burst
-            } else if lion_combo_1st_reign_of_beasts_ready {
+            // Note : lion combo is never triggerd auto if not in burst
+            } else if can_lion_combo(job_details) {
                 next_spell_name = "Reign of Beasts";
             } else if lion_combo_2nd_noble_blood_ready {
                 next_spell_name = "Noble Blood";
@@ -239,7 +239,7 @@ fn should_bloodfest(job_details: &mut JobDetails, burst_allowed: bool) -> bool {
 
 // FIXME need to see that Double down has been used
 // Note - with 7.4 Double down is used as soon as no mercy is started.
-fn should_double_down(job_details: &mut JobDetails) -> bool {
+fn can_double_down(job_details: &mut JobDetails) -> bool {
     // Default behavior - 1 cartbridge = 1 double
     let enough_cartbridge = job_details.stacks_a >= 2;
     let available = spell::is_spell_available_next_gcd(job_details, "Double Down");
@@ -251,17 +251,35 @@ fn should_double_down(job_details: &mut JobDetails) -> bool {
 
 // FIXME, should be redone following rework 7.4
 fn can_gnashing_fang(job_details: &mut JobDetails, aoe: bool) -> bool {
-    // Default behavior - 1 cartbridge = 1 gnashing
-    // Delay if no mercy is very close and no overcap? To be seen after longer usage
-    // With perfect usage, never need to delay gnashing. Otherwise, the logic would be to delay it if we can't fit a full combo in no mercy
-    // 7 s of combo - 20s of no mercy - 13s left on CD at start of no mercy
-    // 30s of gnashing CD => 17s max wait
+    let lion_combo_2nd_noble_blood_ready: bool =
+        spell::is_status_active_next_gcd(job_details, "Noble Blood Ready");
+    let lion_combo_3rd_lion_heart_ready: bool =
+        spell::is_status_active_next_gcd(job_details, "Lion Heart Ready");
+    let in_lion_combo = lion_combo_2nd_noble_blood_ready || lion_combo_3rd_lion_heart_ready;
+
+    let gnash_combo_2nd_savage_claw_ready: bool =
+        spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") && !aoe;
+    let gnash_combo_3rd_wicked_talon_ready: bool =
+        spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") && !aoe;
+    let in_gnash_combo = gnash_combo_2nd_savage_claw_ready || gnash_combo_3rd_wicked_talon_ready;
+
     let enough_cartbridge = job_details.stacks_a >= 1;
     let available = spell::is_spell_available_next_gcd(job_details, "Gnashing Fang");
-    // let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 17000);
-    // let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 10000);
-    // return enough_cartbridge && available && !no_mercy_soon;
-    return !aoe && enough_cartbridge && available;
+
+    return !aoe && !in_gnash_combo && !in_lion_combo && enough_cartbridge && available;
+}
+
+// WARNING - does not check if we are in burst, this in done at a upper level
+fn can_lion_combo(job_details: &mut JobDetails) -> bool {
+    let lion_combo_1st_reign_of_beasts_ready: bool =
+        spell::is_status_active_next_gcd(job_details, "Ready to Reign");
+    let gnash_combo_2nd_savage_claw_ready: bool =
+        spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") && !aoe;
+    let gnash_combo_3rd_wicked_talon_ready: bool =
+        spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") && !aoe;
+    let in_gnash_combo = gnash_combo_2nd_savage_claw_ready || gnash_combo_3rd_wicked_talon_ready;
+
+    return !in_gnash_combo && lion_combo_1st_reign_of_beasts_ready;
 }
 
 // overcap_cartbridge = 3 cartbridge (6 Bloodfest Buff) and basic_combo_3rd
