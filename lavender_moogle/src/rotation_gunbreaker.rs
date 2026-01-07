@@ -5,7 +5,6 @@ use log::{debug, error};
 
 use crate::memory;
 use crate::spell;
-use crate::spell::is_status_active_next_gcd;
 use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
@@ -33,17 +32,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             spell::is_status_active_next_gcd(job_details, "Solid Barrel Ready") && !aoe;
 
         // Gnash combo :
-        let gnash_combo_1st_gnashing_fang_ready: bool =
+        let _gnash_combo_1st_gnashing_fang_ready: bool =
             spell::is_spell_available_next_gcd(job_details, "Gnashing Fang") && !aoe;
         let gnash_combo_2nd_savage_claw_ready: bool =
             spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") && !aoe;
         let gnash_combo_3rd_wicked_talon_ready: bool =
             spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") && !aoe;
-        let in_gnash_combo =
+        let _in_gnash_combo =
             gnash_combo_2nd_savage_claw_ready || gnash_combo_3rd_wicked_talon_ready;
 
         // lion combo, during burst
-        let lion_combo_1st_reign_of_beasts_ready: bool =
+        let _lion_combo_1st_reign_of_beasts_ready: bool =
             spell::is_status_active_next_gcd(job_details, "Ready to Reign");
         let lion_combo_2nd_noble_blood_ready: bool =
             spell::is_status_active_next_gcd(job_details, "Noble Blood Ready");
@@ -52,7 +51,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // overcap gnash
         let gnash_overcap: bool = false; //  (if don't use next GCD) // fixme
-        let gnash_will_overlap_before_next_burst: bool = false; //  (fixme)
+        let _gnash_will_overlap_before_next_burst: bool = false; //  (fixme)
 
         // Burst status
         // 13s before no_mercy (20s no mercy + 10s pou cd + 3s margin) // For oGCD ...
@@ -60,13 +59,24 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             spell::spell_will_be_available_soon(job_details, "No Mercy", 13000);
         let in_burst_gcd = spell::is_status_active_next_gcd(job_details, "No Mercy Buff");
 
+        if job_details.opener && in_burst_gcd {
+            job_details.opener = false;
+        }
+
         // OGCD casting ///////////////////////////////
 
         // TODO - accept some small clipping for the GNB reactional skills
         if spell::ogcd_end_before_next_gcd(job_details) {
             // --- A Priority: no drifting raid buffs
             // FIXME OPENER
-            if spell::is_spell_available_now(job_details, "No Mercy") {
+
+            if job_details.opener && burst_allowed {
+                if spell::is_spell_available_now(job_details, "Bloodfest") {
+                    next_spell_name = "Bloodfest";
+                } else if basic_combo_3rd_solid_barrel_ready {
+                    next_spell_name = "No Mercy";
+                }
+            } else if spell::is_spell_available_now(job_details, "No Mercy") {
                 next_spell_name = "No Mercy";
 
             // --- B No wait for reaction oGCD (continuation)
@@ -81,6 +91,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             } else if spell::is_status_active_now(job_details, "Ready to Raze") {
                 next_spell_name = "Fated Brand";
 
+            // FIXME Systematic pot under buff
+
             // -- C on Cd oGCD - with small delay to fit in no mercy especially opener
             } else if spell::is_spell_available_now(job_details, "Bow Shock") && !no_mercy_soon_ogcd
             {
@@ -94,7 +106,12 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             // In practice they may be delayed anyway to fit in the no mercy buff window
             else if should_bloodfest(job_details, burst_allowed) {
                 next_spell_name = "Bloodfest"; // fixme bug
+
+                // WARNING Auto-pot
             }
+            //  else if in_burst_gcd && spell::{
+
+            // }
         }
 
         // Reaction oGCD used even if GCD available - clipping allowed for GNB TBC
@@ -160,6 +177,15 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 } else {
                     next_spell_name = "Burst Strike";
                 }
+            }
+        }
+
+        // Opener GCD
+        if next_spell_name == "" && job_details.opener && !aoe {
+            if basic_combo_2nd_brutal_shell_ready {
+                next_spell_name = "Brutal Shell";
+            } else {
+                next_spell_name = "Keen Edge";
             }
         }
 
@@ -258,9 +284,9 @@ fn can_gnashing_fang(job_details: &mut JobDetails, aoe: bool) -> bool {
     let in_lion_combo = lion_combo_2nd_noble_blood_ready || lion_combo_3rd_lion_heart_ready;
 
     let gnash_combo_2nd_savage_claw_ready: bool =
-        spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") && !aoe;
+        spell::is_status_active_next_gcd(job_details, "Savage Claw Ready");
     let gnash_combo_3rd_wicked_talon_ready: bool =
-        spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") && !aoe;
+        spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready");
     let in_gnash_combo = gnash_combo_2nd_savage_claw_ready || gnash_combo_3rd_wicked_talon_ready;
 
     let enough_cartbridge = job_details.stacks_a >= 1;
@@ -274,9 +300,9 @@ fn can_lion_combo(job_details: &mut JobDetails) -> bool {
     let lion_combo_1st_reign_of_beasts_ready: bool =
         spell::is_status_active_next_gcd(job_details, "Ready to Reign");
     let gnash_combo_2nd_savage_claw_ready: bool =
-        spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") && !aoe;
+        spell::is_status_active_next_gcd(job_details, "Savage Claw Ready");
     let gnash_combo_3rd_wicked_talon_ready: bool =
-        spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") && !aoe;
+        spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready");
     let in_gnash_combo = gnash_combo_2nd_savage_claw_ready || gnash_combo_3rd_wicked_talon_ready;
 
     return !in_gnash_combo && lion_combo_1st_reign_of_beasts_ready;
