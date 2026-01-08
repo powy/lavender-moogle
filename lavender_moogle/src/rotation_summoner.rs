@@ -33,28 +33,33 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // check oGCD
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
             if job_details.opener {
-                // In Baha, pot dispo ?  pot
-                if spell::is_status_active_now(job_details, "Big Summon Cooldown")
-                    && spell::is_spell_available_now(job_details, "Potion")
-                {
-                    next_spell_name = "Potion";
-
                 // In Baha since more than 1 x GCD ? buff dispo ? -> buff
-                } else if spell::is_status_active_since_x_gcd(job_details, "Big Summon Cooldown", 1)
+                if spell::is_status_active_since_x_gcd(job_details, "Big Summon Cooldown", 1)
+                    && spell::is_spell_available_now(job_details, "Searing Light")
+                    && burst_allowed
                 {
                     next_spell_name = "Searing Light";
                 }
                 // In Baha since more than 3 x GCD ? drain dispo -> drain, stop opener
                 else if spell::is_status_active_since_x_gcd(job_details, "Big Summon Cooldown", 3)
                 {
-                    next_spell_name = "Energy Drain";
+                    if aoe {
+                        next_spell_name = "Energy Siphon";
+                    } else {
+                        next_spell_name = "Energy Drain";
+                    }
 
                     // Stop opener special trigger after Drain and enough GCD. No need to test AGAIN drain
                 } else if spell::is_status_active_since_x_gcd(job_details, "Big Summon Cooldown", 1)
                 {
                     job_details.opener = false;
+                } else
+                // In Baha, pot dispo ?  pot
+                if spell::is_status_active_now(job_details, "Big Summon Cooldown")
+                    && spell::is_spell_available_now(job_details, "Potion")
+                {
+                    next_spell_name = "Potion";
                 }
-
                 // end of opener treatment
             } else
             // --- A Priority: no drifting raid buffs
