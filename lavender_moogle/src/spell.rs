@@ -20,6 +20,12 @@ pub fn apply_spell_cast(
     if let Some(job_details) = character_details.get_mut(job_name) {
         if let Some(spell_details) = job_details.get_spell(spell_name).cloned() {
             debug!("Action for ability: {}", spell_name);
+
+            // Update last_cast timestamp
+            if let Some(spell_details_mut) = job_details.get_spell(spell_name) {
+                spell_details_mut.last_cast = Utc::now();
+            }
+
             // Apply self CD -- require mutable
             apply_spell_cooldown(job_details, spell_name);
             apply_gcd_on_cast(job_details, &spell_details);
@@ -45,7 +51,7 @@ pub fn apply_spell_cooldown(job_details: &mut JobDetails, spell_name: &str) {
                 // CHARGE SYSTEM: Add recovery timestamp to queue
                 let recovery_time = calculate_future_time(spell_details.cooldown, 0);
                 spell_details.charge_timers.push(recovery_time);
-                spell_details.charge_timers.sort();  // Keep oldest first
+                spell_details.charge_timers.sort(); // Keep oldest first
 
                 debug!(
                     "Apply charge CD for {}: {} charges on cooldown",
@@ -89,6 +95,7 @@ pub fn activate_status_default_time(
     if let Some(spell_details) = job_details.get_spell(spell_name) {
         let duration = spell_details.duration;
         spell_details.active_until = calculate_future_time(duration, margin_time);
+        spell_details.last_activation = Utc::now();
         debug!(
             "Status {} activated for {} milliseconds, until {}",
             spell_name, duration, spell_details.active_until
@@ -106,6 +113,7 @@ pub fn activate_status_until(
 ) {
     if let Some(spell_details) = job_details.get_spell(spell_name) {
         spell_details.active_until = calculate_future_time(duration, margin_time);
+        spell_details.last_activation = Utc::now();
         debug!(
             "Status {} activated for {} milliseconds, until {}",
             spell_name, duration, spell_details.active_until
@@ -242,6 +250,65 @@ pub fn is_status_active_next_gcd(job_details: &mut JobDetails, spell_name: &str)
         }
     }
     false
+}
+
+/// Returns true if status is active AND has been active for _at least_ X GCDs
+///
+/// # Parameters
+/// - `job_details`: Mutable reference to job details
+/// - `status_name`: Name of the status to check
+/// - `x_gcd`: Number of GCDs the status must have been active for
+///
+/// # Returns
+/// True if status is active and has been active for >= x_gcd GCD durations
+pub fn is_status_active_since_x_gcd(
+    job_details: &mut JobDetails,
+    status_name: &str,
+    x_gcd: i32,
+) -> bool {
+    // Validate input
+    if x_gcd < 0 {
+        return false;
+    }
+
+    // Check if status is currently active
+    if !is_status_active_now(job_details, status_name) {
+        return false;
+    }
+
+    // Get GCD duration from "gcd unavailable" spell
+    let gcd_duration_ms = if let Some(gcd_spell) = job_details.get_spell("gcd unavailable") {
+        if gcd_spell.duration <= 0 {
+            return false;
+        }
+        gcd_spell.duration
+    } else {
+        return false;
+    };
+
+    // Get last_activation timestamp
+    let last_activation = if let Some(status_details) = job_details.get_spell(status_name) {
+        status_details.last_activation
+    } else {
+        return false;
+    };
+
+    // Calculate duration status has been active
+    let now = Utc::now();
+
+    // Safety: if last_activation is in future, treat as just activated
+    if last_activation > now {
+        return false;
+    }
+
+    let time_active = now.signed_duration_since(last_activation);
+
+    // Calculate required duration
+    let required_duration_ms = x_gcd * gcd_duration_ms;
+    let required_duration = chrono::Duration::milliseconds(required_duration_ms.into());
+
+    // Return true if status has been active long enough
+    time_active >= required_duration
 }
 
 // warning - hard coded value for oGCD clipping
@@ -441,11 +508,7 @@ pub fn will_overcap_before_time(
 }
 
 /// Returns true if the spell will hit max charges in X GCDs
-pub fn will_overcap_in_x_gcd(
-    job_details: &mut JobDetails,
-    spell_name: &str,
-    nb_gcd: i32,
-) -> bool {
+pub fn will_overcap_in_x_gcd(job_details: &mut JobDetails, spell_name: &str, nb_gcd: i32) -> bool {
     if let Some(gcd_description) = job_details.get_spell("gcd unavailable") {
         let mut next_gcd_time = gcd_description.active_until;
 
@@ -584,10 +647,12 @@ pub fn handle_character_death(character_details: &mut CharacterDetails) {
         for spell in job_details.spells.values_mut() {
             if spell.name != "gcd unavailable" {
                 spell.active_until = now_minus_500ms;
+                spell.last_activation = now_minus_500ms;
             }
             // IMPORTANT: Preserve cooldowns (FFXIV behavior)
             // Do NOT touch unavailable_before
             // Do NOT touch charge_timers
+            // Do NOT touch last_cast - spells were still cast before death
         }
     }
 }

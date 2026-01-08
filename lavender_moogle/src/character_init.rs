@@ -53,6 +53,8 @@ pub fn init_character_details_from_excel(
                     stacks_b: 0,
                     max_charges: 0,
                     charge_timers: Vec::new(),
+                    last_activation: Utc::now() - chrono::Duration::milliseconds(500),
+                    last_cast: Utc::now() - chrono::Duration::milliseconds(500),
                 };
 
                 for (col_idx, cell) in row.iter().enumerate() {
