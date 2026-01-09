@@ -42,6 +42,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 }
                 // In Baha since more than 3 x GCD ? drain dispo -> drain, stop opener
                 else if spell::is_status_active_since_x_gcd(job_details, "Big Summon Cooldown", 3)
+                    && is_drain_available(job_details)
                 {
                     if aoe {
                         next_spell_name = "Energy Siphon";
@@ -49,8 +50,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                         next_spell_name = "Energy Drain";
                     }
 
-                    // Stop opener special trigger after Drain and enough GCD. No need to test AGAIN drain
-                } else if spell::is_status_active_since_x_gcd(job_details, "Big Summon Cooldown", 1)
+                    // Stop opener special trigger after Drain and enough GCD.
+                } else if spell::is_status_active_since_x_gcd(job_details, "Big Summon Cooldown", 4)
+                    && !is_drain_available(job_details)
                 {
                     job_details.opener = false;
                 } else
@@ -75,9 +77,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 } else {
                     next_spell_name = "Necrotize";
                 }
-            } else if spell::is_spell_available_now(job_details, "Energy Drain")
-                && job_details.stacks_a <= 0
-            {
+            } else if is_drain_available(job_details) && job_details.stacks_a <= 0 {
                 if aoe {
                     next_spell_name = "Energy Siphon";
                 } else {
@@ -256,6 +256,11 @@ fn should_swiftcast_splitstream(job_details: &mut JobDetails) -> bool {
 
     return slipstream_ready && garuda_active && swiftcast_active;
     // return false
+}
+
+fn is_drain_available(job_details: &mut JobDetails) -> bool {
+    return spell::is_spell_available_now(job_details, "Energy Drain")
+        && spell::is_spell_available_now(job_details, "Energy Siphon");
 }
 
 pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
