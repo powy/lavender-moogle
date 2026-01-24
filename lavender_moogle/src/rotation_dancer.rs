@@ -14,7 +14,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // update status
         // check oGCD
         let mut next_spell_name = "";
-        let burst_allowed = spell::burst_allowed(job_details);
+        let burst_allowed = job_details.burst_allowed;
         let delayed_burst = !burst_allowed;
 
         // update stack min / max
@@ -107,19 +107,23 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             } else
             // Flourish out of buff
             if spell::is_spell_available_now(job_details, "Flourish")
-                && !spell::spell_will_be_available_soon(job_details, "Devilment", 30000) // Not before burst
+            // Not before burst unless dump ressources
+                && !(spell::spell_will_be_available_soon(job_details, "Devilment", 30000) && !job_details.dump_resources)
                 // && !spell::is_status_active_now(job_details, "Silken Symmetry")
                 // && !spell::is_status_active_now(job_details, "Silken Flow")
+                // If Threefold Fan Dance, dump it before flourish for no overlap
                 && !spell::is_status_active_now(job_details, "Threefold Fan Dance")
             {
                 next_spell_name = "Flourish";
             } else
             // No overcap on Fans
-            if job_details.stacks_a >= 4
+            if (job_details.stacks_a >= 4
                 && (spell::is_status_active_now(job_details, "Silken Symmetry")
                     || spell::is_status_active_now(job_details, "Silken Flow")
                     || spell::is_status_active_now(job_details, "Flourishing Symmetry")
-                    || spell::is_status_active_now(job_details, "Flourishing Flow"))
+                    || spell::is_status_active_now(job_details, "Flourishing Flow")))
+                    // Dump ressources
+                    || (job_details.dump_resources && job_details.stacks_a >= 1)
             {
                 if aoe {
                     next_spell_name = "Fan Dance II";
@@ -135,6 +139,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
         // No overcap on Esprit
         if next_spell_name == "" && job_details.secondary_bar >= 65 {
+            next_spell_name = "Saber Dance";
+        }
+
+        // dump esprit if dump ressources
+        if next_spell_name == "" && job_details.dump_resources && job_details.secondary_bar >= 50 {
             next_spell_name = "Saber Dance";
         }
 
@@ -231,6 +240,12 @@ pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDet
             "Silken Symmetry",
             "Flourishing Symmetry",
         ),
+
+        "Technical Step" => {
+            job_details.burst_allowed = true;
+            job_details.dump_resources = false;
+        }
+
         _ => {}
     }
 }
@@ -307,13 +322,13 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // debug!("job_details.stacks_b: {}", job_details.stacks_b);
 }
 
-fn should_standard_step(job_details: &mut JobDetails, delayed_burst: bool) -> bool {
+fn should_standard_step(job_details: &mut JobDetails, alternate: bool) -> bool {
     let standart_available: bool =
         !spell::is_status_active_in(job_details, "Standard Step on CD", 1250);
     // Note: If burst is not allowed, we ignore the fact that technical step is coming up
     let technical_soon: bool =
         !spell::is_status_active_in(job_details, "Technical Step on CD", 7000)
-            && spell::burst_allowed(job_details);
+            && job_details.burst_allowed;
     let last_dance_ready: bool = spell::is_status_active_now(job_details, "Last Dance Ready");
     let flourish_soon: bool = spell::spell_will_be_available_soon(job_details, "Flourish", 5000);
     let instant_possible: bool = spell::is_status_active_now(job_details, "Finishing Move Ready");
@@ -321,7 +336,8 @@ fn should_standard_step(job_details: &mut JobDetails, delayed_burst: bool) -> bo
 
     if standart_available {
         // delayed_burst - not delaying standard step, as we don't know when is burst
-        if delayed_burst {
+        // FIXME deprecate the whole alternate for the burst delay triggers
+        if !job_details.burst_allowed || alternate {
             return true;
         }
 

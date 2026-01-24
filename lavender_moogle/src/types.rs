@@ -1,4 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -37,6 +38,7 @@ pub struct JobDetails {
     pub weaves: i32,
     pub opener: bool,
     pub dump_resources: bool,
+    pub burst_allowed: bool,
 }
 
 // Used to use JobDetails like a table of spells
@@ -68,6 +70,7 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
         job_details.weaves = 0;
         job_details.opener = true;
         job_details.dump_resources = false;
+        job_details.burst_allowed = true;
         for spell in job_details.spells.values_mut() {
             spell.active_until = now_minus_500ms;
             spell.unavailable_before = now_minus_500ms;
@@ -79,8 +82,18 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
 }
 
 pub fn set_dump_resources(character_details: &mut CharacterDetails, value: bool) {
-    for job_details in character_details.values_mut() {
+    debug!("set_dump_resources called with value: {}", value);
+    for (job_name, job_details) in character_details.iter_mut() {
+        debug!("  Setting dump_resources={} for job: {}", value, job_name);
         job_details.dump_resources = value;
+    }
+}
+
+pub fn set_burst_allowed(character_details: &mut CharacterDetails, value: bool) {
+    debug!("set_burst_allowed called with value: {}", value);
+    for (job_name, job_details) in character_details.iter_mut() {
+        debug!("  Setting burst_allowed={} for job: {}", value, job_name);
+        job_details.burst_allowed = value;
     }
 }
 

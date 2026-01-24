@@ -13,16 +13,18 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // update status
         // check oGCD
         let mut next_spell_name = "";
-        let burst_allowed = spell::burst_allowed(job_details);
+        // let burst_allowed = job_details.burst_allowed;
         // let delayed_burst = !burst_allowed;
 
         // No clipping?
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
-            if spell::is_spell_available_now(job_details, "Fight or Flight") && burst_allowed {
+            if spell::is_spell_available_now(job_details, "Fight or Flight")
+                && job_details.burst_allowed
+            {
                 next_spell_name = "Fight or Flight";
             } else if spell::is_spell_available_now(job_details, "Imperator")
                 && !spell::spell_will_be_available_soon(job_details, "Fight or Flight", 10000)
-                && burst_allowed
+                && job_details.burst_allowed
             {
                 next_spell_name = "Imperator";
             } else if spell::is_spell_available_now(job_details, "Circle of Scorn") {
@@ -138,4 +140,17 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
     }
 }
 
-pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {}
+pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
+    match spell_name {
+        "Fight or Flight" => {
+            job_details.burst_allowed = true;
+            job_details.dump_resources = false;
+        }
+        "Imperator" => {
+            job_details.burst_allowed = true;
+            job_details.dump_resources = false;
+        }
+
+        _ => {}
+    }
+}

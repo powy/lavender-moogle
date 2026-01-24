@@ -681,8 +681,3 @@ pub fn deactivate_status_for_any_job(character_details: &mut CharacterDetails, s
         }
     }
 }
-
-/// Check if dump_resources flag is active for a job
-pub fn dump_resources_active(job_details: &JobDetails) -> bool {
-    job_details.dump_resources
-}
