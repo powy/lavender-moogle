@@ -52,24 +52,45 @@ async fn handle_request(
                 // Reserve (lock) the character_details and perform an action
                 {
                     let mut character_details = shared_character_details.lock().unwrap();
-                    job_management::update_current_job(&mut character_details, &job);
-                    // FIXME - update current job
-                    if spell_name == "reset" {
+
+                    // Handle "ANY" job - use current job for spell application
+                    let effective_job = if job == "ANY" {
+                        let current_job = job_management::get_current_job();
+                        debug!("Received ANY job message - spell_name: {}, using current job: {}", spell_name, current_job);
+                        current_job
+                    } else {
+                        job_management::update_current_job(&mut character_details, &job);
+                        job
+                    };
+
+                    if spell_name == "reset" || spell_name == "wipe reset" {
                         // Receiving reset spell, means reset all status and CD
                         types::reset_character_status(&mut character_details);
-                    } else if spell_name == "gauge" {
-                        handle_gauge(&data, &mut character_details, &job);
+                    } else if spell_name == "gauge" || spell_name == "job gauge" {
+                        handle_gauge(&data, &mut character_details, &effective_job);
+                    } else if spell_name == "delay burst" {
+                        // Activate "Delayed Burst" status on all jobs
+                        spell::activate_status_for_any_job(&mut character_details, "Delayed Burst");
+                    } else if spell_name == "stop delay burst" {
+                        // Deactivate "Delayed Burst" status on all jobs
+                        spell::deactivate_status_for_any_job(&mut character_details, "Delayed Burst");
+                    } else if spell_name == "dump resources start" {
+                        // Set dump_resources flag to true on all jobs
+                        types::set_dump_resources(&mut character_details, true);
+                    } else if spell_name == "dump resources stop" {
+                        // Set dump_resources flag to false on all jobs
+                        types::set_dump_resources(&mut character_details, false);
                     } else if spell_name == "buff" {
                         debug!("Received buffs !");
                         if let Some(buff_name) = data.get("buff_name").and_then(|v| v.as_str()) {
-                            spell::apply_new_buff(&mut character_details, &job, buff_name);
+                            spell::apply_new_buff(&mut character_details, &effective_job, buff_name);
                         }
                     } else if spell_name == "death" {
                         // Handle character death - clear buffs but preserve cooldowns
                         spell::handle_character_death(&mut character_details);
                     } else {
                         // Update the status following received spell, and apply rotation
-                        spell::apply_spell_cast(&mut character_details, &job, &spell_name);
+                        spell::apply_spell_cast(&mut character_details, &effective_job, &spell_name);
                         job_management::apply_current_job_rotation(&mut character_details);
                     }
                 } // The lock is released here when the scope ends

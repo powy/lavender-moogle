@@ -3,6 +3,13 @@ use crate::types::{CharacterDetails, JobDetails, SpellDetails};
 use chrono::{DateTime, Utc};
 use log::{debug, error};
 
+// Buffs that persist through character death
+const BUFFS_PERSISTING_ON_DEATH: &[&str] = &[
+    "gcd unavailable",
+    "Standard Step on CD",
+    "Technical Step on CD",
+];
+
 // Apply the new buff to the character
 pub fn apply_new_buff(character_details: &mut CharacterDetails, job_name: &str, buff_name: &str) {
     if let Some(job_details) = character_details.get_mut(job_name) {
@@ -628,7 +635,7 @@ pub fn burst_allowed(job_details: &mut JobDetails) -> bool {
 /// Handles character death by clearing all buffs while preserving cooldowns.
 ///
 /// This function:
-/// - Clears all active_until timestamps (buffs) except "gcd unavailable"
+/// - Clears all active_until timestamps (buffs) except those in BUFFS_PERSISTING_ON_DEATH
 /// - Preserves all unavailable_before timestamps (cooldowns)
 /// - Resets all resource gauges to 0
 pub fn handle_character_death(character_details: &mut CharacterDetails) {
@@ -643,9 +650,9 @@ pub fn handle_character_death(character_details: &mut CharacterDetails) {
         job_details.stacks_b = 0;
         job_details.weaves = 0;
 
-        // Clear all buffs (active_until) EXCEPT "gcd unavailable"
+        // Clear all buffs (active_until) EXCEPT those in BUFFS_PERSISTING_ON_DEATH
         for spell in job_details.spells.values_mut() {
-            if spell.name != "gcd unavailable" {
+            if !BUFFS_PERSISTING_ON_DEATH.contains(&spell.name.as_str()) {
                 spell.active_until = now_minus_500ms;
                 spell.last_activation = now_minus_500ms;
             }
@@ -655,4 +662,27 @@ pub fn handle_character_death(character_details: &mut CharacterDetails) {
             // Do NOT touch last_cast - spells were still cast before death
         }
     }
+}
+
+/// Activate a status on all jobs (for generic commands like delay burst)
+pub fn activate_status_for_any_job(character_details: &mut CharacterDetails, status_name: &str) {
+    for job_details in character_details.values_mut() {
+        if job_details.spells.contains_key(status_name) {
+            activate_status_default_time(job_details, status_name, 0);
+        }
+    }
+}
+
+/// Deactivate a status on all jobs
+pub fn deactivate_status_for_any_job(character_details: &mut CharacterDetails, status_name: &str) {
+    for job_details in character_details.values_mut() {
+        if job_details.spells.contains_key(status_name) {
+            deactivate_status(job_details, status_name);
+        }
+    }
+}
+
+/// Check if dump_resources flag is active for a job
+pub fn dump_resources_active(job_details: &JobDetails) -> bool {
+    job_details.dump_resources
 }

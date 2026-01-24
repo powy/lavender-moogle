@@ -48,6 +48,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         if next_spell_name == ""
             && !delayed_burst
             && !spell::is_status_active_in(job_details, "Technical Step on CD", 1250)
+            && spell::spell_will_be_available_soon(job_details, "Devilment", 7000)
         {
             next_spell_name = "Technical Step";
         }
@@ -116,7 +117,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             // No overcap on Fans
             if job_details.stacks_a >= 4
                 && (spell::is_status_active_now(job_details, "Silken Symmetry")
-                    || spell::is_status_active_now(job_details, "Silken Flow"))
+                    || spell::is_status_active_now(job_details, "Silken Flow")
+                    || spell::is_status_active_now(job_details, "Flourishing Symmetry")
+                    || spell::is_status_active_now(job_details, "Flourishing Flow"))
             {
                 if aoe {
                     next_spell_name = "Fan Dance II";
@@ -131,7 +134,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // FIXME - add a last GCD save on procs
 
         // No overcap on Esprit
-        if next_spell_name == "" && job_details.secondary_bar >= 80 {
+        if next_spell_name == "" && job_details.secondary_bar >= 65 {
             next_spell_name = "Saber Dance";
         }
 
@@ -142,14 +145,12 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             // First use the
             if spell::is_status_active_next_gcd(job_details, "Last Dance Ready") {
                 next_spell_name = "Last Dance";
-            } else if spell::is_status_active_next_gcd(job_details, "Flourishing Starfall") {
-                next_spell_name = "Starfall Dance";
-            } else if spell::is_status_active_next_gcd(job_details, "Flourishing Finish")
-                && job_details.secondary_bar <= 50
-            {
-                next_spell_name = "Tillana";
             } else if job_details.secondary_bar >= 50 {
                 next_spell_name = "Saber Dance";
+            } else if spell::is_status_active_next_gcd(job_details, "Flourishing Starfall") {
+                next_spell_name = "Starfall Dance";
+            } else if spell::is_status_active_next_gcd(job_details, "Flourishing Finish") {
+                next_spell_name = "Tillana";
             }
         }
 
@@ -189,18 +190,14 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 next_spell_name = "Last Dance";
             } else
             // Basic Combo
-            if spell::is_status_active_next_gcd(job_details, "Fountain Ready") {
-                if aoe {
-                    next_spell_name = "Bladeshower";
-                } else {
-                    next_spell_name = "Fountain";
-                }
+            if spell::is_status_active_next_gcd(job_details, "Fountain Ready") && !aoe {
+                next_spell_name = "Fountain";
+            } else if spell::is_status_active_next_gcd(job_details, "Shower Ready") && aoe {
+                next_spell_name = "Bladeshower";
+            } else if aoe {
+                next_spell_name = "Windmill";
             } else {
-                if aoe {
-                    next_spell_name = "Windmill";
-                } else {
-                    next_spell_name = "Cascade";
-                }
+                next_spell_name = "Cascade";
             }
         }
         if next_spell_name != "" {
@@ -282,7 +279,7 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // debug!("chunk16 = {}", chunk16);
 
     let feathers: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk2");
-    debug!("feathers 1: {}", feathers);
+    // debug!("feathers 1: {}", feathers);
     let esprit: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk3");
     // debug!("esprit 1: {}", esprit);
     let step1: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk4");
@@ -292,7 +289,7 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     let step3: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk6");
     // debug!("Step 3: {}", step3);
     let step4: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk7");
-    debug!("Step 4: {}", step4);
+    // debug!("Step 4: {}", step4);
     let current_step: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk8");
     // debug!("current_step: {}", current_step);
 
