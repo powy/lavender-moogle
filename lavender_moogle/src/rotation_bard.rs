@@ -24,10 +24,15 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         //     job_details.stacks_a = 0;
         // }
 
-        // High priority oGCD
+        // Hack for starting with HB shot, currently no idea of the charges
+        // if job_details.opener
+        //     && job_details.stacks_b == 0
+        //     && (job_details.weaves < MAX_WEAVE_NUMBER)
+        // {
+        //     next_spell_name = "Heartbreak Shot";
+        // }
 
-        // No clipping? - oGCD
-
+        // ALL oGCD management
         if (next_spell_name == "")
             && (job_details.weaves < MAX_WEAVE_NUMBER)
             && spell::ogcd_end_before_next_gcd(job_details)
@@ -49,34 +54,67 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 }
             }
 
-            // burst management
-            if spell::is_status_active_now(job_details, "Wanderer song") {
-                // BUFF ACTIVATION
-                // Activate Battle Voice 1 GCD after Minuet
-                if spell::spell_will_be_available_soon(job_details, "Wanderer song", 118250) {
-                    if spell::is_spell_available_now(job_details, "Battle Voice") {
+            // // BUFF ACTIVATION
+            // // Activate Battle Voice 1 GCD after Minuet
+            // if spell::spell_will_be_available_soon(job_details, "Wanderer song", 118250) {
+            //     if spell::is_spell_available_now(job_details, "Battle Voice") {
+            //         next_spell_name = "Battle Voice";
+            //     }
+            //     // Activate Radiant Finale and Raging strike 2 GCD after Minuet
+            //     else if spell::spell_will_be_available_soon(job_details, "Wanderer song", 115850)
+            //     {
+            //         if spell::is_spell_available_now(job_details, "Radiant Finale") {
+            //             next_spell_name = "Radiant Finale";
+            //         }
+            //         // Activate Raging Strike 2 GCD after Radiant Finale
+            //         else if spell::is_spell_available_now(job_details, "Raging Strikes") {
+            //             next_spell_name = "Raging Strikes";
+            //         }
+            //         // Activate barrage if all other are active
+            //         else if spell::is_spell_available_now(job_details, "Barrage") {
+            //             next_spell_name = "Barrage";
+            //         }
+            //     }
+            // }
+            // Opener special case
+            if next_spell_name == "" && job_details.opener {
+                if spell::is_status_active_now(job_details, "Wanderer song") {
+                    if spell::is_spell_available_now(job_details, "Empyreal Arrow") {
+                        next_spell_name = "Empyreal Arrow";
+                    } else if spell::is_spell_available_now(job_details, "Battle Voice") {
                         next_spell_name = "Battle Voice";
-                    }
-                    // Activate Radiant Finale and Raging strike 2 GCD after Minuet
-                    else if spell::spell_will_be_available_soon(
-                        job_details,
-                        "Wanderer song",
-                        115850,
-                    ) {
-                        if spell::is_spell_available_now(job_details, "Radiant Finale") {
-                            next_spell_name = "Radiant Finale";
-                        }
-                        // Activate Raging Strike 2 GCD after Radiant Finale
-                        else if spell::is_spell_available_now(job_details, "Raging Strikes") {
-                            next_spell_name = "Raging Strikes";
-                        }
-                        // Activate barrage if all other are active
-                        else if spell::is_spell_available_now(job_details, "Barrage") {
-                            next_spell_name = "Barrage";
-                        }
+                    } else {
+                        next_spell_name = "Potion";
                     }
                 }
+            }
+            // BURST BUFF ACTIVATION
+            // Activate Battle Voice 1 GCD after Minuet
+            if next_spell_name == ""
+                && !job_details.opener
+                && job_details.burst_allowed
+                && spell::is_spell_available_now(job_details, "Battle Voice")
+            {
+                next_spell_name = "Battle Voice";
+            } else if spell::is_status_active_now(job_details, "Battle Voice Buff")
+                && spell::is_spell_available_now(job_details, "Radiant Finale")
+            {
+                next_spell_name = "Radiant Finale";
+            } else if spell::is_status_active_now(job_details, "Radiant Finale Buff")
+                && spell::is_spell_available_now(job_details, "Raging Strikes")
+            {
+                next_spell_name = "Raging Strikes";
+            }
+            // Activate barrage if all other are active
+            else if spell::is_status_active_now(job_details, "Raging Strikes Buff")
+                && spell::is_spell_available_now(job_details, "Barrage")
+            {
+                next_spell_name = "Barrage";
+            }
 
+            // Wanderer's song procs
+
+            if next_spell_name == "" && spell::is_status_active_now(job_details, "Wanderer song") {
                 // Pitch perfect usage
                 if next_spell_name == "" && job_details.stacks_a >= 1 {
                     // Pitch perfect dump before end of Battle voice
@@ -106,7 +144,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 if spell::is_spell_available_now(job_details, "Empyreal Arrow") {
                     next_spell_name = "Empyreal Arrow";
                 }
-                // Sidewinder on CD, or wait for Barrage
+                // Sidewinder on CD, or wait for Barrage (burst)
                 else if spell::is_spell_available_now(job_details, "Sidewinder")
                     && !spell::spell_will_be_available_soon(job_details, "Barrage", 52500)
                 {
@@ -116,16 +154,23 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 // Stupid bloodletter spam, exept during Army song
                 else if spell::is_spell_available_now(job_details, "Bloodletter")
                     && spell::is_spell_available_now(job_details, "Heartbreak Shot")
-                    && !spell::spell_will_be_available_soon(job_details, "Barrage", 35000)
+                    && !(spell::spell_will_be_available_soon(job_details, "Barrage", 35000)
+                        && !job_details.dump_resources)
                 {
-                    next_spell_name = "Heartbreak Shot";
+                    if aoe {
+                        next_spell_name = "Rain of Death";
+                    } else {
+                        next_spell_name = "Heartbreak Shot";
+                    }
                 }
             }
         }
+
         // No oGCD selected, prepare next GCD
 
         // No dot - do dot - emergency dot
         // No dot - do dot - emergency dot
+        // Note : bit of a double with another iron jaw at 3 GCD
         if next_spell_name == "" {
             if !spell::is_status_active_next_gcd(job_details, "Storm DoT") {
                 next_spell_name = "Stormbite";
@@ -141,14 +186,22 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // check standart GCD
         if next_spell_name == "" {
             // Refresh buffed Iron Jaws before end of burst
+            // FIXME : Should be done only if we didn't already refresh in burst
             if spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Battle Voice Buff")
             {
                 next_spell_name = "Iron Jaws";
             }
-            // Not in burst window - avoid overcap blood or classic combo
-            else if spell::is_status_active_next_gcd(job_details, "Hawk's Eye") {
-                next_spell_name = "Refulgent Arrow";
+            // Delay if barrage is coming
+            else if spell::is_status_active_next_gcd(job_details, "Hawk's Eye")
+                && !spell::spell_will_be_available_soon(job_details, "Barrage", 7500)
+            {
+                // Delayed in opener until we get all the buffs
+                if aoe {
+                    next_spell_name = "Shadowbite";
+                } else {
+                    next_spell_name = "Refulgent Arrow";
+                }
             }
             // Blast arraow - follow up apex
             else if spell::is_status_active_next_gcd(job_details, "Blast Arrow Ready") {
@@ -162,9 +215,16 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             }
             // Prevent Dot Drop
             else if !spell::is_status_active_in(job_details, "Storm DoT", 7500)
-                || !spell::is_status_active_in(job_details, "Storm DoT", 7500)
+                || !spell::is_status_active_in(job_details, "Caustic DoT", 7500)
             {
                 next_spell_name = "Iron Jaws";
+            } else if spell::is_status_active_next_gcd(job_details, "Radiant Finale Buff")
+                && spell::is_status_active_next_gcd(job_details, "Raging Strikes Buff")
+                && spell::is_status_active_next_gcd(job_details, "Barrage Buff")
+                && spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
+            {
+                // Big hit rdiant encore, following radiant finale. Wait to be fully under burst
+                next_spell_name = "Radiant Encore"
             }
             // Filler
             else {
@@ -179,8 +239,24 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
     }
 }
 
-pub fn apply_spell_additional_effects(spell_name: &str, _job_details: &mut JobDetails) {
+pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
     match spell_name {
+        // Battle voice is the burst trigger
+        "Battle Voice" => {
+            // debug!("BATTLE VOICE GOGOGO");s
+            job_details.burst_allowed = true;
+            job_details.dump_resources = false;
+        }
+        // Break opener after pot usage
+        "Burst Shot" => {
+            job_details.opener = false;
+            // if job_details.opener && spell::is_status_active_now(job_details, "Battle Voice") {
+            //     job_details.opener = false;
+            //     debug!("IN Opener FILLER");
+            // } else {
+            //     debug!("OUT of opener FILLER");
+            // }
+        }
         _ => {}
     }
 }
@@ -198,9 +274,9 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
     // let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
     // let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
-    let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
+    // let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
     let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
-    // let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
+    let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
     // let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
     // let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
     // let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
@@ -210,8 +286,8 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
     // let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
 
-    job_details.secondary_bar = chunk7;
-    job_details.stacks_a = chunk6;
+    job_details.secondary_bar = chunk8; // Apex bar
+    job_details.stacks_a = chunk7; //Pitch Perfect
 
     // // Debug output for each chunk
     // debug!("chunk1 = {} songMilliseconds", chunk1);

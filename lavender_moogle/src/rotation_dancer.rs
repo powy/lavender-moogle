@@ -222,6 +222,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 // We are doing a hack to simulate two buff at the same time
 // on using a silken proc, the flourishing proc (if existing) is transfrmed into a silken proc
 // Silken proc is ended. Becaus eof this system, silken is removed from the normal status removal system
+// Manage the burst trigger
+// Artificial weaves for specific spells with no time for double weaves
 pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
     match spell_name {
         "Bloodshower" => {
@@ -244,6 +246,23 @@ pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDet
         "Technical Step" => {
             job_details.burst_allowed = true;
             job_details.dump_resources = false;
+            job_details.weaves = 1;
+        }
+
+        "Standard Step" => {
+            job_details.weaves = 1;
+        }
+        "Emboite" => {
+            job_details.weaves = 2;
+        }
+        "Entrechat" => {
+            job_details.weaves = 2;
+        }
+        "Jete" => {
+            job_details.weaves = 2;
+        }
+        "Pirouette" => {
+            job_details.weaves = 2;
         }
 
         _ => {}
