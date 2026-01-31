@@ -243,19 +243,16 @@ pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDet
     match spell_name {
         // Battle voice is the burst trigger
         "Battle Voice" => {
-            // debug!("BATTLE VOICE GOGOGO");s
             job_details.burst_allowed = true;
             job_details.dump_resources = false;
+            // Give space for pot in opener
+            if job_details.opener {
+                job_details.weaves = 3;
+            }
         }
         // Break opener after pot usage
         "Burst Shot" => {
             job_details.opener = false;
-            // if job_details.opener && spell::is_status_active_now(job_details, "Battle Voice") {
-            //     job_details.opener = false;
-            //     debug!("IN Opener FILLER");
-            // } else {
-            //     debug!("OUT of opener FILLER");
-            // }
         }
         _ => {}
     }
