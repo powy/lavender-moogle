@@ -6,6 +6,7 @@ use log::{debug, error};
 use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails};
+use chrono::Utc;
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
     if let Some(job_details) = character_details.get_mut("BRD") {
@@ -32,6 +33,32 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         //     next_spell_name = "Heartbreak Shot";
         // }
 
+        // if job_details.opener && should_end_opener(job_details) {
+        //     debug!("[OPENER_TRACK] Ending opener based on Burst Shot last_cast timestamp");
+        //     job_details.opener = false;
+        // }
+
+        // Hack to detect the very first cast of the opener and do the HB shot
+        // We should do a GCD (no oGCD) and wanderer not started
+        // Ca ne marche pas, comment ne le ffaire qu'une fois ? il faut detecter qu'il n'y a jamais eu de GCD
+        if job_details.opener && !aoe && !alternate {
+            if job_details.stacks_b == 0 {
+                next_spell_name = "Heartbreak Shot";
+            } else if !spell::is_status_active_next_gcd(job_details, "Storm DoT") {
+                next_spell_name = "Stormbite";
+            } else if spell::is_spell_available_now(job_details, "the Wanderer's Minuet") {
+                next_spell_name = "the Wanderer's Minuet";
+            } else if spell::is_spell_available_now(job_details, "Empyreal Arrow") {
+                next_spell_name = "Empyreal Arrow";
+            } else if !spell::is_status_active_next_gcd(job_details, "Caustic DoT") {
+                next_spell_name = "Caustic Bite";
+            } else if spell::is_spell_available_now(job_details, "Battle Voice") {
+                next_spell_name = "Battle Voice";
+            } else {
+                next_spell_name = "Burst Shot";
+            }
+        }
+
         // ALL oGCD management
         if (next_spell_name == "")
             && (job_details.weaves < MAX_WEAVE_NUMBER)
@@ -40,8 +67,25 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             // BURST oGCD
             // FIXME
 
+            // OPENER
+            // FIXME - find a hack to start with the oGCD HB
+            // if next_spell_name == "" && job_details.opener {
+            //     if spell::is_spell_available_now(job_details, "the Wanderer's Minuet") {
+            //         next_spell_name = "the Wanderer's Minuet";
+            //     } else if spell::is_spell_available_now(job_details, "Empyreal Arrow") {
+            //         next_spell_name = "Empyreal Arrow";
+            //     } else if spell::is_spell_available_now(job_details, "Battle Voice") {
+            //         next_spell_name = "Battle Voice";
+            //     }
+            //     // Auto pot broken - rather skip than doing weird
+            //     // else {
+            //     //     next_spell_name = "Potion";
+            //     // }
+            // } else {
             // Songs
-            if spell::is_spell_available_now(job_details, "the Wanderer's Minuet") {
+            if next_spell_name == ""
+                && spell::is_spell_available_now(job_details, "the Wanderer's Minuet")
+            {
                 next_spell_name = "the Wanderer's Minuet";
             } else if !spell::is_status_active_next_gcd(job_details, "Wanderer song") {
                 // WARNING -Take care of Pitch perfect dump
@@ -53,6 +97,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     next_spell_name = "Army's Paeon";
                 }
             }
+            // }
 
             // // BUFF ACTIVATION
             // // Activate Battle Voice 1 GCD after Minuet
@@ -77,19 +122,28 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             //     }
             // }
             // Opener special case
-            if next_spell_name == "" && job_details.opener {
-                if spell::is_status_active_now(job_details, "Wanderer song") {
-                    if spell::is_spell_available_now(job_details, "Empyreal Arrow") {
-                        next_spell_name = "Empyreal Arrow";
-                    } else if spell::is_spell_available_now(job_details, "Battle Voice") {
-                        next_spell_name = "Battle Voice";
-                    } else {
-                        next_spell_name = "Potion";
-                    }
-                }
-            }
+            // if next_spell_name == "" && job_details.opener {
+            //     if spell::is_status_active_now(job_details, "Wanderer song") {
+            //         if spell::is_spell_available_now(job_details, "Empyreal Arrow") {
+            //             next_spell_name = "Empyreal Arrow";
+            //         } else if spell::is_spell_available_now(job_details, "Battle Voice") {
+            //             next_spell_name = "Battle Voice";
+            //         } else {
+            //             next_spell_name = "Potion";
+            //         }
+            //     }
+            // }
             // BURST BUFF ACTIVATION
             // Activate Battle Voice 1 GCD after Minuet
+
+            // Force high priority emp arrow (WARNING EXPERIMENTAL)
+            if next_spell_name == ""
+                    // && spell::is_spell_available_now(job_details, "Empyreal Arrow")
+                    && spell::spell_will_be_available_soon(job_details, "Empyreal Arrow", 300)
+            {
+                next_spell_name = "Empyreal Arrow";
+            }
+
             if next_spell_name == ""
                 && !job_details.opener
                 && job_details.burst_allowed
@@ -113,13 +167,14 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             }
 
             // Wanderer's song procs
-
+            // Try to prio not drifting empy arrow.
             if next_spell_name == "" && spell::is_status_active_now(job_details, "Wanderer song") {
                 // Pitch perfect usage
                 if next_spell_name == "" && job_details.stacks_a >= 1 {
                     // Pitch perfect dump before end of Battle voice
                     if spell::is_status_active_now(job_details, "Battle Voice Buff")
                         && !spell::is_status_active_in(job_details, "Battle Voice Buff", 2500)
+                        && !spell::is_spell_available_now(job_details, "Empyreal Arrow")
                     {
                         next_spell_name = "Pitch Perfect";
                     }
@@ -128,7 +183,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                         next_spell_name = "Pitch Perfect";
                     }
                     // Pitch perfect dump at full stack
-                    else if job_details.stacks_a >= 3 {
+                    else if job_details.stacks_a >= 3
+                        && !spell::is_spell_available_now(job_details, "Empyreal Arrow")
+                    {
                         next_spell_name = "Pitch Perfect";
                     }
                 }
@@ -171,7 +228,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // No dot - do dot - emergency dot
         // No dot - do dot - emergency dot
         // Note : bit of a double with another iron jaw at 3 GCD
-        if next_spell_name == "" {
+        if next_spell_name == "" && !alternate && !aoe {
             if !spell::is_status_active_next_gcd(job_details, "Storm DoT") {
                 next_spell_name = "Stormbite";
             } else if !spell::is_status_active_next_gcd(job_details, "Caustic DoT") {
@@ -187,16 +244,20 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         if next_spell_name == "" {
             // Refresh buffed Iron Jaws before end of burst
             // FIXME : Should be done only if we didn't already refresh in burst
+            // Hack : "recent refresh buff"
             if spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Battle Voice Buff")
+                && !spell::is_status_active_next_gcd(job_details, "Recent Refresh")
+                && !alternate
+                && !aoe
             {
                 next_spell_name = "Iron Jaws";
             }
-            // Delay if barrage is coming
-            else if spell::is_status_active_next_gcd(job_details, "Hawk's Eye")
-                && !spell::spell_will_be_available_soon(job_details, "Barrage", 7500)
+            // Delay if burst is coming
+            else if (spell::is_status_active_next_gcd(job_details, "Hawk's Eye")
+                && !spell::spell_will_be_available_soon(job_details, "Raging Strikes", 7500))
+                || spell::is_status_active_next_gcd(job_details, "Barrage Buff")
             {
-                // Delayed in opener until we get all the buffs
                 if aoe {
                     next_spell_name = "Shadowbite";
                 } else {
@@ -209,25 +270,40 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             }
             // Full soul gauge -- and no burst coming
             else if job_details.secondary_bar >= 80
-                && !spell::spell_will_be_available_soon(job_details, "Barrage", 15000)
+                && !spell::spell_will_be_available_soon(job_details, "Raging Strikes", 15000)
             {
                 next_spell_name = "Apex Arrow";
-            }
-            // Prevent Dot Drop
-            else if !spell::is_status_active_in(job_details, "Storm DoT", 7500)
-                || !spell::is_status_active_in(job_details, "Caustic DoT", 7500)
-            {
-                next_spell_name = "Iron Jaws";
-            } else if spell::is_status_active_next_gcd(job_details, "Radiant Finale Buff")
-                && spell::is_status_active_next_gcd(job_details, "Raging Strikes Buff")
-                && spell::is_status_active_next_gcd(job_details, "Barrage Buff")
-                && spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
+            } else if spell::is_status_active_next_gcd(job_details, "Radiant Encore Ready")
+            // && !spell::spell_will_be_available_soon(job_details, "Barrage", 5000)
+            && !spell::spell_will_be_available_soon(job_details, "Barrage", 15000)
+            // && spell::is_status_active_next_gcd(job_details, "Barrage Buff")
+            // && spell::is_status_active_next_gcd(job_details, "Radiant Finale Buff")
+            // && spell::is_status_active_next_gcd(job_details, "Raging Strikes Buff")
+            // && spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
             {
                 // Big hit rdiant encore, following radiant finale. Wait to be fully under burst
                 next_spell_name = "Radiant Encore"
+            } else if spell::is_status_active_next_gcd(job_details, "Resonant Arrow Ready")
+            // && spell::is_status_active_next_gcd(job_details, "Barrage Buff")
+            // && spell::is_status_active_next_gcd(job_details, "Radiant Finale Buff")
+            // && spell::is_status_active_next_gcd(job_details, "Raging Strikes Buff")
+            // && spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
+            {
+                // Big hit rdiant encore, following radiant finale. Wait to be fully under burst
+                next_spell_name = "Resonant Arrow"
+            }
+            // Prevent Dot Drop
+            else if (!spell::is_status_active_in(job_details, "Storm DoT", 7500)
+                || !spell::is_status_active_in(job_details, "Caustic DoT", 7500))
+                && !alternate
+                && !aoe
+            {
+                next_spell_name = "Iron Jaws";
             }
             // Filler
-            else {
+            else if aoe {
+                next_spell_name = "Ladonsbite"
+            } else {
                 next_spell_name = "Burst Shot";
             }
         }
@@ -241,14 +317,24 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 
 pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
     match spell_name {
+        "Refulgent Arrow" => {
+            if spell::is_status_active_now(job_details, "Barrage Buff") {
+                spell::deactivate_status(job_details, "Barrage Buff")
+            } else {
+                spell::deactivate_status(job_details, "Hawk's Eye")
+            }
+        }
+        "Shadowbite" => {
+            if spell::is_status_active_now(job_details, "Barrage Buff") {
+                spell::deactivate_status(job_details, "Barrage Buff")
+            } else {
+                spell::deactivate_status(job_details, "Hawk's Eye")
+            }
+        }
         // Battle voice is the burst trigger
         "Battle Voice" => {
             job_details.burst_allowed = true;
             job_details.dump_resources = false;
-            // Give space for pot in opener
-            if job_details.opener {
-                job_details.weaves = 3;
-            }
         }
         // Break opener after pot usage
         "Burst Shot" => {
