@@ -28,9 +28,10 @@ pub fn apply_spell_cast(
         if let Some(spell_details) = job_details.get_spell(spell_name).cloned() {
             debug!("Action for ability: {}", spell_name);
 
-            // Update last_cast timestamp
+            // Update last_cast_time timestamp and spell name
+            job_details.last_cast_spell = spell_name.to_string();
             if let Some(spell_details_mut) = job_details.get_spell(spell_name) {
-                spell_details_mut.last_cast = Utc::now();
+                spell_details_mut.last_cast_time = Utc::now();
             }
 
             // Apply self CD -- require mutable
@@ -99,10 +100,11 @@ pub fn activate_status_default_time(
     spell_name: &str,
     margin_time: i32,
 ) {
+    job_details.last_activation_spell = spell_name.to_string();
     if let Some(spell_details) = job_details.get_spell(spell_name) {
         let duration = spell_details.duration;
         spell_details.active_until = calculate_future_time(duration, margin_time);
-        spell_details.last_activation = Utc::now();
+        spell_details.last_activation_time = Utc::now();
         debug!(
             "Status {} activated for {} milliseconds, until {}",
             spell_name, duration, spell_details.active_until
@@ -118,9 +120,10 @@ pub fn activate_status_until(
     duration: i32,
     margin_time: i32,
 ) {
+    job_details.last_activation_spell = spell_name.to_string();
     if let Some(spell_details) = job_details.get_spell(spell_name) {
         spell_details.active_until = calculate_future_time(duration, margin_time);
-        spell_details.last_activation = Utc::now();
+        spell_details.last_activation_time = Utc::now();
         debug!(
             "Status {} activated for {} milliseconds, until {}",
             spell_name, duration, spell_details.active_until
@@ -293,9 +296,9 @@ pub fn is_status_active_since_x_gcd(
         return false;
     };
 
-    // Get last_activation timestamp
-    let last_activation = if let Some(status_details) = job_details.get_spell(status_name) {
-        status_details.last_activation
+    // Get last_activation_time timestamp
+    let last_activation_time = if let Some(status_details) = job_details.get_spell(status_name) {
+        status_details.last_activation_time
     } else {
         return false;
     };
@@ -303,12 +306,12 @@ pub fn is_status_active_since_x_gcd(
     // Calculate duration status has been active
     let now = Utc::now();
 
-    // Safety: if last_activation is in future, treat as just activated
-    if last_activation > now {
+    // Safety: if last_activation_time is in future, treat as just activated
+    if last_activation_time > now {
         return false;
     }
 
-    let time_active = now.signed_duration_since(last_activation);
+    let time_active = now.signed_duration_since(last_activation_time);
 
     // Calculate required duration
     let required_duration_ms = x_gcd * gcd_duration_ms;
@@ -325,6 +328,16 @@ pub fn ogcd_end_before_next_gcd(job_details: &mut JobDetails) -> bool {
     let next_gcd_time = get_next_gcd_time(job_details);
     let expected_end_time_of_ogcd = Utc::now() + ogcd_lock_duration;
     return expected_end_time_of_ogcd < next_gcd_time;
+}
+
+pub fn in_late_ogcd_timing(job_details: &mut JobDetails) -> bool {
+    let ogcd_lock_duration = chrono::Duration::milliseconds(600);
+    let late_ogcd_timing = chrono::Duration::milliseconds(1200);
+    let next_gcd_time = get_next_gcd_time(job_details);
+    let expected_end_time_of_ogcd = Utc::now() + ogcd_lock_duration;
+    let ogcd_end_before_next_gcd = expected_end_time_of_ogcd < next_gcd_time;
+    let is_close_enough_to_next_gcd = Utc::now() + late_ogcd_timing > next_gcd_time;
+    return is_close_enough_to_next_gcd && ogcd_end_before_next_gcd;
 }
 
 pub fn spell_will_be_available_soon(
@@ -654,12 +667,12 @@ pub fn handle_character_death(character_details: &mut CharacterDetails) {
         for spell in job_details.spells.values_mut() {
             if !BUFFS_PERSISTING_ON_DEATH.contains(&spell.name.as_str()) {
                 spell.active_until = now_minus_500ms;
-                spell.last_activation = now_minus_500ms;
+                spell.last_activation_time = now_minus_500ms;
             }
             // IMPORTANT: Preserve cooldowns (FFXIV behavior)
             // Do NOT touch unavailable_before
             // Do NOT touch charge_timers
-            // Do NOT touch last_cast - spells were still cast before death
+            // Do NOT touch last_cast_time - spells were still cast before death
         }
     }
 }

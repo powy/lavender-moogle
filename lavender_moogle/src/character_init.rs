@@ -34,6 +34,8 @@ pub fn init_character_details_from_excel(
                 opener: true,
                 dump_resources: false,
                 burst_allowed: true,
+                last_activation_spell: String::new(),
+                last_cast_spell: String::new(),
             };
 
             for row in range.rows().skip(1) {
@@ -55,8 +57,8 @@ pub fn init_character_details_from_excel(
                     stacks_b: 0,
                     max_charges: 0,
                     charge_timers: Vec::new(),
-                    last_activation: Utc::now() - chrono::Duration::milliseconds(500),
-                    last_cast: Utc::now() - chrono::Duration::milliseconds(500),
+                    last_activation_time: Utc::now() - chrono::Duration::milliseconds(500),
+                    last_cast_time: Utc::now() - chrono::Duration::milliseconds(500),
                 };
 
                 for (col_idx, cell) in row.iter().enumerate() {

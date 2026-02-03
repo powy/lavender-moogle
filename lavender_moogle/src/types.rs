@@ -22,8 +22,8 @@ pub struct SpellDetails {
     pub stacks_b: i32,
     pub max_charges: i32,
     pub charge_timers: Vec<DateTime<Utc>>,
-    pub last_activation: DateTime<Utc>,  // When status was last activated
-    pub last_cast: DateTime<Utc>,        // When spell was last cast
+    pub last_activation_time: DateTime<Utc>,  // When status was last activated
+    pub last_cast_time: DateTime<Utc>,        // When spell was last cast
 }
 
 // Represent all spells associated with a specific job
@@ -39,6 +39,8 @@ pub struct JobDetails {
     pub opener: bool,
     pub dump_resources: bool,
     pub burst_allowed: bool,
+    pub last_activation_spell: String,  // Name of the last spell that activated a status
+    pub last_cast_spell: String,        // Name of the last spell that was cast
 }
 
 // Used to use JobDetails like a table of spells
@@ -71,12 +73,14 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
         job_details.opener = true;
         job_details.dump_resources = false;
         job_details.burst_allowed = true;
+        job_details.last_activation_spell = String::new();
+        job_details.last_cast_spell = String::new();
         for spell in job_details.spells.values_mut() {
             spell.active_until = now_minus_500ms;
             spell.unavailable_before = now_minus_500ms;
             spell.charge_timers.clear();
-            spell.last_activation = Utc::now();
-            spell.last_cast = Utc::now();
+            spell.last_activation_time = Utc::now();
+            spell.last_cast_time = Utc::now();
         }
     }
 }

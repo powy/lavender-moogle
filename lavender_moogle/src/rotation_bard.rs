@@ -6,7 +6,6 @@ use log::{debug, error};
 use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails};
-use chrono::Utc;
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
     if let Some(job_details) = character_details.get_mut("BRD") {
@@ -14,6 +13,10 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // update status
         // check oGCD
         let mut next_spell_name = "";
+
+        let dot_allowed = are_dot_allowed(job_details, aoe, alternate);
+        let iron_jaw_castable = is_iron_jaws_castable(job_details, aoe, alternate);
+
         // let burst_allowed = spell::burst_allowed(job_details);
         // let delayed_burst = !burst_allowed;
 
@@ -34,7 +37,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // }
 
         // if job_details.opener && should_end_opener(job_details) {
-        //     debug!("[OPENER_TRACK] Ending opener based on Burst Shot last_cast timestamp");
+        //     debug!("[OPENER_TRACK] Ending opener based on Burst Shot last_cast_time timestamp");
         //     job_details.opener = false;
         // }
 
@@ -52,7 +55,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 next_spell_name = "Empyreal Arrow";
             } else if !spell::is_status_active_next_gcd(job_details, "Caustic DoT") {
                 next_spell_name = "Caustic Bite";
-            } else if spell::is_spell_available_now(job_details, "Battle Voice") {
+            } else if spell::is_spell_available_now(job_details, "Battle Voice")
+                && spell::in_late_ogcd_timing(job_details)
+            {
                 next_spell_name = "Battle Voice";
             } else {
                 next_spell_name = "Burst Shot";
@@ -82,9 +87,19 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             //     //     next_spell_name = "Potion";
             //     // }
             // } else {
+
             // Songs
+            //Song ticks (proc chances) happen based on the song timer - at 42s, 39s, 36s, and so on. You can not get a proc in the last three seconds. You want to use your songs in this pattern:
+            // The Wanderer's Minuet Icon The Wanderer's Minuet for 42s (leave at 3s or less on the timer*)
+            // Mage's Ballad Icon Mage's Ballad for 42s (leave at 3s or less on the timer)
+            // Army's Paeon Icon Army's Paeon for 33s (leave at 12s or less on the timer**)
+
+            // TODO
+            // Use The Wanderer's Minuet Icon The Wanderer's Minuet as late in the oGCD window as you can, so that Enhanced Army's Paeon Icon Enhanced Army's Paeon covers five GCDs.
+
             if next_spell_name == ""
                 && spell::is_spell_available_now(job_details, "the Wanderer's Minuet")
+                && spell::in_late_ogcd_timing(job_details)
             {
                 next_spell_name = "the Wanderer's Minuet";
             } else if !spell::is_status_active_next_gcd(job_details, "Wanderer song") {
@@ -99,55 +114,20 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             }
             // }
 
-            // // BUFF ACTIVATION
-            // // Activate Battle Voice 1 GCD after Minuet
-            // if spell::spell_will_be_available_soon(job_details, "Wanderer song", 118250) {
-            //     if spell::is_spell_available_now(job_details, "Battle Voice") {
-            //         next_spell_name = "Battle Voice";
-            //     }
-            //     // Activate Radiant Finale and Raging strike 2 GCD after Minuet
-            //     else if spell::spell_will_be_available_soon(job_details, "Wanderer song", 115850)
-            //     {
-            //         if spell::is_spell_available_now(job_details, "Radiant Finale") {
-            //             next_spell_name = "Radiant Finale";
-            //         }
-            //         // Activate Raging Strike 2 GCD after Radiant Finale
-            //         else if spell::is_spell_available_now(job_details, "Raging Strikes") {
-            //             next_spell_name = "Raging Strikes";
-            //         }
-            //         // Activate barrage if all other are active
-            //         else if spell::is_spell_available_now(job_details, "Barrage") {
-            //             next_spell_name = "Barrage";
-            //         }
-            //     }
-            // }
-            // Opener special case
-            // if next_spell_name == "" && job_details.opener {
-            //     if spell::is_status_active_now(job_details, "Wanderer song") {
-            //         if spell::is_spell_available_now(job_details, "Empyreal Arrow") {
-            //             next_spell_name = "Empyreal Arrow";
-            //         } else if spell::is_spell_available_now(job_details, "Battle Voice") {
-            //             next_spell_name = "Battle Voice";
-            //         } else {
-            //             next_spell_name = "Potion";
-            //         }
-            //     }
-            // }
-            // BURST BUFF ACTIVATION
-            // Activate Battle Voice 1 GCD after Minuet
-
             // Force high priority emp arrow (WARNING EXPERIMENTAL)
             if next_spell_name == ""
                     // && spell::is_spell_available_now(job_details, "Empyreal Arrow")
-                    && spell::spell_will_be_available_soon(job_details, "Empyreal Arrow", 300)
+                    && spell::spell_will_be_available_soon(job_details, "Empyreal Arrow", 500)
             {
                 next_spell_name = "Empyreal Arrow";
             }
 
+            // Burst oGCD
+            // Burst ready function avoid too much drift between the oGCD buffs
             if next_spell_name == ""
                 && !job_details.opener
                 && job_details.burst_allowed
-                && spell::is_spell_available_now(job_details, "Battle Voice")
+                && burst_ready(job_details)
             {
                 next_spell_name = "Battle Voice";
             } else if spell::is_status_active_now(job_details, "Battle Voice Buff")
@@ -202,16 +182,22 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     next_spell_name = "Empyreal Arrow";
                 }
                 // Sidewinder on CD, or wait for Barrage (burst)
-                else if spell::is_spell_available_now(job_details, "Sidewinder")
-                    && !spell::spell_will_be_available_soon(job_details, "Barrage", 52500)
+                // correction : wait for raging strikes and ajust to the duration of raging strikes - 1 gcd
+                // CD = 60s - 1 gcd 2.5s - raging strikes duration 20s = 38.5s
+                else if (spell::is_spell_available_now(job_details, "Sidewinder")
+                    && !spell::spell_will_be_available_soon(job_details, "Raging Strikes", 38500))
+                    || (spell::is_spell_available_now(job_details, "Sidewinder")
+                        && job_details.dump_resources)
                 {
                     next_spell_name = "Sidewinder";
                 }
                 // Avoid bloodletter overcap
                 // Stupid bloodletter spam, exept during Army song
+                // "do not use if the song timer is 35 or less" can be interporeted 35 s left on peaon
+                // means around 30s left on expected raging strikes CD
                 else if spell::is_spell_available_now(job_details, "Bloodletter")
                     && spell::is_spell_available_now(job_details, "Heartbreak Shot")
-                    && !(spell::spell_will_be_available_soon(job_details, "Barrage", 35000)
+                    && !(spell::spell_will_be_available_soon(job_details, "Raging Strikes", 30000)
                         && !job_details.dump_resources)
                 {
                     if aoe {
@@ -228,34 +214,22 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // No dot - do dot - emergency dot
         // No dot - do dot - emergency dot
         // Note : bit of a double with another iron jaw at 3 GCD
-        if next_spell_name == "" && !alternate && !aoe {
-            if !spell::is_status_active_next_gcd(job_details, "Storm DoT") {
-                next_spell_name = "Stormbite";
-            } else if !spell::is_status_active_next_gcd(job_details, "Caustic DoT") {
-                next_spell_name = "Caustic Bite";
-            } else if !spell::is_status_still_active_in_two_gcd(job_details, "Storm DoT")
-                || !spell::is_status_still_active_in_two_gcd(job_details, "Caustic DoT")
-            {
-                next_spell_name = "Iron Jaws";
-            }
-        }
 
         // check standart GCD
         if next_spell_name == "" {
-            // Refresh buffed Iron Jaws before end of burst
-            // FIXME : Should be done only if we didn't already refresh in burst
-            // Hack : "recent refresh buff"
-            if spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
-                && !spell::is_status_still_active_in_two_gcd(job_details, "Battle Voice Buff")
-                && !spell::is_status_active_next_gcd(job_details, "Recent Refresh")
-                && !alternate
-                && !aoe
+            // Emergency refresh
+            if iron_jaw_castable
+                && (!spell::is_status_still_active_in_two_gcd(job_details, "Storm DoT")
+                    || !spell::is_status_still_active_in_two_gcd(job_details, "Caustic DoT"))
             {
                 next_spell_name = "Iron Jaws";
             }
-            // Delay if burst is coming
-            else if (spell::is_status_active_next_gcd(job_details, "Hawk's Eye")
-                && !spell::spell_will_be_available_soon(job_details, "Raging Strikes", 7500))
+            // refresh end of burst if Dot were applied before it
+            else if should_refresh_dot_end_of_burst(job_details, aoe, alternate) {
+                next_spell_name = "Iron Jaws";
+            }
+            // High priority on spending procs
+            else if spell::is_status_active_next_gcd(job_details, "Hawk's Eye")
                 || spell::is_status_active_next_gcd(job_details, "Barrage Buff")
             {
                 if aoe {
@@ -264,39 +238,37 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     next_spell_name = "Refulgent Arrow";
                 }
             }
-            // Blast arraow - follow up apex
+            // Apex follow up
             else if spell::is_status_active_next_gcd(job_details, "Blast Arrow Ready") {
                 next_spell_name = "Blast Arrow";
             }
             // Full soul gauge -- and no burst coming
-            else if job_details.secondary_bar >= 80
-                && !spell::spell_will_be_available_soon(job_details, "Raging Strikes", 15000)
-            {
+            // use before timer on mage ballad hits 18 = paon is available in 18
+            // 55s before Raging strikes to have in Burst
+            else if job_details.secondary_bar >= 80 && no_burst_soon(job_details, 55000) {
                 next_spell_name = "Apex Arrow";
-            } else if spell::is_status_active_next_gcd(job_details, "Radiant Encore Ready")
-            // && !spell::spell_will_be_available_soon(job_details, "Barrage", 5000)
-            && !spell::spell_will_be_available_soon(job_details, "Barrage", 15000)
-            // && spell::is_status_active_next_gcd(job_details, "Barrage Buff")
-            // && spell::is_status_active_next_gcd(job_details, "Radiant Finale Buff")
-            // && spell::is_status_active_next_gcd(job_details, "Raging Strikes Buff")
-            // && spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
+            }
+            // Follow up of burst buff
+            // Radiant encore is delayed after barrage in the burst to have more friendly buff active
+            else if spell::is_status_active_next_gcd(job_details, "Radiant Encore Ready")
+                && !spell::spell_will_be_available_soon(job_details, "Barrage", 15000)
             {
-                // Big hit rdiant encore, following radiant finale. Wait to be fully under burst
                 next_spell_name = "Radiant Encore"
-            } else if spell::is_status_active_next_gcd(job_details, "Resonant Arrow Ready")
-            // && spell::is_status_active_next_gcd(job_details, "Barrage Buff")
-            // && spell::is_status_active_next_gcd(job_details, "Radiant Finale Buff")
-            // && spell::is_status_active_next_gcd(job_details, "Raging Strikes Buff")
-            // && spell::is_status_active_next_gcd(job_details, "Battle Voice Buff")
-            {
-                // Big hit rdiant encore, following radiant finale. Wait to be fully under burst
+            }
+            // Follow up of burst buff Barrage
+            else if spell::is_status_active_next_gcd(job_details, "Resonant Arrow Ready") {
                 next_spell_name = "Resonant Arrow"
             }
-            // Prevent Dot Drop
-            else if (!spell::is_status_active_in(job_details, "Storm DoT", 7500)
-                || !spell::is_status_active_in(job_details, "Caustic DoT", 7500))
-                && !alternate
-                && !aoe
+            // Normal Doting
+            else if dot_allowed && !spell::is_status_active_next_gcd(job_details, "Storm DoT") {
+                next_spell_name = "Stormbite";
+            } else if dot_allowed && !spell::is_status_active_next_gcd(job_details, "Caustic DoT") {
+                next_spell_name = "Caustic Bite";
+            }
+            // Normal refresh
+            else if iron_jaw_castable
+                && (!spell::is_status_active_in(job_details, "Storm DoT", 7500)
+                    || !spell::is_status_active_in(job_details, "Caustic DoT", 7500))
             {
                 next_spell_name = "Iron Jaws";
             }
@@ -307,6 +279,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 next_spell_name = "Burst Shot";
             }
         }
+
         if next_spell_name != "" {
             memory::communicate_next_spellcast(job_details, next_spell_name, aoe, alternate);
         }
@@ -338,6 +311,10 @@ pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDet
         }
         // Break opener after pot usage
         "Burst Shot" => {
+            job_details.opener = false;
+        }
+        // If using AOE, skip opener
+        "Ladonsbite" => {
             job_details.opener = false;
         }
         _ => {}
@@ -418,6 +395,67 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     //     }
 
     //   };
+}
+
+fn burst_ready(job_details: &mut JobDetails) -> bool {
+    //     Battle voice
+    // 2.5 radiant Finale
+    // 3 Raging Strike
+    // 5 barrage
+    let battle_voice_ready = spell::is_spell_available_now(job_details, "Battle Voice");
+    let radiant_finale_in_line =
+        spell::spell_will_be_available_soon(job_details, "Radiant Finale", 2750); // Should be ready next GCD window
+    let raging_strike_in_line =
+        spell::spell_will_be_available_soon(job_details, "Radiant Finale", 3500); // Worst case the next next GCD window
+    let barrage_in_line = spell::spell_will_be_available_soon(job_details, "Radiant Finale", 6000); // in Two GCD window, worst case 3
+
+    return battle_voice_ready
+        && radiant_finale_in_line
+        && raging_strike_in_line
+        && barrage_in_line;
+}
+
+fn are_dot_allowed(job_details: &mut JobDetails, aoe: bool, alternate: bool) -> bool {
+    return !aoe && !alternate && !job_details.dump_resources;
+}
+
+fn is_iron_jaws_castable(job_details: &mut JobDetails, aoe: bool, alternate: bool) -> bool {
+    let storm_dot_active = spell::is_status_still_active_in_two_gcd(job_details, "Storm DoT");
+    let caustic_dot_active = spell::is_status_still_active_in_two_gcd(job_details, "Caustic DoT");
+    let dot_allowed: bool = are_dot_allowed(job_details, aoe, alternate);
+    return !aoe && !alternate && dot_allowed && storm_dot_active && caustic_dot_active;
+}
+
+// refresh_in_burst
+// If end of burst and no recent refresh, refresh Dots
+// recent usage = last 7 GCD ~
+// So if dot finish in more than 45s - 7 gcd = about 27.5s
+
+fn should_refresh_dot_end_of_burst(
+    job_details: &mut JobDetails,
+    aoe: bool,
+    alternate: bool,
+) -> bool {
+    let end_of_burst = spell::is_status_still_active_in_two_gcd(job_details, "Battle Voice Buff");
+    let storm_applied_before_burst = !spell::is_status_active_in(job_details, "Storm DoT", 27500);
+    let caustic_applied_before_burst: bool =
+        !spell::is_status_active_in(job_details, "Caustic DoT", 27500);
+    let iron_jaws_castable = is_iron_jaws_castable(job_details, aoe, alternate);
+
+    return end_of_burst
+        && storm_applied_before_burst
+        && caustic_applied_before_burst
+        && iron_jaws_castable;
+}
+
+// used to postponed cast if burst is coming soon
+// Used for resources better saved if a burst window is coming
+// Burst is ignored if "dump ressources" is active
+// raging strike because we wait to have at least all our own buff and it is the last one cast
+fn no_burst_soon(job_details: &mut JobDetails, max_waiting_duration: i32) -> bool {
+    let raging_strike_soon =
+        spell::spell_will_be_available_soon(job_details, "Raging Strikes", max_waiting_duration);
+    return job_details.dump_resources || !raging_strike_soon;
 }
 
 // Names for completion
