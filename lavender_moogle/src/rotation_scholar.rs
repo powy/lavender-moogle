@@ -5,40 +5,66 @@ use log::error;
 
 use crate::memory;
 use crate::spell;
-use crate::spell::is_spell_available_in_x_gcd;
-use crate::types::{CharacterDetails, JobDetails};
+use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(
+    character_details: &mut CharacterDetails,
+    spell_cast_type: SpellcastType,
+    _aoe: bool,
+    _alternate: bool,
+) {
     if let Some(job_details) = character_details.get_mut("SCH") {
         const MAX_WEAVE_NUMBER: i32 = 1;
-        // update status
+        // ============= update status =============
 
-        // update stack min / max
-        // Stack a = aetherflow
-        if job_details.stacks_a > 3 {
-            job_details.stacks_a = 3;
-        } else if job_details.stacks_a < 0 {
-            job_details.stacks_a = 0;
-        }
-
-        // check oGCD
         let mut next_spell_name = "";
-        let burst_allowed = spell::burst_allowed(job_details);
+        let burst_allowed = job_details.burst_allowed;
         let delayed_burst = !burst_allowed;
 
+        let mut aoe = false;
+        // let mut alternate = old_alternate;
+
+        let mut restricted_movement_allowed = false;
+        let mut instant_cast_only = false;
+
+        // VARIATIONS
+        // 1 : Constrained mono casts
+        // 2 : Instants only - free movement
+        // 3 : Constrained AOE casts. In the case of Scholar, no restriction. This is an exception
+        // 4 : Classic - mono - user can interrupt cast by moving.
+        // There is a question to make the charges dump related to this fourth choice.
+        // It would be for chill play and do the dump only then, as to not make a mess in managed mode
+
+        match spell_cast_type {
+            SpellcastType::First => restricted_movement_allowed = true,
+            SpellcastType::Second => instant_cast_only = true,
+            SpellcastType::Third => aoe = true,
+            SpellcastType::Fourth => (),
+        }
+
+        // Fixme - also use spell_cast etc. from job_details
+        // let static_cast_allowed = !restricted_movement_allowed;s
+
+        // Manage stop dot and no Dot in AOE
+        let dot_allowed = !aoe && !spell::is_status_active_now(job_details, "Do Not Dot");
+
+        // ============= oGCD =============
+
+        // ============= GCD =============
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
-            // --- A Priority: no drifting raid buffs
-            if spell::is_spell_available_now(job_details, "Chain Stratagem") && burst_allowed {
-                next_spell_name = "Chain Stratagem";
-            } else if should_aetherflow(job_details, aoe, delayed_burst) {
-                // Refresh charges with Aetherflow
+            // --- A Priority: no losing charges Refresh charges with Aetherflow
+            if should_aetherflow(job_details, aoe, delayed_burst) {
                 next_spell_name = "Aetherflow";
-            // Impact imminient is delayed because doing aetherflow is a priority
+                // -- B priority - no drifting raid buffs
+            } else if spell::is_spell_available_now(job_details, "Chain Stratagem") && burst_allowed
+            {
+                next_spell_name = "Chain Stratagem";
+            // Impact imminient is delayed because doing aetherflow is a priority - Their might be a reason
             } else if spell::is_status_active_now(job_details, "Impact Imminent")
                 && !spell::is_spell_available_now(job_details, "Aetherflow")
             {
                 next_spell_name = "Baneful Impaction";
-            } else if should_dump_aether_charges(job_details, alternate, aoe) {
+            } else if should_dump_aether_charges(job_details, aoe) {
                 // Drain dump before using Aethercharge
                 next_spell_name = "Energy Drain";
             }
@@ -57,41 +83,47 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 if should_reset_dot_end_of_burst(job_details) {
                     next_spell_name = "Biolysis";
                 // Reset Dot on time
-                } else if !spell::is_status_active_in(job_details, "Dot", 3000) {
+                } else if dot_allowed && !spell::is_status_active_in(job_details, "Dot", 3000) {
                     next_spell_name = "Biolysis";
                 // Default GCD
                 } else {
-                    if alternate {
-                        // Alternate : fixed phase - nopt usal
-                        next_spell_name = "Broil IV";
-                    } else {
-                        // Normal - movement phase - too busy for precise weaving.
+                    if instant_cast_only {
                         next_spell_name = "Ruin II"
+                    } else {
+                        next_spell_name = "Broil IV";
                     }
                 }
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(
+                job_details,
+                spell_cast_type,
+                next_spell_name,
+                aoe,
+                false,
+            );
         }
     } else {
         error!("JOB not found in spell book");
     }
 }
 
-fn should_dump_aether_charges(job_details: &mut JobDetails, alternate: bool, aoe: bool) -> bool {
+fn should_dump_aether_charges(job_details: &mut JobDetails, aoe: bool) -> bool {
     // If there is 1 / 2 /3 GCD left, and 1 / 2 /3 charges left, we should use them
-    // Only on alternate, which is for casual play
-    if !aoe && alternate && job_details.stacks_a > 0 {
-        if (job_details.stacks_a >= 3) && is_spell_available_in_x_gcd(job_details, "Aetherflow", 3)
+    if !aoe && job_details.stacks_a > 0 {
+        if (job_details.stacks_a >= 3)
+            && spell::is_spell_available_in_x_gcd(job_details, "Aetherflow", 3)
         {
             return true;
         }
-        if (job_details.stacks_a >= 2) && is_spell_available_in_x_gcd(job_details, "Aetherflow", 2)
+        if (job_details.stacks_a >= 2)
+            && spell::is_spell_available_in_x_gcd(job_details, "Aetherflow", 2)
         {
             return true;
         }
-        if (job_details.stacks_a >= 1) && is_spell_available_in_x_gcd(job_details, "Aetherflow", 2)
+        if (job_details.stacks_a >= 1)
+            && spell::is_spell_available_in_x_gcd(job_details, "Aetherflow", 1)
         {
             return true;
         }
@@ -100,23 +132,7 @@ fn should_dump_aether_charges(job_details: &mut JobDetails, alternate: bool, aoe
 }
 
 fn should_aetherflow(job_details: &mut JobDetails, _aoe: bool, _delayed_burst: bool) -> bool {
-    // if spell::is_spell_available_now(job_details, "Aetherflow") {
-    //     // Mono target static, in burst : delay the cast to after dumping the remaining energy drains
-    //     // In the other cases, it is usually better not to delay its cast
-    //     if aoe || delayed_burst {
-    //         return true;
-    //     } else {
-    //         // Not in burst - Don't wait
-    //         // In burst - wait for dumping the remanent charges
-    //         // Enable automatic gestion of dissipation opening
-    //         // TODO to be fixed with opener trigger instead
-    //         let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
-    //         return job_details.stacks_a == 0 || !in_burst_in_2_gcd;
-    //     }
-    // }
-    // return false;
-
-    return spell::is_spell_available_now(job_details, "Aetherflow");
+    return job_details.stacks_a <= 0 && spell::is_spell_available_now(job_details, "Aetherflow");
 }
 
 // Opti suggested by guide, but makes the wound slide
@@ -125,8 +141,10 @@ fn should_reset_dot_end_of_burst(job_details: &mut JobDetails) -> bool {
     let in_burst_next_gcd = spell::is_status_active_next_gcd(job_details, "Burst");
     let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
     let end_of_burst_situation = in_burst_next_gcd && !in_burst_in_2_gcd;
+    let end_of_phase = job_details.dump_resources;
+    let dot_allowed = !spell::is_status_active_now(job_details, "Do Not Dot");
 
-    return end_of_burst_situation && dot_mostly_spent;
+    return dot_allowed && end_of_burst_situation && dot_mostly_spent && !end_of_phase;
 }
 
 pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {}

@@ -8,7 +8,7 @@ use crate::rotation_monk;
 use crate::rotation_paladin;
 use crate::rotation_scholar;
 use crate::rotation_summoner;
-use crate::types::{reset_character_status, CharacterDetails, JobDetails};
+use crate::types::{reset_character_status, CharacterDetails, JobDetails, SpellcastType};
 use lazy_static::lazy_static;
 use log::debug;
 use std::sync::{Arc, Mutex};
@@ -36,12 +36,12 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
     let job_name = current_job_string.as_str();
 
     // Define a function to handle the job rotations
-    let update_rotation = |update_fn: fn(&mut CharacterDetails, bool, bool),
+    let update_rotation = |update_fn: fn(&mut CharacterDetails, SpellcastType, bool, bool),
                            character_details: &mut CharacterDetails| {
-        update_fn(character_details, false, false);
-        update_fn(character_details, true, false);
-        update_fn(character_details, false, true);
-        update_fn(character_details, true, true);
+        update_fn(character_details, SpellcastType::from_flags(false, false), false, false);
+        update_fn(character_details, SpellcastType::from_flags(true, false), true, false);
+        update_fn(character_details, SpellcastType::from_flags(false, true), false, true);
+        update_fn(character_details, SpellcastType::from_flags(true, true), true, true);
     };
 
     match job_name {

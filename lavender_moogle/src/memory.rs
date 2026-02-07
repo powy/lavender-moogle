@@ -18,14 +18,10 @@ use once_cell::sync::Lazy;
 
 use crate::types::{JobDetails, SpellDetails, SpellcastType};
 
-static NEXT_SPELL_STR_MONO_STANDARD: Lazy<Mutex<String>> =
-    Lazy::new(|| Mutex::new(String::from("none")));
-static NEXT_SPELL_STR_MONO_ALTERNATE: Lazy<Mutex<String>> =
-    Lazy::new(|| Mutex::new(String::from("none")));
-static NEXT_SPELL_STR_AOE_STANDARD: Lazy<Mutex<String>> =
-    Lazy::new(|| Mutex::new(String::from("none")));
-static NEXT_SPELL_STR_AOE_ALTERNATE: Lazy<Mutex<String>> =
-    Lazy::new(|| Mutex::new(String::from("none")));
+static NEXT_SPELL_STR_1: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
+static NEXT_SPELL_STR_2: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
+static NEXT_SPELL_STR_3: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
+static NEXT_SPELL_STR_4: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
 
 const MEMORY_NAME: &str = "Global\\lavender_keys";
 const MEMORY_SIZE: usize = 8;
@@ -140,6 +136,7 @@ pub fn populate_shared_memory(
 
 pub fn communicate_next_spellcast(
     job_details: &mut JobDetails,
+    spell_cast_type: SpellcastType,
     spell_name: &str,
     aoe: bool,
     alternate: bool,
@@ -147,12 +144,20 @@ pub fn communicate_next_spellcast(
     let spellcast_type = SpellcastType::from_flags(alternate, aoe);
     // debug!("Spellcast Type: {:?}", spellcast_type);
 
-    let next_spell_str = match spellcast_type {
-        SpellcastType::MonoStandard => &NEXT_SPELL_STR_MONO_STANDARD,
-        SpellcastType::MonoAlternate => &NEXT_SPELL_STR_MONO_ALTERNATE,
-        SpellcastType::AoeStandard => &NEXT_SPELL_STR_AOE_STANDARD,
-        SpellcastType::AoeAlternate => &NEXT_SPELL_STR_AOE_ALTERNATE,
+    let next_spell_str = match spell_cast_type {
+        SpellcastType::First => &NEXT_SPELL_STR_1,
+        SpellcastType::Second => &NEXT_SPELL_STR_2,
+        SpellcastType::Third => &NEXT_SPELL_STR_3,
+        SpellcastType::Fourth => &NEXT_SPELL_STR_4,
     };
+
+    // let next_spell_str = match spellcast_type {
+    // SpellcastType::MonoStandard => &NEXT_SPELL_STR_MONO_STANDARD,
+    // SpellcastType::MonoAlternate => &NEXT_SPELL_STR_MONO_ALTERNATE,
+    // SpellcastType::AoeStandard => &NEXT_SPELL_STR_AOE_STANDARD,
+    // SpellcastType::AoeAlternate => &NEXT_SPELL_STR_AOE_ALTERNATE,
+    // _ =>
+    // }
 
     let mut saved_next_spell_name = next_spell_str.lock().unwrap();
     if *saved_next_spell_name != spell_name {

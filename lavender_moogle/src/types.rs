@@ -22,8 +22,8 @@ pub struct SpellDetails {
     pub stacks_b: i32,
     pub max_charges: i32,
     pub charge_timers: Vec<DateTime<Utc>>,
-    pub last_activation_time: DateTime<Utc>,  // When status was last activated
-    pub last_cast_time: DateTime<Utc>,        // When spell was last cast
+    pub last_activation_time: DateTime<Utc>, // When status was last activated
+    pub last_cast_time: DateTime<Utc>,       // When spell was last cast
 }
 
 // Represent all spells associated with a specific job
@@ -39,8 +39,8 @@ pub struct JobDetails {
     pub opener: bool,
     pub dump_resources: bool,
     pub burst_allowed: bool,
-    pub last_activation_spell: String,  // Name of the last spell that activated a status
-    pub last_cast_spell: String,        // Name of the last spell that was cast
+    pub last_activation_spell: String, // Name of the last spell that activated a status
+    pub last_cast_spell: String,       // Name of the last spell that was cast
 }
 
 // Used to use JobDetails like a table of spells
@@ -119,10 +119,10 @@ pub fn set_burst_allowed(character_details: &mut CharacterDetails, value: bool) 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SpellcastType {
-    MonoStandard = 0,
-    MonoAlternate = 1,
-    AoeStandard = 2,
-    AoeAlternate = 3,
+    First = 0,
+    Second = 1,
+    Third = 2,
+    Fourth = 3,
 }
 
 impl TryFrom<usize> for SpellcastType {
@@ -130,10 +130,10 @@ impl TryFrom<usize> for SpellcastType {
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(SpellcastType::MonoStandard),
-            1 => Ok(SpellcastType::MonoAlternate),
-            2 => Ok(SpellcastType::AoeStandard),
-            3 => Ok(SpellcastType::AoeAlternate),
+            0 => Ok(SpellcastType::First),
+            1 => Ok(SpellcastType::Second),
+            2 => Ok(SpellcastType::Third),
+            3 => Ok(SpellcastType::Fourth),
             _ => Err(()),
         }
     }
@@ -146,10 +146,10 @@ impl SpellcastType {
 
     pub fn from_flags(alternate: bool, aoe: bool) -> Self {
         match (alternate, aoe) {
-            (true, true) => Self::AoeAlternate,
-            (true, false) => Self::MonoAlternate,
-            (false, true) => Self::AoeStandard,
-            (false, false) => Self::MonoStandard,
+            (true, true) => Self::Fourth,
+            (true, false) => Self::Second,
+            (false, true) => Self::Third,
+            (false, false) => Self::First,
         }
     }
 }

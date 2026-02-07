@@ -148,9 +148,9 @@ PollTrigger() {
     if GetKeyState("F13") {
         executeRaw(0, 1)
     } else if GetKeyState("F14") {
-        executeRaw(4, 5)
-    } else if GetKeyState("F15") {
         executeRaw(2, 3)
+    } else if GetKeyState("F15") {
+        executeRaw(4, 5)
     } else if GetKeyState("F16") {
         executeRaw(6, 7)
     } else {
@@ -216,18 +216,16 @@ CheckController() {
     currentLeftTrigger := state.bLeftTrigger
     currentRightTrigger := state.bRightTrigger
 
-
     l1Pressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_LEFT_SHOULDER)
     ; l2Pressed := CheckTriggerPressed(currentLeftTrigger, lastLeftTrigger)
     r1Pressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER)
     ; r2Pressed := CheckTriggerPressed(currentRightTrigger, lastRightTrigger)
     trianglePressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)
 
-
     if (l1Pressed && trianglePressed) {
         executeRaw(0, 1)
     } else if (r1Pressed && trianglePressed) {
-        executeRaw(4, 5)
+        executeRaw(2, 3)
     }
 
     ; Save current state for next poll (edge detection)

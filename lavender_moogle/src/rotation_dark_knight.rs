@@ -5,9 +5,9 @@ use log::error;
 
 use crate::memory;
 use crate::spell;
-use crate::types::{CharacterDetails, JobDetails};
+use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cast_type: SpellcastType, aoe: bool, alternate: bool) {
     if let Some(job_details) = character_details.get_mut("DRK") {
         // update status
         // check oGCD
@@ -147,7 +147,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, aoe, alternate);
         }
     } else {
         error!("JOB not found in spell book");
