@@ -9,7 +9,9 @@ use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
     if let Some(job_details) = character_details.get_mut("BRD") {
-        const MAX_WEAVE_NUMBER: i32 = 2;
+        // const MAX_WEAVE_NUMBER: i32 = 2;
+        let max_weave_number: i32 = 2;
+
         // update status
         // check oGCD
         let mut next_spell_name = "";
@@ -64,10 +66,18 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             }
         }
 
+        // Common logic from all classes
+        let normal_ogcd_allowed_conditions =
+            (job_details.weaves < max_weave_number) && spell::ogcd_end_before_next_gcd(job_details);
+
+        // Special case for BRD : we have highr attack speed in the Paeon Army, making a mess of what is castable. To prevent problem, just skip late weave spot
+        let ogcd_restricted_because_paeon = spell::is_status_active_now(job_details, "Army song")
+            && (spell::in_late_ogcd_timing(job_details) || job_details.weaves >= 1);
+
         // ALL oGCD management
         if (next_spell_name == "")
-            && (job_details.weaves < MAX_WEAVE_NUMBER)
-            && spell::ogcd_end_before_next_gcd(job_details)
+            && normal_ogcd_allowed_conditions
+            && !ogcd_restricted_because_paeon
         {
             // BURST oGCD
             // FIXME
@@ -97,19 +107,21 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             // TODO
             // Use The Wanderer's Minuet Icon The Wanderer's Minuet as late in the oGCD window as you can, so that Enhanced Army's Paeon Icon Enhanced Army's Paeon covers five GCDs.
 
-            if next_spell_name == ""
-                && spell::is_spell_available_now(job_details, "the Wanderer's Minuet")
-                && spell::in_late_ogcd_timing(job_details)
-            {
-                next_spell_name = "the Wanderer's Minuet";
-            } else if !spell::is_status_active_next_gcd(job_details, "Wanderer song") {
-                // WARNING -Take care of Pitch perfect dump
-                if spell::is_spell_available_now(job_details, "Mage's Ballad") {
-                    next_spell_name = "Mage's Ballad";
-                } else if !spell::is_status_active_next_gcd(job_details, "Mage song")
-                    && spell::is_spell_available_now(job_details, "Army's Paeon")
-                {
-                    next_spell_name = "Army's Paeon";
+            // Todo add more safety to avoid being song-less
+            if next_spell_name == "" {
+                if spell::is_spell_available_now(job_details, "the Wanderer's Minuet") {
+                    // if spell::in_late_ogcd_timing(job_details) {
+                    next_spell_name = "the Wanderer's Minuet";
+                    // } // WARNING was supposed to be in late ogcd, but it is in paeon so it doesn't work
+                } else if !spell::is_status_active_next_gcd(job_details, "Wanderer song") {
+                    // WARNING -Take care of Pitch perfect dump
+                    if spell::is_spell_available_now(job_details, "Mage's Ballad") {
+                        next_spell_name = "Mage's Ballad";
+                    } else if !spell::is_status_active_next_gcd(job_details, "Mage song")
+                        && spell::is_spell_available_now(job_details, "Army's Paeon")
+                    {
+                        next_spell_name = "Army's Paeon";
+                    }
                 }
             }
             // }
@@ -416,12 +428,15 @@ fn burst_ready(job_details: &mut JobDetails) -> bool {
 }
 
 fn are_dot_allowed(job_details: &mut JobDetails, aoe: bool, alternate: bool) -> bool {
-    return !aoe && !alternate && !job_details.dump_resources;
+    return !aoe
+        && !alternate
+        && !job_details.dump_resources
+        && !spell::is_status_active_now(job_details, "Do Not Dot");
 }
 
 fn is_iron_jaws_castable(job_details: &mut JobDetails, aoe: bool, alternate: bool) -> bool {
-    let storm_dot_active = spell::is_status_still_active_in_two_gcd(job_details, "Storm DoT");
-    let caustic_dot_active = spell::is_status_still_active_in_two_gcd(job_details, "Caustic DoT");
+    let storm_dot_active = spell::is_status_active_next_gcd(job_details, "Storm DoT");
+    let caustic_dot_active = spell::is_status_active_next_gcd(job_details, "Caustic DoT");
     let dot_allowed: bool = are_dot_allowed(job_details, aoe, alternate);
     return !aoe && !alternate && dot_allowed && storm_dot_active && caustic_dot_active;
 }
@@ -436,7 +451,8 @@ fn should_refresh_dot_end_of_burst(
     aoe: bool,
     alternate: bool,
 ) -> bool {
-    let end_of_burst = spell::is_status_still_active_in_two_gcd(job_details, "Battle Voice Buff");
+    let end_of_burst = spell::is_status_active_now(job_details, "Battle Voice Buff")
+        && !spell::is_status_still_active_in_two_gcd(job_details, "Battle Voice Buff");
     let storm_applied_before_burst = !spell::is_status_active_in(job_details, "Storm DoT", 27500);
     let caustic_applied_before_burst: bool =
         !spell::is_status_active_in(job_details, "Caustic DoT", 27500);
