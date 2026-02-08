@@ -42,8 +42,8 @@ pub struct JobDetails {
     pub opener: bool,
     pub dump_resources: bool,
     pub burst_allowed: bool,
-    pub movements_can_be_restricted: bool,
-    pub movement_restricted_now: bool,
+    pub movement_control: [bool; 4],
+    pub movement_stopped: [bool; 4],
     pub last_activation_spell: String, // Name of the last spell that activated a status
     pub last_cast_spell: String,       // Name of the last spell that was cast
     pub actual_gcd_ms: i32,                 // default GCD from "gcd unavailable" spell cooldown
@@ -83,8 +83,8 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
         job_details.opener = true;
         job_details.dump_resources = false;
         job_details.burst_allowed = true;
-        job_details.movements_can_be_restricted = false;
-        job_details.movement_restricted_now = false;
+        job_details.movement_control = [false; 4];
+        job_details.movement_stopped = [false; 4];
         job_details.last_activation_spell = String::new();
         job_details.last_cast_spell = String::new();
         job_details.is_casting_spell = false;
@@ -117,19 +117,19 @@ pub fn set_burst_allowed(character_details: &mut CharacterDetails, value: bool) 
     }
 }
 
-pub fn set_movements_can_be_restricted(character_details: &mut CharacterDetails, value: bool) {
-    debug!("set_movements_can_be_restricted called with value: {}", value);
+pub fn set_movement_control(character_details: &mut CharacterDetails, position: usize, value: bool) {
+    debug!("set_movement_control called with position: {}, value: {}", position, value);
     for (job_name, job_details) in character_details.iter_mut() {
-        debug!("  Setting movements_can_be_restricted={} for job: {}", value, job_name);
-        job_details.movements_can_be_restricted = value;
+        debug!("  Setting movement_control[{}]={} for job: {}", position, value, job_name);
+        job_details.movement_control[position] = value;
     }
 }
 
-pub fn set_movement_restricted_now(character_details: &mut CharacterDetails, value: bool) {
-    debug!("set_movement_restricted_now called with value: {}", value);
+pub fn set_movement_stopped(character_details: &mut CharacterDetails, position: usize, value: bool) {
+    debug!("set_movement_stopped called with position: {}, value: {}", position, value);
     for (job_name, job_details) in character_details.iter_mut() {
-        debug!("  Setting movement_restricted_now={} for job: {}", value, job_name);
-        job_details.movement_restricted_now = value;
+        debug!("  Setting movement_stopped[{}]={} for job: {}", position, value, job_name);
+        job_details.movement_stopped[position] = value;
     }
 }
 

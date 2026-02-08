@@ -38,7 +38,7 @@ stopScript := false
 
 ; Shared Memory Mapping setup
 ; This script is the reader, the Shared Memory shall be created, Written and kept alive outside
-mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 8)
+mapping := FileMapping("Global\lavender_keys", 0xF001F, 0x4, 16)
 
 ; Controller polling variables (MUST be declared before use)
 pollMs := 20        ; fast detection
@@ -93,6 +93,11 @@ Browser_Back:: {
 
 Browser_Forward:: {
     executeRaw(6, 7)
+}
+
+; TEST - TEMPORARY: press X to dump human-readable shared memory contents
+x:: {
+    ShowMemoryDebug()
 }
 
 ; Spam executeRaw() calls using robust While+GetKeyState pattern
@@ -311,21 +316,57 @@ PollController() {
 
 ; Display full memory contents for debugging
 DumpMemory() {
-    buf := Buffer(8)
+    buf := Buffer(16)
     mapping.ReadToBuffer(buf)
     hexStr := ""
     charStr := ""
-
-    ; Fixed loop syntax for AutoHotkey 2
-    loop 8 {
-        i := A_Index - 1  ; Zero-based index
+    loop 16 {
+        i := A_Index - 1
         byteVal := NumGet(buf, i, "UChar")
         hexStr .= Format("{:02X} ", byteVal)
-        ; For printable characters, show them; otherwise show a dot
         charStr .= (byteVal >= 32 && byteVal <= 126) ? Chr(byteVal) : "."
     }
+    MsgBox "Shared memory contents (16 bytes):`nHex: " hexStr "`nChar: " charStr
+}
 
-    MsgBox "Shared memory contents (8 bytes):`nHex: " hexStr "`nChar: " charStr
+; Read movement_control boolean for the given position (0-3)
+GetMovementControl(position) {
+    buf := Buffer(16)
+    mapping.ReadToBuffer(buf)
+    return NumGet(buf, 8 + position * 2, "UChar") != 0
+}
+
+; Read movement_stopped boolean for the given position (0-3)
+GetMovementStopped(position) {
+    buf := Buffer(16)
+    mapping.ReadToBuffer(buf)
+    return NumGet(buf, 8 + position * 2 + 1, "UChar") != 0
+}
+
+; TEST - TEMPORARY: display all 16 bytes of shared memory in human-readable form
+ShowMemoryDebug() {
+    buf := Buffer(16)
+    mapping.ReadToBuffer(buf)
+
+    msg := "=== Shared Memory (16 bytes) ===`n`n"
+
+    msg .= "-- Spell pairs (bytes 0-7) --`n"
+    loop 4 {
+        i := A_Index - 1
+        modChar := Chr(NumGet(buf, i * 2, "UChar"))
+        keyChar := Chr(NumGet(buf, i * 2 + 1, "UChar"))
+        msg .= "Spell[" i "]: modifier='" modChar "'  key='" keyChar "'`n"
+    }
+
+    msg .= "`n-- Movement (bytes 8-15) --`n"
+    loop 4 {
+        i := A_Index - 1
+        ctrl := NumGet(buf, 8 + i * 2, "UChar") != 0 ? "true" : "false"
+        stopped := NumGet(buf, 8 + i * 2 + 1, "UChar") != 0 ? "true" : "false"
+        msg .= "Movement[" i "]: control=" ctrl "  stopped=" stopped "`n"
+    }
+
+    MsgBox msg
 }
 
 ; Functions to get the string identifier understood by AHK based on the API value

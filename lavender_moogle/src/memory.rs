@@ -24,7 +24,7 @@ static NEXT_SPELL_STR_3: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::f
 static NEXT_SPELL_STR_4: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
 
 const MEMORY_NAME: &str = "Global\\lavender_keys";
-const MEMORY_SIZE: usize = 10;
+const MEMORY_SIZE: usize = 16;
 
 // Define a newtype to wrap the HANDLE
 #[derive(Debug, Clone, Copy)]
@@ -134,7 +134,7 @@ pub fn populate_shared_memory(
     }
 }
 
-pub fn set_movements_can_be_restricted(value: bool) -> Result<(), String> {
+fn set_movement_byte(offset: usize, value: bool) -> Result<(), String> {
     let _lock = MMAP_MUTEX.lock().unwrap();
     let shared_handle = SHARED_MEMORY_HANDLE.lock().unwrap();
 
@@ -142,7 +142,7 @@ pub fn set_movements_can_be_restricted(value: bool) -> Result<(), String> {
         Some(handle) => {
             let ptr = map_view_of_file(handle.0)?;
             unsafe {
-                ptr.add(8).write(value as u8);
+                ptr.add(offset).write(value as u8);
             }
             unsafe { UnmapViewOfFile(ptr as *const _) };
             Ok(())
@@ -151,21 +151,12 @@ pub fn set_movements_can_be_restricted(value: bool) -> Result<(), String> {
     }
 }
 
-pub fn set_movement_restricted_now(value: bool) -> Result<(), String> {
-    let _lock = MMAP_MUTEX.lock().unwrap();
-    let shared_handle = SHARED_MEMORY_HANDLE.lock().unwrap();
+pub fn set_movement_control(position: usize, value: bool) -> Result<(), String> {
+    set_movement_byte(8 + position * 2, value)
+}
 
-    match *shared_handle {
-        Some(handle) => {
-            let ptr = map_view_of_file(handle.0)?;
-            unsafe {
-                ptr.add(9).write(value as u8);
-            }
-            unsafe { UnmapViewOfFile(ptr as *const _) };
-            Ok(())
-        }
-        None => Err("Shared memory handle is not initialized".to_string()),
-    }
+pub fn set_movement_stopped(position: usize, value: bool) -> Result<(), String> {
+    set_movement_byte(8 + position * 2 + 1, value)
 }
 
 pub fn communicate_next_spellcast(
