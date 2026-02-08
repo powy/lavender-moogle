@@ -1,6 +1,7 @@
 use crate::job_management;
 use crate::spell;
 use crate::types;
+use chrono::{Duration, Utc};
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use log::{debug, error};
@@ -46,6 +47,7 @@ async fn handle_request(
                 // Assign values to variables
                 let spell_name = spell_name.as_str().unwrap_or_default().to_string();
                 let job = job.as_str().unwrap_or_default().to_string();
+                let cast_event = data.get("cast_event").and_then(|v| v.as_str()).unwrap_or_default().to_string();
 
                 // debug!("Received spell_name: {}, job: {}", spell_name, job);
 
@@ -66,7 +68,32 @@ async fn handle_request(
                         job
                     };
 
-                    if spell_name == "reset" || spell_name == "wipe reset" {
+                    if !cast_event.is_empty() {
+                        if let Some(job_details) = character_details.get_mut(&effective_job) {
+                            match cast_event.as_str() {
+                                "start_casting" => {
+                                    if let Some(spell) = job_details.spells.get(&spell_name) {
+                                        let recast = spell.recast_time_ms;
+                                        let now = Utc::now();
+                                        job_details.is_casting_spell = true;
+                                        job_details.current_casting_spell = spell_name.clone();
+                                        job_details.casting_spell_since = now;
+                                        job_details.casting_spell_until = now + Duration::milliseconds(recast as i64);
+                                        debug!("start_casting: {} until {:?}", spell_name, job_details.casting_spell_until);
+                                    }
+                                }
+                                "success" | "interrupted" => {
+                                    job_details.is_casting_spell = false;
+                                    job_details.casting_spell_until = Utc::now();
+                                    debug!("cast_event {}: {} ended", cast_event, job_details.current_casting_spell);
+                                    job_details.current_casting_spell = String::new();
+                                }
+                                _ => {
+                                    debug!("Unknown cast_event: {}", cast_event);
+                                }
+                            }
+                        }
+                    } else if spell_name == "reset" || spell_name == "wipe reset" {
                         // Receiving reset spell, means reset all status and CD
                         types::reset_character_status(&mut character_details);
                     } else if spell_name == "gauge" || spell_name == "job gauge" {

@@ -38,6 +38,11 @@ pub fn init_character_details_from_excel(
                 movement_restricted_now: false,
                 last_activation_spell: String::new(),
                 last_cast_spell: String::new(),
+                actual_gcd_ms: 2500,
+                is_casting_spell: false,
+                current_casting_spell: String::new(),
+                casting_spell_since: Utc::now(),
+                casting_spell_until: Utc::now(),
             };
 
             for row in range.rows().skip(1) {
@@ -61,6 +66,9 @@ pub fn init_character_details_from_excel(
                     charge_timers: Vec::new(),
                     last_activation_time: Utc::now() - chrono::Duration::milliseconds(500),
                     last_cast_time: Utc::now() - chrono::Duration::milliseconds(500),
+                    casting_time_ms: 0,
+                    max_recast_time_ms: 2500,
+                    recast_time_ms: 2500,
                 };
 
                 for (col_idx, cell) in row.iter().enumerate() {
@@ -226,6 +234,24 @@ pub fn init_character_details_from_excel(
                             }
                         }
 
+                        Some("casting_time_ms") => {
+                            spell_details.casting_time_ms = match cell {
+                                DataType::Int(value) => *value as i32,
+                                DataType::Float(value) => *value as i32,
+                                DataType::Empty => 0,
+                                _ => cell.to_string().parse().unwrap_or(0),
+                            };
+                        }
+
+                        Some("max_cast_time_ms") => {
+                            spell_details.max_recast_time_ms = match cell {
+                                DataType::Int(value) => *value as i32,
+                                DataType::Float(value) => *value as i32,
+                                DataType::Empty => 2500,
+                                _ => cell.to_string().parse().unwrap_or(2500),
+                            };
+                        }
+
                         _ => {}
                     }
                 }
@@ -233,6 +259,17 @@ pub fn init_character_details_from_excel(
                 if !spell_details.name.trim().is_empty() {
                     job_details.insert_spell(spell_details.name.clone(), spell_details);
                 }
+            }
+
+            // Compute actual_gcd_ms from "gcd unavailable" spell cooldown
+            if let Some(gcd_spell) = job_details.spells.get("gcd unavailable") {
+                if gcd_spell.cooldown > 0 {
+                    job_details.actual_gcd_ms = gcd_spell.cooldown;
+                }
+            }
+            // Recalculate recast_time_ms for all spells based on actual_gcd_ms
+            for spell in job_details.spells.values_mut() {
+                spell.recast_time_ms = spell.max_recast_time_ms * job_details.actual_gcd_ms / 2500;
             }
 
             // Insert the JobDetails into the CharacterDetails

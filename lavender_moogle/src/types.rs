@@ -24,6 +24,9 @@ pub struct SpellDetails {
     pub charge_timers: Vec<DateTime<Utc>>,
     pub last_activation_time: DateTime<Utc>, // When status was last activated
     pub last_cast_time: DateTime<Utc>,       // When spell was last cast
+    pub casting_time_ms: i32,               // from Excel "casting_time_ms", default 0
+    pub max_recast_time_ms: i32,            // from Excel "max_cast_time_ms", default 2500
+    pub recast_time_ms: i32,               // calculated: max_recast_time_ms * actual_gcd_ms / 2500
 }
 
 // Represent all spells associated with a specific job
@@ -43,6 +46,11 @@ pub struct JobDetails {
     pub movement_restricted_now: bool,
     pub last_activation_spell: String, // Name of the last spell that activated a status
     pub last_cast_spell: String,       // Name of the last spell that was cast
+    pub actual_gcd_ms: i32,                 // default GCD from "gcd unavailable" spell cooldown
+    pub is_casting_spell: bool,             // true while a cast is in progress
+    pub current_casting_spell: String,      // name of spell being cast, empty = none
+    pub casting_spell_since: DateTime<Utc>, // when start_casting received
+    pub casting_spell_until: DateTime<Utc>, // casting_spell_since + spell.recast_time_ms
 }
 
 // Used to use JobDetails like a table of spells
@@ -79,6 +87,10 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
         job_details.movement_restricted_now = false;
         job_details.last_activation_spell = String::new();
         job_details.last_cast_spell = String::new();
+        job_details.is_casting_spell = false;
+        job_details.current_casting_spell = String::new();
+        job_details.casting_spell_since = now_minus_500ms;
+        job_details.casting_spell_until = now_minus_500ms;
         for spell in job_details.spells.values_mut() {
             spell.active_until = now_minus_500ms;
             spell.unavailable_before = now_minus_500ms;
