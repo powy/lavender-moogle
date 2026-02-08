@@ -8,14 +8,35 @@ use crate::monk_nadi::{self, Animal};
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cast_type: SpellcastType, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(
+    character_details: &mut CharacterDetails,
+    spell_cast_type: SpellcastType,
+    aoe_old: bool,
+    alternate_old: bool,
+) {
     if let Some(job_details) = character_details.get_mut("MNK") {
-        const MAX_WEAVE_NUMBER: i32 = 2;
+        const MAX_WEAVE_NUMBER: i32 = 1;
         // update status
         // check oGCD
         let mut next_spell_name = "";
         // let burst_allowed = spell::burst_allowed(job_details);
         // let delayed_burst = !burst_allowed;
+
+        // Melee arrangement
+        // 1 : normal
+        // 2 : AOE
+        // 3 : Only dist instant Mono
+        // TBC : In serious play, Only Dist may be more useful than AOE.
+
+        let mut distance_instant_cast_only = false;
+        let mut aoe = false;
+
+        match spell_cast_type {
+            SpellcastType::First => (),
+            SpellcastType::Second => aoe = true,
+            SpellcastType::Third => distance_instant_cast_only = true,
+            SpellcastType::Fourth => (),
+        }
 
         // Check if we went out of opener (burst skill unavailable, burst buff over)
         if job_details.opener {
@@ -29,10 +50,28 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         // update stack min / max
 
         // Stack A : Coeurl's fury charge
-        if job_details.stacks_a > 2 {
-            job_details.stacks_a = 2;
-        } else if job_details.stacks_a < 0 {
-            job_details.stacks_a = 0;
+        // if job_details.stacks_a > 2 {
+        //     job_details.stacks_a = 2;
+        // } else if job_details.stacks_a < 0 {
+        //     job_details.stacks_a = 0;
+        // }
+
+        // Special treatment of distant cast
+        if (next_spell_name == "") && distance_instant_cast_only {
+            // oGCD
+            if spell::ogcd_end_before_next_gcd(job_details) && should_dump_chakra(job_details) {
+                next_spell_name = "Enlightenment";
+            }
+            // This is not the idal usage for those skills but better to use them is distance forced
+            else if spell::is_status_active_next_gcd(job_details, "Fire's Rumination") {
+                next_spell_name = "Fire's Reply";
+            } else if spell::is_status_active_now(job_details, "Wind's Rumination") {
+                next_spell_name = "Wind's Reply";
+            } else if should_dump_chakra(job_details) {
+                next_spell_name = "Enlightenment";
+            } else {
+                next_spell_name = "Forbidden Meditation";
+            }
         }
 
         // High priority oGCDz
@@ -149,7 +188,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
         }
     } else {
         error!("JOB not found in spell book");

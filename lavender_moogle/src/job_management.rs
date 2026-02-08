@@ -38,10 +38,10 @@ pub fn apply_current_job_rotation(character_details: &mut CharacterDetails) {
     // Define a function to handle the job rotations
     let update_rotation = |update_fn: fn(&mut CharacterDetails, SpellcastType, bool, bool),
                            character_details: &mut CharacterDetails| {
-        update_fn(character_details, SpellcastType::from_flags(false, false), false, false);
-        update_fn(character_details, SpellcastType::from_flags(true, false), true, false);
-        update_fn(character_details, SpellcastType::from_flags(false, true), false, true);
-        update_fn(character_details, SpellcastType::from_flags(true, true), true, true);
+        update_fn(character_details, SpellcastType::First, false, false);
+        update_fn(character_details, SpellcastType::Second, true, false);
+        update_fn(character_details, SpellcastType::Third, false, true);
+        update_fn(character_details, SpellcastType::Fourth, true, true);
     };
 
     match job_name {

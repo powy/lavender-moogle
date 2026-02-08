@@ -7,12 +7,62 @@ use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cast_type: SpellcastType, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(
+    character_details: &mut CharacterDetails,
+    spell_cast_type: SpellcastType,
+    aoe: bool,
+    alternate: bool,
+) {
     if let Some(job_details) = character_details.get_mut("FIXME") {
         const MAX_WEAVE_NUMBER: i32 = 2;
         // update status
         // check oGCD
         let mut next_spell_name = "";
+
+        let mut aoe = false;
+        let mut restricted_movement_allowed = false;
+        let mut distance_instant_cast_only = false;
+        let mut instant_cast_only = false;
+
+        // VARIATIONS CASTERS
+        // 1 : Constrained mono casts
+        // 2 : Instants only - free movement
+        // 3 : Constrained AOE casts. In the case of Scholar, no restriction. This is an exception
+        // 4 : Classic - mono - user can interrupt cast by moving.
+        // There is a question to make the charges dump related to this fourth choice.
+        // It would be for chill play and do the dump only then, as to not make a mess in managed mode
+
+        // match spell_cast_type {
+        //     SpellcastType::First => restricted_movement_allowed = true,
+        //     SpellcastType::Second => instant_cast_only = true,
+        //     SpellcastType::Third => aoe = true,
+        //     SpellcastType::Fourth => (),
+        // }
+
+        // VARIATIONS Melee
+        // 1 : normal
+        // 2 : AOE
+        // 3 : Only dist instant Mono
+        // TBC : In serious play, Only Dist may be more useful than AOE.
+
+        // match spell_cast_type {
+        //     SpellcastType::First => (),
+        //     SpellcastType::Second => aoe = true,
+        //     SpellcastType::Third => distance_instant_cast_only = true,
+        //     SpellcastType::Fourth => (),
+        // }
+
+        // VARIATIONS Physical Ranged
+        // 1 : normal
+        // 2 : AOE
+        // TBC 3 and 4 for Dot management ?
+
+        // match spell_cast_type {
+        //     SpellcastType::First => (),
+        //     SpellcastType::Second => aoe = true,
+        //     SpellcastType::Third => (),
+        //     SpellcastType::Fourth => (),
+        // }
 
         // update stack min / max
 
@@ -61,7 +111,13 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(
+                job_details,
+                spell_cast_type,
+                next_spell_name,
+                aoe,
+                alternate,
+            );
         }
     } else {
         error!("JOB not found in spell book");

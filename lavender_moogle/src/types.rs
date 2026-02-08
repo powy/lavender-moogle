@@ -39,6 +39,8 @@ pub struct JobDetails {
     pub opener: bool,
     pub dump_resources: bool,
     pub burst_allowed: bool,
+    pub movements_can_be_restricted: bool,
+    pub movement_restricted_now: bool,
     pub last_activation_spell: String, // Name of the last spell that activated a status
     pub last_cast_spell: String,       // Name of the last spell that was cast
 }
@@ -73,6 +75,8 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
         job_details.opener = true;
         job_details.dump_resources = false;
         job_details.burst_allowed = true;
+        job_details.movements_can_be_restricted = false;
+        job_details.movement_restricted_now = false;
         job_details.last_activation_spell = String::new();
         job_details.last_cast_spell = String::new();
         for spell in job_details.spells.values_mut() {
@@ -98,6 +102,22 @@ pub fn set_burst_allowed(character_details: &mut CharacterDetails, value: bool) 
     for (job_name, job_details) in character_details.iter_mut() {
         debug!("  Setting burst_allowed={} for job: {}", value, job_name);
         job_details.burst_allowed = value;
+    }
+}
+
+pub fn set_movements_can_be_restricted(character_details: &mut CharacterDetails, value: bool) {
+    debug!("set_movements_can_be_restricted called with value: {}", value);
+    for (job_name, job_details) in character_details.iter_mut() {
+        debug!("  Setting movements_can_be_restricted={} for job: {}", value, job_name);
+        job_details.movements_can_be_restricted = value;
+    }
+}
+
+pub fn set_movement_restricted_now(character_details: &mut CharacterDetails, value: bool) {
+    debug!("set_movement_restricted_now called with value: {}", value);
+    for (job_name, job_details) in character_details.iter_mut() {
+        debug!("  Setting movement_restricted_now={} for job: {}", value, job_name);
+        job_details.movement_restricted_now = value;
     }
 }
 
@@ -147,8 +167,8 @@ impl SpellcastType {
     pub fn from_flags(alternate: bool, aoe: bool) -> Self {
         match (alternate, aoe) {
             (true, true) => Self::Fourth,
-            (true, false) => Self::Second,
-            (false, true) => Self::Third,
+            (false, true) => Self::Second,
+            (true, false) => Self::Third,
             (false, false) => Self::First,
         }
     }

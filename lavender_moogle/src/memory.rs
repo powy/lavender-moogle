@@ -24,7 +24,7 @@ static NEXT_SPELL_STR_3: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::f
 static NEXT_SPELL_STR_4: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
 
 const MEMORY_NAME: &str = "Global\\lavender_keys";
-const MEMORY_SIZE: usize = 8;
+const MEMORY_SIZE: usize = 10;
 
 // Define a newtype to wrap the HANDLE
 #[derive(Debug, Clone, Copy)]
@@ -134,17 +134,49 @@ pub fn populate_shared_memory(
     }
 }
 
+pub fn set_movements_can_be_restricted(value: bool) -> Result<(), String> {
+    let _lock = MMAP_MUTEX.lock().unwrap();
+    let shared_handle = SHARED_MEMORY_HANDLE.lock().unwrap();
+
+    match *shared_handle {
+        Some(handle) => {
+            let ptr = map_view_of_file(handle.0)?;
+            unsafe {
+                ptr.add(8).write(value as u8);
+            }
+            unsafe { UnmapViewOfFile(ptr as *const _) };
+            Ok(())
+        }
+        None => Err("Shared memory handle is not initialized".to_string()),
+    }
+}
+
+pub fn set_movement_restricted_now(value: bool) -> Result<(), String> {
+    let _lock = MMAP_MUTEX.lock().unwrap();
+    let shared_handle = SHARED_MEMORY_HANDLE.lock().unwrap();
+
+    match *shared_handle {
+        Some(handle) => {
+            let ptr = map_view_of_file(handle.0)?;
+            unsafe {
+                ptr.add(9).write(value as u8);
+            }
+            unsafe { UnmapViewOfFile(ptr as *const _) };
+            Ok(())
+        }
+        None => Err("Shared memory handle is not initialized".to_string()),
+    }
+}
+
 pub fn communicate_next_spellcast(
     job_details: &mut JobDetails,
-    spell_cast_type: SpellcastType,
+    spellcast_type: SpellcastType,
     spell_name: &str,
-    aoe: bool,
-    alternate: bool,
 ) {
-    let spellcast_type = SpellcastType::from_flags(alternate, aoe);
-    // debug!("Spellcast Type: {:?}", spellcast_type);
+    // let spellcast_type = SpellcastType::from_flags(alternate, aoe);
+    // // debug!("Spellcast Type: {:?}", spellcast_type);
 
-    let next_spell_str = match spell_cast_type {
+    let next_spell_str = match spellcast_type {
         SpellcastType::First => &NEXT_SPELL_STR_1,
         SpellcastType::Second => &NEXT_SPELL_STR_2,
         SpellcastType::Third => &NEXT_SPELL_STR_3,

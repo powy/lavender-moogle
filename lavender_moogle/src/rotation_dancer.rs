@@ -8,7 +8,12 @@ use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cast_type: SpellcastType, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(
+    character_details: &mut CharacterDetails,
+    spell_cast_type: SpellcastType,
+    aoe_old: bool,
+    alternate_old: bool,
+) {
     if let Some(job_details) = character_details.get_mut("DNC") {
         const MAX_WEAVE_NUMBER: i32 = 2;
         // update status
@@ -20,10 +25,24 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         // update stack min / max
 
         // Fans
-        if job_details.stacks_a > 4 {
-            job_details.stacks_a = 4;
-        } else if job_details.stacks_a < 0 {
-            job_details.stacks_a = 0;
+        // if job_details.stacks_a > 4 {
+        //     job_details.stacks_a = 4;
+        // } else if job_details.stacks_a < 0 {
+        //     job_details.stacks_a = 0;
+        // }
+
+        // VARIATIONS Physical Ranged
+        // 1 : normal
+        // 2 : AOE
+        // TBC 3 and 4 for Dot management ?
+
+        let mut aoe = false;
+
+        match spell_cast_type {
+            SpellcastType::First => (),
+            SpellcastType::Second => aoe = true,
+            SpellcastType::Third => (),
+            SpellcastType::Fourth => (),
         }
 
         // Dancing
@@ -57,7 +76,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         // HOLD stand step if 6s or less before tech step
         // Hold if finishing move available (last dance) Should happen only during burst
         // Hold if Flourish to have instant one
-        if next_spell_name == "" && should_standard_step(job_details, alternate) {
+        if next_spell_name == "" && should_standard_step(job_details) {
             next_spell_name = "Standard Step";
         }
 
@@ -210,7 +229,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
         }
     } else {
         error!("JOB not found in spell book");
@@ -341,7 +360,7 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     // debug!("job_details.stacks_b: {}", job_details.stacks_b);
 }
 
-fn should_standard_step(job_details: &mut JobDetails, alternate: bool) -> bool {
+fn should_standard_step(job_details: &mut JobDetails) -> bool {
     let standart_available: bool =
         !spell::is_status_active_in(job_details, "Standard Step on CD", 1250);
     // Note: If burst is not allowed, we ignore the fact that technical step is coming up
@@ -356,7 +375,7 @@ fn should_standard_step(job_details: &mut JobDetails, alternate: bool) -> bool {
     if standart_available {
         // delayed_burst - not delaying standard step, as we don't know when is burst
         // FIXME deprecate the whole alternate for the burst delay triggers
-        if !job_details.burst_allowed || alternate {
+        if !job_details.burst_allowed {
             return true;
         }
 

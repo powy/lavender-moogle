@@ -7,11 +7,36 @@ use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cast_type: SpellcastType, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(
+    character_details: &mut CharacterDetails,
+    spell_cast_type: SpellcastType,
+    aoe_old: bool,
+    alternate_old: bool,
+) {
     if let Some(job_details) = character_details.get_mut("SMN") {
         const MAX_WEAVE_NUMBER: i32 = 2;
         // update status
 
+        // VARIATIONS CASTERS
+        // 1 : Constrained mono casts
+        // 2 : Instants only - free movement
+        // 3 : Constrained AOE casts. In the case of Scholar, no restriction. This is an exception
+        // 4 : Classic - mono - user can interrupt cast by moving.
+        // There is a question to make the charges dump related to this fourth choice.
+        // It would be for chill play and do the dump only then, as to not make a mess in managed mode
+
+        let mut aoe = false;
+        let mut restricted_movement_allowed = false; // FIXME this variable name is horrible
+        let mut instant_cast_only = false;
+
+        match spell_cast_type {
+            SpellcastType::First => restricted_movement_allowed = true,
+            SpellcastType::Second => instant_cast_only = true,
+            SpellcastType::Third => aoe = true,
+            SpellcastType::Fourth => (),
+        }
+
+        // Todo both should be managed by job gauge
         // update stack min / max
         // Stack a = aetherflow
         if job_details.stacks_a > 2 {
@@ -92,7 +117,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
                 next_spell_name = "Deathflare";
             } else if spell::is_status_active_now(job_details, "Ruby's Glimmer") {
                 next_spell_name = "Searing Flash";
-            } else if should_swiftcast(job_details) {
+            } else if should_swiftcast(job_details, instant_cast_only) {
                 next_spell_name = "Swiftcast";
             } else if should_lux(job_details) {
                 next_spell_name = "Lux Solaris";
@@ -143,6 +168,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
                 next_spell_name = "Crimson Strike";
 
             // Attenument usage - same for all lesser summons
+            // TODO - should manage fire instant cast only
+            // BUT in this case there is 0 Instant cast available. instant_cast_only is not tested because we don't have anything better than trying to cast this anyway
             } else if job_details.stacks_b > 0 {
                 if aoe {
                     next_spell_name = "Precious Brilliance";
@@ -151,12 +178,15 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
                 }
 
             // hard-casted slipstream
-            } else if spell::is_status_active_next_gcd(job_details, "Slipstream Ready") {
+            } else if spell::is_status_active_next_gcd(job_details, "Slipstream Ready")
+                && !instant_cast_only
+            {
                 next_spell_name = "Slipstream";
                 // FIXME FIXME BROKEN
             } else if spell::is_status_active_next_gcd(job_details, "Further Ruin") {
                 next_spell_name = "Ruin IV";
             } else {
+                // WARNING in this case there is 0 Instant cast available. instant_cast_only is not tested because we don't have anything better than trying to cast this anyway
                 if aoe {
                     next_spell_name = "Tri-disaster";
                 } else {
@@ -166,7 +196,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         }
 
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
         }
     } else {
         error!("JOB not found in spell book");
@@ -241,11 +271,11 @@ fn should_lux(job_details: &mut JobDetails) -> bool {
     return lux_available && lux_will_go;
 }
 
-fn should_swiftcast(job_details: &mut JobDetails) -> bool {
+fn should_swiftcast(job_details: &mut JobDetails, instant_cast_only: bool) -> bool {
     let slipstream_ready = spell::is_status_active_next_gcd(job_details, "Slipstream Ready");
     let garuda_active = spell::is_status_active_next_gcd(job_details, "Garuda");
     let swiftcast_available = spell::is_spell_available_now(job_details, "Swiftcast");
-    return slipstream_ready && garuda_active && swiftcast_available;
+    return slipstream_ready && garuda_active && swiftcast_available && instant_cast_only;
     // return false;
 }
 

@@ -7,7 +7,12 @@ use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cast_type: SpellcastType, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(
+    character_details: &mut CharacterDetails,
+    spell_cast_type: SpellcastType,
+    aoe_old: bool,
+    alternate_old: bool,
+) {
     if let Some(job_details) = character_details.get_mut("BRD") {
         // const MAX_WEAVE_NUMBER: i32 = 2;
         let max_weave_number: i32 = 2;
@@ -16,8 +21,24 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         // check oGCD
         let mut next_spell_name = "";
 
-        let dot_allowed = are_dot_allowed(job_details, aoe, alternate);
-        let iron_jaw_castable = is_iron_jaws_castable(job_details, aoe, alternate);
+        let mut aoe = false;
+        let mut no_dot_rotation = false;
+
+        // VARIATIONS Physical Ranged
+        // 1 : normal
+        // 2 : AOE
+        // TBC 3 and 4 for Dot management ?
+
+        match spell_cast_type {
+            SpellcastType::First => (),
+            SpellcastType::Second => aoe = true,
+            SpellcastType::Third => no_dot_rotation = true,
+            SpellcastType::Fourth => (),
+        }
+
+        // The whole file could be dsimplified by passing down this bool instead of recalculating it 10 times
+        let dot_allowed = are_dot_allowed(job_details, aoe, no_dot_rotation);
+        let iron_jaw_castable = is_iron_jaws_castable(job_details, aoe, no_dot_rotation);
 
         // let burst_allowed = spell::burst_allowed(job_details);
         // let delayed_burst = !burst_allowed;
@@ -46,7 +67,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         // Hack to detect the very first cast of the opener and do the HB shot
         // We should do a GCD (no oGCD) and wanderer not started
         // Ca ne marche pas, comment ne le ffaire qu'une fois ? il faut detecter qu'il n'y a jamais eu de GCD
-        if job_details.opener && !aoe && !alternate {
+        if job_details.opener && are_dot_allowed(job_details, aoe, no_dot_rotation) {
             if job_details.stacks_b == 0 {
                 next_spell_name = "Heartbreak Shot";
             } else if !spell::is_status_active_next_gcd(job_details, "Storm DoT") {
@@ -237,7 +258,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
                 next_spell_name = "Iron Jaws";
             }
             // refresh end of burst if Dot were applied before it
-            else if should_refresh_dot_end_of_burst(job_details, aoe, alternate) {
+            else if should_refresh_dot_end_of_burst(job_details, aoe, no_dot_rotation) {
                 next_spell_name = "Iron Jaws";
             }
             // High priority on spending procs
@@ -293,7 +314,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         }
 
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
         }
     } else {
         error!("JOB not found in spell book");
@@ -427,18 +448,18 @@ fn burst_ready(job_details: &mut JobDetails) -> bool {
         && barrage_in_line;
 }
 
-fn are_dot_allowed(job_details: &mut JobDetails, aoe: bool, alternate: bool) -> bool {
+fn are_dot_allowed(job_details: &mut JobDetails, aoe: bool, no_dot_rotation: bool) -> bool {
     return !aoe
-        && !alternate
+        && !no_dot_rotation
         && !job_details.dump_resources
         && !spell::is_status_active_now(job_details, "Do Not Dot");
 }
 
-fn is_iron_jaws_castable(job_details: &mut JobDetails, aoe: bool, alternate: bool) -> bool {
+fn is_iron_jaws_castable(job_details: &mut JobDetails, aoe: bool, no_dot_rotation: bool) -> bool {
     let storm_dot_active = spell::is_status_active_next_gcd(job_details, "Storm DoT");
     let caustic_dot_active = spell::is_status_active_next_gcd(job_details, "Caustic DoT");
-    let dot_allowed: bool = are_dot_allowed(job_details, aoe, alternate);
-    return !aoe && !alternate && dot_allowed && storm_dot_active && caustic_dot_active;
+    let dot_allowed: bool = are_dot_allowed(job_details, aoe, no_dot_rotation);
+    return !aoe && dot_allowed && storm_dot_active && caustic_dot_active;
 }
 
 // refresh_in_burst
@@ -449,14 +470,14 @@ fn is_iron_jaws_castable(job_details: &mut JobDetails, aoe: bool, alternate: boo
 fn should_refresh_dot_end_of_burst(
     job_details: &mut JobDetails,
     aoe: bool,
-    alternate: bool,
+    no_dot_rotation: bool,
 ) -> bool {
     let end_of_burst = spell::is_status_active_now(job_details, "Battle Voice Buff")
         && !spell::is_status_still_active_in_two_gcd(job_details, "Battle Voice Buff");
     let storm_applied_before_burst = !spell::is_status_active_in(job_details, "Storm DoT", 27500);
     let caustic_applied_before_burst: bool =
         !spell::is_status_active_in(job_details, "Caustic DoT", 27500);
-    let iron_jaws_castable = is_iron_jaws_castable(job_details, aoe, alternate);
+    let iron_jaws_castable = is_iron_jaws_castable(job_details, aoe, no_dot_rotation);
 
     return end_of_burst
         && storm_applied_before_burst

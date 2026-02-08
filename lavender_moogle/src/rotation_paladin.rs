@@ -7,14 +7,35 @@ use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cast_type: SpellcastType, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(
+    character_details: &mut CharacterDetails,
+    spell_cast_type: SpellcastType,
+    aoe_old: bool,
+    alternate_old: bool,
+) {
     if let Some(job_details) = character_details.get_mut("PLD") {
         const MAX_WEAVE_NUMBER: i32 = 2;
         // update status
         // check oGCD
         let mut next_spell_name = "";
-        // let burst_allowed = job_details.burst_allowed;
-        // let delayed_burst = !burst_allowed;
+
+        // CAC	Mono	AOE	Dist instant
+
+        // Melee arrangement
+        // 1 : normal
+        // 2 : AOE
+        // 3 : Only dist instant Mono
+        // TBC : In serious play, Only Dist may be more useful than AOE.
+
+        let mut distance_instant_cast_only = false;
+        let mut aoe = false;
+
+        match spell_cast_type {
+            SpellcastType::First => (),
+            SpellcastType::Second => aoe = true,
+            SpellcastType::Third => distance_instant_cast_only = true,
+            SpellcastType::Fourth => (),
+        }
 
         // No clipping?
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
@@ -27,49 +48,18 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
                 && job_details.burst_allowed
             {
                 next_spell_name = "Imperator";
-            } else if spell::is_spell_available_now(job_details, "Circle of Scorn") {
+            } else if spell::is_spell_available_now(job_details, "Circle of Scorn")
+                && !distance_instant_cast_only
+            {
                 next_spell_name = "Circle of Scorn";
-            } else if spell::is_spell_available_now(job_details, "Expiacion") {
+            } else if spell::is_spell_available_now(job_details, "Expiacion")
+                && !distance_instant_cast_only
+            {
                 next_spell_name = "Expiacion";
             } else if spell::is_status_active_now(job_details, "Blade of Honor Ready") {
                 next_spell_name = "Blade of Honor";
             }
         }
-
-        // No oGCD selected, prepare next GCD
-
-        // check expiring GCD // TBC - not worth to break a burst. Should not happen outside of burst
-        // if next_spell_name == "" {
-        //     if spell::is_status_expiring(job_details, "Confiteor Ready") {
-        //         next_spell_name = "Confiteor";
-        //     } else if spell::is_status_expiring(job_details, "Blade of Faith Ready") {
-        //         next_spell_name = "Blade of Faith";
-        //     } else if spell::is_status_expiring(job_details, "Blade of Truth Ready") {
-        //         next_spell_name = "Blade of Truth";
-        //     } else if spell::is_status_expiring(job_details, "Blade of Valor Ready") {
-        //         next_spell_name = "Blade of Valor";
-        //     } else if spell::is_status_expiring(job_details, "Goring Blade Ready") {
-        //         next_spell_name = "Goring Blade";
-        //     } else if aoe {
-        //         if spell::is_status_expiring(job_details, "Divine Might") {
-        //             next_spell_name = "Holy Spirit";
-        //         } else if spell::is_status_expiring(job_details, "Prominence Ready") {
-        //             next_spell_name = "Prominence";
-        //         }
-        //     } else {
-        //         if spell::is_status_expiring(job_details, "Sepulchre Ready") {
-        //             next_spell_name = "Sepulchre";
-        //         } else if spell::is_status_expiring(job_details, "Supplication Ready") {
-        //             next_spell_name = "Supplication";
-        //         } else if spell::is_status_expiring(job_details, "Atonement Ready") {
-        //             next_spell_name = "Atonement";
-        //         } else if spell::is_status_expiring(job_details, "Royal Authority Ready") {
-        //             next_spell_name = "Royal Authority";
-        //         } else if spell::is_status_expiring(job_details, "Divine Might") {
-        //             next_spell_name = "Holy Spirit";
-        //         }
-        //     }
-        // }
 
         // check standart GCD
         if next_spell_name == "" {
@@ -81,13 +71,29 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
                 next_spell_name = "Blade of Truth";
             } else if spell::is_status_active_next_gcd(job_details, "Blade of Valor Ready") {
                 next_spell_name = "Blade of Valor";
-            } else if spell::is_status_active_next_gcd(job_details, "Goring Blade Ready") {
+            } else if spell::is_status_active_next_gcd(job_details, "Goring Blade Ready")
+                && !distance_instant_cast_only
+                && !(aoe && spell::is_status_active_next_gcd(job_details, "Divine Might"))
+            {
+                // Note - Goring Blade not the always the best in Aoe ...
+                // average combo potency = 200. Better starting 4 targets
+                // Making a exception to prioritize Holy Circle in AOE but not the 2 others
                 next_spell_name = "Goring Blade";
-            // USe sepulchre combo asap if in buff, otherwise delay it
+            } else if distance_instant_cast_only {
+                if spell::is_status_active_next_gcd(job_details, "Divine Might") {
+                    next_spell_name = "Holy Spirit";
+                } else {
+                    next_spell_name = "Shield Lob";
+                }
             } else if aoe {
                 // Note on AOE : This will do a little mess if we missed a mob with Eclipse or Prominence
                 // 3+ targets
-                if spell::is_status_active_next_gcd(job_details, "Prominence Ready") {
+                // Todo : Why delay divine might ? small chance of gain on burst
+                if spell::is_status_active_next_gcd(job_details, "Divine Might")
+                    && spell::is_status_active_next_gcd(job_details, "Fight or Flight Buff")
+                {
+                    next_spell_name = "Holy Circle";
+                } else if spell::is_status_active_next_gcd(job_details, "Prominence Ready") {
                     if spell::is_status_active_next_gcd(job_details, "Divine Might") {
                         next_spell_name = "Holy Circle";
                     } else {
@@ -98,6 +104,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
                 }
             } else {
                 // Single Target
+                // USe sepulchre combo asap if in buff, otherwise delay it
                 if spell::is_status_active_next_gcd(job_details, "Sepulchre Ready")
                     && spell::is_status_active_next_gcd(job_details, "Fight or Flight Buff")
                 {
@@ -133,7 +140,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
         }
     } else {
         error!("JOB not found in spell book");

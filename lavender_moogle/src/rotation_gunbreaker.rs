@@ -7,7 +7,12 @@ use crate::memory;
 use crate::spell;
 use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
-pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cast_type: SpellcastType, aoe: bool, alternate: bool) {
+pub fn update_next_spellcast(
+    character_details: &mut CharacterDetails,
+    spell_cast_type: SpellcastType,
+    aoe_old: bool,
+    alternate_old: bool,
+) {
     if let Some(job_details) = character_details.get_mut("GNB") {
         // update status
 
@@ -15,6 +20,22 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         let mut next_spell_name = "";
         let burst_allowed = spell::burst_allowed(job_details);
         // let delayed_burst = !burst_allowed;
+
+        // Melee arrangement
+        // 1 : normal
+        // 2 : AOE
+        // 3 : Only dist instant Mono
+        // TBC : In serious play, Only Dist may be more useful than AOE.
+
+        let mut distance_instant_cast_only = false;
+        let mut aoe = false;
+
+        match spell_cast_type {
+            SpellcastType::First => (),
+            SpellcastType::Second => aoe = true,
+            SpellcastType::Third => distance_instant_cast_only = true,
+            SpellcastType::Fourth => (),
+        }
 
         //     No mercy available
         // let available = spell::is_spell_available_next_gcd(job_details, "Gnashing Fang");
@@ -27,27 +48,43 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         // prepare all test for more clear code
         // Basic combo: Keen Edge -> Brutal Shell -> Solid Barrel
         let basic_combo_2nd_brutal_shell_ready: bool =
-            spell::is_status_active_next_gcd(job_details, "Brutal Shell Ready") && !aoe;
+            spell::is_status_active_next_gcd(job_details, "Brutal Shell Ready")
+                && !aoe
+                && !distance_instant_cast_only;
         let basic_combo_3rd_solid_barrel_ready: bool =
-            spell::is_status_active_next_gcd(job_details, "Solid Barrel Ready") && !aoe;
+            spell::is_status_active_next_gcd(job_details, "Solid Barrel Ready")
+                && !aoe
+                && !distance_instant_cast_only;
 
         // Gnash combo :
         let _gnash_combo_1st_gnashing_fang_ready: bool =
-            spell::is_spell_available_next_gcd(job_details, "Gnashing Fang") && !aoe;
+            spell::is_spell_available_next_gcd(job_details, "Gnashing Fang")
+                && !aoe
+                && !distance_instant_cast_only;
         let gnash_combo_2nd_savage_claw_ready: bool =
-            spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") && !aoe;
+            spell::is_status_active_next_gcd(job_details, "Savage Claw Ready")
+                && !aoe
+                && !distance_instant_cast_only;
         let gnash_combo_3rd_wicked_talon_ready: bool =
-            spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") && !aoe;
+            spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready")
+                && !aoe
+                && !distance_instant_cast_only;
         let _in_gnash_combo =
             gnash_combo_2nd_savage_claw_ready || gnash_combo_3rd_wicked_talon_ready;
 
         // lion combo, during burst
         let _lion_combo_1st_reign_of_beasts_ready: bool =
-            spell::is_status_active_next_gcd(job_details, "Ready to Reign");
+            spell::is_status_active_next_gcd(job_details, "Ready to Reign")
+                && !distance_instant_cast_only;
         let lion_combo_2nd_noble_blood_ready: bool =
-            spell::is_status_active_next_gcd(job_details, "Noble Blood Ready");
+            spell::is_status_active_next_gcd(job_details, "Noble Blood Ready")
+                && !distance_instant_cast_only;
         let lion_combo_3rd_lion_heart_ready: bool =
-            spell::is_status_active_next_gcd(job_details, "Lion Heart Ready");
+            spell::is_status_active_next_gcd(job_details, "Lion Heart Ready")
+                && !distance_instant_cast_only;
+
+        let aoe_combo_2nd_ready =
+            spell::is_status_active_next_gcd(job_details, "Demon Slaughter Ready");
 
         // overcap gnash
         let gnash_overcap: bool = false; //  (if don't use next GCD) // fixme
@@ -78,6 +115,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
                 }
             } else if spell::is_spell_available_now(job_details, "No Mercy") {
                 next_spell_name = "No Mercy";
+
+                // Buff except out of buff Bloodfest are managed already, only melee oGCD left
+                // If they are forbidden only bloodfest is an option
+            } else if distance_instant_cast_only && should_bloodfest(job_details, burst_allowed) {
+                next_spell_name = "Bloodfest"; // fixme bug{
 
             // --- B No wait for reaction oGCD (continuation)
             } else if spell::is_status_active_now(job_details, "Ready to Blast") {
@@ -115,7 +157,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         }
 
         // Reaction oGCD used even if GCD available - clipping allowed for GNB TBC
-        if next_spell_name == "" {
+        if next_spell_name == "" && !distance_instant_cast_only {
             // --- B No wait for reaction oGCD
             if spell::is_status_active_now(job_details, "Ready to Blast") {
                 next_spell_name = "Hypervelocity";
@@ -133,6 +175,11 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         // No oGCD selected, prepare next GCD
 
         // no check on EXPIRING GCD because to many combo breakers with this job
+
+        // GCD distance
+        if distance_instant_cast_only {
+            next_spell_name = "Lightning Shot";
+        }
 
         // GCD under burst ///////////////////
 
@@ -222,12 +269,12 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
             } else if can_gnashing_fang(job_details, aoe) {
                 next_spell_name = "Gnashing Fang";
             // overcap_cartbridge ->  Boom
-            } else if cartbridges_will_overcap(job_details, basic_combo_3rd_solid_barrel_ready) {
-                if aoe {
-                    next_spell_name = "Fated Brand"
-                } else {
-                    next_spell_name = "Burst Strike";
-                }
+            } else if !aoe
+                && cartbridges_will_overcap(job_details, basic_combo_3rd_solid_barrel_ready)
+            {
+                next_spell_name = "Burst Strike";
+            } else if aoe && cartbridges_will_overcap(job_details, aoe_combo_2nd_ready) {
+                next_spell_name = "Fated Circle"
             // Basic combo
             } else if aoe {
                 if spell::is_status_active_next_gcd(job_details, "Demon Slaughter Ready") {
@@ -249,7 +296,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, spell_cas
         }
 
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, aoe, alternate);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
         }
     } else {
         error!("JOB not found in spell book");

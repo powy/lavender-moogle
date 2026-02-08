@@ -24,10 +24,10 @@ pub fn update_next_spellcast(
         let mut aoe = false;
         // let mut alternate = old_alternate;
 
-        let mut restricted_movement_allowed = false;
+        let mut restricted_movement_allowed = false; // FIXME this variable name is horrible
         let mut instant_cast_only = false;
 
-        // VARIATIONS
+        // VARIATIONS CASTERS
         // 1 : Constrained mono casts
         // 2 : Instants only - free movement
         // 3 : Constrained AOE casts. In the case of Scholar, no restriction. This is an exception
@@ -96,13 +96,7 @@ pub fn update_next_spellcast(
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(
-                job_details,
-                spell_cast_type,
-                next_spell_name,
-                aoe,
-                false,
-            );
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
         }
     } else {
         error!("JOB not found in spell book");
@@ -147,7 +141,17 @@ fn should_reset_dot_end_of_burst(job_details: &mut JobDetails) -> bool {
     return dot_allowed && end_of_burst_situation && dot_mostly_spent && !end_of_phase;
 }
 
-pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {}
+pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDetails) {
+    // manage number of weave before it gets cleanned up with new functionality in Excel
+    match spell_name {
+        "Broil IV" | "Summon Eos" | "Adloquium" | "Physick" | "Concitation" | "Accession"
+        | "Manifestation" => {
+            job_details.weaves += 1;
+        }
+
+        _ => (),
+    }
+}
 
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
     let chunks: Vec<String> = data
@@ -157,9 +161,9 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
         .collect();
 
     let aether_charges: i32 =
-        i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
+        i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk2");
 
     job_details.stacks_a = aether_charges;
 
-    let _faery_gauge: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
+    let _faery_gauge: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk3");
 }

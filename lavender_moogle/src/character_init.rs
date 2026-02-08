@@ -34,6 +34,8 @@ pub fn init_character_details_from_excel(
                 opener: true,
                 dump_resources: false,
                 burst_allowed: true,
+                movements_can_be_restricted: false,
+                movement_restricted_now: false,
                 last_activation_spell: String::new(),
                 last_cast_spell: String::new(),
             };
