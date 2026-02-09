@@ -30,6 +30,7 @@ global lastControllerButtons := 0
 global lastLeftTrigger := 0
 global lastRightTrigger := 0
 global controllerInitialized := false
+global movement_blocked_now := false
 
 ; Wait 5 seconds in case it is started at the same time than the shared memory owner
 ; It allows time for the shared memory to be inbitialized
@@ -80,25 +81,41 @@ Insert:: {
 ; Browser_Forward ok
 ; Browser_Home ko
 Browser_Favorites:: {
-    executeRaw(0, 1)
+    execute(0)
 }
 
 Browser_Refresh:: {
-    executeRaw(2, 3)
+    execute(1)
 }
 
 Browser_Back:: {
-    executeRaw(4, 5)
+    execute(2)
 }
 
 Browser_Forward:: {
-    executeRaw(6, 7)
+    execute(3)
 }
 
 ; TEST - TEMPORARY: press X to dump human-readable shared memory contents
-x:: {
-    ShowMemoryDebug()
+; x:: {
+;     ShowMemoryDebug()
+; }
+
+~a:: {
+    global movement_blocked_now
+    movement_blocked_now := false
 }
+~e:: {
+    global movement_blocked_now
+    movement_blocked_now := false
+}
+
+; $s:: {
+;     global movement_blocked_now
+;     if (movement_blocked_now) {
+;         SendEvent "s"
+;     }
+; }
 
 ; Spam executeRaw() calls using robust While+GetKeyState pattern
 ; Hold each key to spam its corresponding shared memory action
@@ -151,13 +168,13 @@ PollTrigger() {
 
     ; Actual call - could be reoragnized TODO
     if GetKeyState("F13") {
-        executeRaw(0, 1)
+        execute(0)
     } else if GetKeyState("F14") {
-        executeRaw(2, 3)
+        execute(1)
     } else if GetKeyState("F15") {
-        executeRaw(4, 5)
+        execute(2)
     } else if GetKeyState("F16") {
-        executeRaw(6, 7)
+        execute(3)
     } else {
         CheckController()
     }
@@ -200,6 +217,16 @@ executeRaw(modifier_pos, key_pos) {
         SendEvent "{" target_modifier " up}"
 }
 
+execute(index) {
+    global movement_blocked_now
+    buf := Buffer(16)
+    mapping.ReadToBuffer(buf)
+    ctrl := NumGet(buf, 8 + index * 2, "UChar") != 0
+    stopped := NumGet(buf, 8 + index * 2 + 1, "UChar") != 0
+    movement_blocked_now := ctrl && stopped
+    executeRaw(index * 2, index * 2 + 1)
+}
+
 CheckController() {
     global lastControllerButtons, lastLeftTrigger, lastRightTrigger, controllerInitialized, stopScript
 
@@ -228,9 +255,9 @@ CheckController() {
     trianglePressed := CheckButtonPressed(currentButtons, lastControllerButtons, XINPUT_GAMEPAD_Y)
 
     if (l1Pressed && trianglePressed) {
-        executeRaw(0, 1)
+        execute(0)
     } else if (r1Pressed && trianglePressed) {
-        executeRaw(2, 3)
+        execute(1)
     }
 
     ; Save current state for next poll (edge detection)
@@ -366,6 +393,7 @@ ShowMemoryDebug() {
         msg .= "Movement[" i "]: control=" ctrl "  stopped=" stopped "`n"
     }
 
+    msg .= "`nmovement_blocked_now = " (movement_blocked_now ? "true" : "false") "`n"
     MsgBox msg
 }
 
