@@ -72,6 +72,7 @@ pub fn update_next_spellcast(
             next_spell_name = "Technical Step";
         }
 
+        // FIXME - really ? Skip any ogcd if I want to dance ? doen't make sense
         // Normal dance
         // HOLD stand step if 6s or less before tech step
         // Hold if finishing move available (last dance) Should happen only during burst
@@ -371,8 +372,14 @@ fn should_standard_step(job_details: &mut JobDetails) -> bool {
     let flourish_soon: bool = spell::spell_will_be_available_soon(job_details, "Flourish", 5000);
     let instant_possible: bool = spell::is_status_active_now(job_details, "Finishing Move Ready");
     let devilment_running: bool = spell::is_status_active_now(job_details, "Devilment Buff");
+    let should_saber_dance_instead: bool = devilment_running && job_details.secondary_bar >= 70;
 
     if standart_available {
+        // In burst give priority to urgent saber dance
+        if should_saber_dance_instead {
+            return false;
+        }
+
         // delayed_burst - not delaying standard step, as we don't know when is burst
         // FIXME deprecate the whole alternate for the burst delay triggers
         if !job_details.burst_allowed {
