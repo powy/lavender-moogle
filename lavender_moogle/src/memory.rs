@@ -23,6 +23,11 @@ static NEXT_SPELL_STR_2: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::f
 static NEXT_SPELL_STR_3: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
 static NEXT_SPELL_STR_4: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::from("none")));
 
+static MOVEMENT_FREEDOM_1: Lazy<Mutex<Option<bool>>> = Lazy::new(|| Mutex::new(None));
+static MOVEMENT_FREEDOM_2: Lazy<Mutex<Option<bool>>> = Lazy::new(|| Mutex::new(None));
+static MOVEMENT_FREEDOM_3: Lazy<Mutex<Option<bool>>> = Lazy::new(|| Mutex::new(None));
+static MOVEMENT_FREEDOM_4: Lazy<Mutex<Option<bool>>> = Lazy::new(|| Mutex::new(None));
+
 const MEMORY_NAME: &str = "Global\\lavender_keys";
 const MEMORY_SIZE: usize = 16;
 
@@ -160,11 +165,20 @@ pub fn set_movement_stopped(position: usize, value: bool) -> Result<(), String> 
 }
 
 pub fn populate_movement_shared_memory(spellcast_type: SpellcastType, movement_freedom: bool) {
-    let position = spellcast_type.to_position();
-    let is_movement_controlled = !movement_freedom;
-    let is_movement_stopped = !movement_freedom;
-    set_movement_control(position, is_movement_controlled)?;
-    set_movement_stopped(position, is_movement_stopped)?;
+    let saved_freedom = match spellcast_type {
+        SpellcastType::First => &MOVEMENT_FREEDOM_1,
+        SpellcastType::Second => &MOVEMENT_FREEDOM_2,
+        SpellcastType::Third => &MOVEMENT_FREEDOM_3,
+        SpellcastType::Fourth => &MOVEMENT_FREEDOM_4,
+    };
+
+    let mut saved = saved_freedom.lock().unwrap();
+    if *saved != Some(movement_freedom) {
+        *saved = Some(movement_freedom);
+        let position = spellcast_type.to_position();
+        let _ = set_movement_control(position, !movement_freedom);
+        let _ = set_movement_stopped(position, !movement_freedom);
+    }
 }
 
 pub fn communicate_next_spellcast(
