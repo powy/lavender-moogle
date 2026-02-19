@@ -30,7 +30,7 @@ global lastControllerButtons := 0
 global lastLeftTrigger := 0
 global lastRightTrigger := 0
 global controllerInitialized := false
-global movement_blocked_now := false
+global movement_freedom := true
 
 ; Wait 5 seconds in case it is started at the same time than the shared memory owner
 ; It allows time for the shared memory to be inbitialized
@@ -102,20 +102,20 @@ Browser_Forward:: {
 ; }
 
 ~a:: {
-    global movement_blocked_now
-    movement_blocked_now := false
+    global movement_freedom
+    movement_freedom := true
 }
 ~e:: {
-    global movement_blocked_now
-    movement_blocked_now := false
+    global movement_freedom
+    movement_freedom := true
 }
 
-; $s:: {
-;     global movement_blocked_now
-;     if (movement_blocked_now) {
-;         SendEvent "s"
-;     }
-; }
+#HotIf !movement_freedom
+z:: return
+q:: return
+s:: return
+d:: return
+#HotIf
 
 ; Spam executeRaw() calls using robust While+GetKeyState pattern
 ; Hold each key to spam its corresponding shared memory action
@@ -218,12 +218,12 @@ executeRaw(modifier_pos, key_pos) {
 }
 
 execute(index) {
-    global movement_blocked_now
+    global movement_freedom
     buf := Buffer(16)
     mapping.ReadToBuffer(buf)
     ctrl := NumGet(buf, 8 + index * 2, "UChar") != 0
     stopped := NumGet(buf, 8 + index * 2 + 1, "UChar") != 0
-    movement_blocked_now := ctrl && stopped
+    movement_freedom := !(ctrl && stopped)
     executeRaw(index * 2, index * 2 + 1)
 }
 
@@ -393,7 +393,7 @@ ShowMemoryDebug() {
         msg .= "Movement[" i "]: control=" ctrl "  stopped=" stopped "`n"
     }
 
-    msg .= "`nmovement_blocked_now = " (movement_blocked_now ? "true" : "false") "`n"
+    msg .= "`nmovement_freedom = " (movement_freedom ? "true" : "false") "`n"
     MsgBox msg
 }
 

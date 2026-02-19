@@ -155,13 +155,13 @@ try {
 ##############################################################################
 
 Write-Host "`nWaiting for Rust application to initialize shared memory..." -ForegroundColor Cyan
-Write-Host "This takes 20 seconds to ensure proper startup.`n" -ForegroundColor Yellow
+Write-Host "This takes 10 seconds to ensure proper startup.`n" -ForegroundColor Yellow
 
 # Progress indication during wait
-$waitSeconds = 20
+$waitSeconds = 10
 1..$waitSeconds | ForEach-Object {
     Start-Sleep -Seconds 1
-    if ($_ % 10 -eq 0) {
+    if ($_ % 1 -eq 0) {
         Write-Host "  $_ / $waitSeconds seconds elapsed..." -ForegroundColor DarkGray
     }
 }
