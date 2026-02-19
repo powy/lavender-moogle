@@ -3,8 +3,10 @@
 
 use log::error;
 
+use crate::job_management;
 use crate::memory;
 use crate::spell;
+use crate::types::CastingStage;
 use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 
 pub fn update_next_spellcast(
@@ -175,7 +177,7 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
 pub fn determine_next_gcd(
     job_details: &mut JobDetails,
     spell_cast_type: SpellcastType,
-) -> (&'static str, bool) {
+) -> &'static str {
     let mut next_spell_name = "";
 
     let mut aoe = false;
@@ -223,11 +225,7 @@ pub fn determine_next_gcd(
         }
     }
 
-    // if spell by that name has a cast time ->
-    let static_cast_needed = false; // fixme
-    let movement_freedom = can_movement_be_restricted && static_cast_needed;
-
-    return (next_spell_name, movement_freedom);
+    return next_spell_name;
 }
 
 fn determine_next_ogcd(
@@ -263,10 +261,64 @@ fn determine_next_ogcd(
     return next_spell_name;
 }
 
-// fn new_communicate_next_cast(job_details: &mut JobDetails, spell_cast_type: SpellcastType) {
+fn has_movement_freedom(
+    job_details: &mut JobDetails,
+    spell_cast_type: SpellcastType,
+    spell_name: &str,
+    casting_stage: CastingStage,
+) -> bool {
+    match casting_stage {
+        // Can't restrict movement between GCDs
+        CastingStage::WeaveAvailable | CastingStage::AfterWeaves => return false,
+        _ => {
+            // Making possible to have some spell cast type giving freedom
+            // Actually this is only for casters
+            // and caster's second is supposed to never return a blocking GCD
+            // Leaving it there for safety
+            if spell_cast_type != SpellcastType::Second {
+                // Checking if the current spell is blocking
+                // FIXME manage swiftcast etc.
+                if let Some(next_spell_details) = job_details.get_spell(spell_name).cloned() {
+                    return next_spell_details.casting_time_ms > 0;
+                } else {
+                    error!("Spell {} not found for shared memory", spell_name);
+                }
+            }
+        }
+    }
+    return false;
+}
 
-//         if next_spell_name != "" {
-//             memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
-//         }
+fn new_communicate_next_cast_and_movement(
+    job_details: &mut JobDetails,
+    spell_cast_type: SpellcastType,
+) {
+    // FIXME : movement to be defined here not in the next cast.
+    // Depends on final gcd selected, phase, and spell_cast_type.
+    // make it a function actually
+    let casting_stage = job_management::get_casting_stage(job_details);
+    let next_gcd_spell_name = determine_next_gcd(job_details, spell_cast_type);
+    let next_ogcd_spell_name = determine_next_ogcd(job_details, spell_cast_type);
+    let movement_freedom = has_movement_freedom(
+        job_details,
+        spell_cast_type,
+        next_gcd_spell_name,
+        casting_stage,
+    );
 
-// }
+    let mut next_spell_name = "";
+
+    match stage {
+        CastingStage::GcdAvailable => next_spell_name = next_gcd_spell_name,
+        CastingStage::InCasting => next_spell_name = "",
+        CastingStage::WeaveSoon => next_spell_name = next_ogcd_spell_name,
+        CastingStage::WeaveAvailable => next_spell_name = next_ogcd_spell_name,
+        CastingStage::AfterWeaves => next_spell_name = next_gcd_spell_name, // discutable
+    }
+
+    // FIXME communicate movement freedom
+
+    if next_spell_name != "" {
+        memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
+    }
+}
