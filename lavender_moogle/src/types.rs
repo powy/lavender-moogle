@@ -185,3 +185,12 @@ impl SpellcastType {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CastingStage {
+    GcdAvailable,
+    InCasting,
+    WeaveSoon,
+    WeaveAvailable,
+    AfterWeaves,
+}

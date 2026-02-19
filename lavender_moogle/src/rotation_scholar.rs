@@ -262,3 +262,11 @@ fn determine_next_ogcd(
 
     return next_spell_name;
 }
+
+// fn new_communicate_next_cast(job_details: &mut JobDetails, spell_cast_type: SpellcastType) {
+
+//         if next_spell_name != "" {
+//             memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
+//         }
+
+// }

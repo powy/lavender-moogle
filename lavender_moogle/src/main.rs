@@ -8,6 +8,7 @@ mod memory;
 mod server;
 mod spell;
 mod types;
+mod constants;
 
 mod rotation_bard;
 mod rotation_dancer;

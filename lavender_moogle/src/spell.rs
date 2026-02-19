@@ -1,3 +1,4 @@
+use crate::constants::MIN_WEAVE_DURATION_MS;
 use crate::job_management;
 use crate::types::{CharacterDetails, JobDetails, SpellDetails};
 use chrono::{DateTime, Utc};
@@ -324,7 +325,7 @@ pub fn is_status_active_since_x_gcd(
 // warning - hard coded value for oGCD clipping
 pub fn ogcd_end_before_next_gcd(job_details: &mut JobDetails) -> bool {
     // let ogcd_lock_duration = chrono::Duration::milliseconds(1250);
-    let ogcd_lock_duration = chrono::Duration::milliseconds(750);
+    let ogcd_lock_duration = chrono::Duration::milliseconds(MIN_WEAVE_DURATION_MS);
     let next_gcd_time = get_next_gcd_time(job_details);
     let expected_end_time_of_ogcd = Utc::now() + ogcd_lock_duration;
     return expected_end_time_of_ogcd < next_gcd_time;

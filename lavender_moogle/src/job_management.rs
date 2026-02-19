@@ -1,5 +1,6 @@
 // job_management.rs
 // save current job and apply the right rotation
+use crate::constants::{GCD_QUEUE_TIME_MS, OGCD_QUEUE_TIME_MS};
 use crate::rotation_bard;
 use crate::rotation_dancer;
 use crate::rotation_dark_knight;
@@ -8,7 +9,10 @@ use crate::rotation_monk;
 use crate::rotation_paladin;
 use crate::rotation_scholar;
 use crate::rotation_summoner;
-use crate::types::{reset_character_status, CharacterDetails, JobDetails, SpellcastType};
+use crate::spell;
+use crate::types::{
+    reset_character_status, CastingStage, CharacterDetails, JobDetails, SpellcastType,
+};
 use lazy_static::lazy_static;
 use log::debug;
 use std::sync::{Arc, Mutex};
@@ -121,4 +125,36 @@ pub fn update_job_gauge(
             _ => {}
         }
     }
+}
+
+pub fn get_casting_stage(job_details: &mut JobDetails) -> CastingStage {
+    let now = chrono::Utc::now();
+    let gcd_queue_window = chrono::Duration::milliseconds(GCD_QUEUE_TIME_MS);
+    let ogcd_queue_window = chrono::Duration::milliseconds(OGCD_QUEUE_TIME_MS);
+
+    // Snapshot before mutable borrow in ogcd_end_before_next_gcd (DateTime<Utc> is Copy)
+    let casting_spell_until = job_details.casting_spell_until;
+
+    // InCasting (highest priority): cast finishes >= OGCD_QUEUE_TIME_MS from now
+    if casting_spell_until >= now + ogcd_queue_window {
+        return CastingStage::InCasting;
+    }
+
+    // GcdAvailable: "gcd unavailable" expires within GCD_QUEUE_TIME_MS or already expired
+    let next_gcd_time = spell::get_next_gcd_time(job_details);
+    if next_gcd_time <= now + gcd_queue_window {
+        return CastingStage::GcdAvailable;
+    }
+
+    // WeaveSoon: cast finishes in less than OGCD_QUEUE_TIME_MS but hasn't passed yet
+    if casting_spell_until > now {
+        return CastingStage::WeaveSoon;
+    }
+
+    // casting_spell_until has passed — in post-cast weave window
+    if spell::ogcd_end_before_next_gcd(job_details) {
+        return CastingStage::WeaveAvailable;
+    }
+
+    CastingStage::AfterWeaves
 }
