@@ -16,6 +16,10 @@ pub fn update_next_spellcast(
     _alternate: bool,
 ) {
     if let Some(job_details) = character_details.get_mut("SCH") {
+        new_communicate_next_cast_and_movement(job_details, spell_cast_type);
+
+        return;
+
         const MAX_WEAVE_NUMBER: i32 = 1;
         // ============= update status =============
 
@@ -204,25 +208,27 @@ pub fn determine_next_gcd(
     // Manage stop dot and no Dot in AOE
     let dot_allowed = !aoe && !spell::is_status_active_now(job_details, "Do Not Dot");
 
-    if next_spell_name == "" {
-        if aoe {
-            next_spell_name = "Art of War"
+    if aoe {
+        next_spell_name = "Art of War"
+    } else {
+        // reset dot end of burst
+        if should_reset_dot_end_of_burst(job_details) {
+            next_spell_name = "Biolysis";
+        // Reset Dot on time
+        } else if dot_allowed && !spell::is_status_active_in(job_details, "Dot", 3000) {
+            next_spell_name = "Biolysis";
+        // Default GCD
         } else {
-            // reset dot end of burst
-            if should_reset_dot_end_of_burst(job_details) {
-                next_spell_name = "Biolysis";
-            // Reset Dot on time
-            } else if dot_allowed && !spell::is_status_active_in(job_details, "Dot", 3000) {
-                next_spell_name = "Biolysis";
-            // Default GCD
+            if instant_cast_only {
+                next_spell_name = "Ruin II"
             } else {
-                if instant_cast_only {
-                    next_spell_name = "Ruin II"
-                } else {
-                    next_spell_name = "Broil IV";
-                }
+                next_spell_name = "Broil IV";
             }
         }
+    }
+
+    if next_spell_name == "" {
+        next_spell_name = "do nothing";
     }
 
     return next_spell_name;
@@ -256,6 +262,10 @@ fn determine_next_ogcd(
             // Drain dump before using Aethercharge
             next_spell_name = "Energy Drain";
         }
+    }
+
+    if next_spell_name == "" {
+        next_spell_name = "do nothing";
     }
 
     return next_spell_name;
@@ -299,7 +309,7 @@ fn new_communicate_next_cast_and_movement(
     let casting_stage = job_management::get_casting_stage(job_details);
     let next_gcd_spell_name = determine_next_gcd(job_details, spell_cast_type);
     let next_ogcd_spell_name = determine_next_ogcd(job_details, spell_cast_type);
-    let _movement_freedom = has_movement_freedom(
+    let movement_freedom = has_movement_freedom(
         job_details,
         spell_cast_type,
         next_gcd_spell_name,
@@ -319,6 +329,11 @@ fn new_communicate_next_cast_and_movement(
     // FIXME communicate movement freedom
 
     if next_spell_name != "" {
-        memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, true);
+        memory::communicate_next_spellcast(
+            job_details,
+            spell_cast_type,
+            next_spell_name,
+            movement_freedom,
+        );
     }
 }

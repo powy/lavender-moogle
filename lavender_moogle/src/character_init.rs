@@ -272,6 +272,33 @@ pub fn init_character_details_from_excel(
                 spell.recast_time_ms = spell.max_recast_time_ms * job_details.actual_gcd_ms / 2500;
             }
 
+            // "do nothing" spell — registered for all jobs; no cooldown, no rotation logic
+            let do_nothing = SpellDetails {
+                name: "do nothing".to_string(),
+                modifier: 'n',
+                key: 'x',
+                spell_type: String::new(),
+                duration: 0,
+                cooldown: 0,
+                give_status: vec![],
+                remove_status: vec![],
+                active_until: Utc::now(),
+                unavailable_before: Utc::now(),
+                mana: 0,
+                secondary_bar: 0,
+                tertiary_bar: 0,
+                stacks_a: 0,
+                stacks_b: 0,
+                max_charges: 0,
+                charge_timers: Vec::new(),
+                last_activation_time: Utc::now() - chrono::Duration::milliseconds(500),
+                last_cast_time: Utc::now() - chrono::Duration::milliseconds(500),
+                casting_time_ms: 0,
+                max_recast_time_ms: 0,
+                recast_time_ms: 0,
+            };
+            job_details.insert_spell("do nothing".to_string(), do_nothing);
+
             // Insert the JobDetails into the CharacterDetails
             character_details.insert(sheet_name.clone(), job_details);
         }
