@@ -326,8 +326,6 @@ fn new_communicate_next_cast_and_movement(
         CastingStage::AfterWeaves => next_spell_name = next_gcd_spell_name, // discutable
     }
 
-    // FIXME communicate movement freedom
-
     if next_spell_name != "" {
         memory::communicate_next_spellcast(
             job_details,

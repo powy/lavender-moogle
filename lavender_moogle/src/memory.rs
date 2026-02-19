@@ -159,11 +159,19 @@ pub fn set_movement_stopped(position: usize, value: bool) -> Result<(), String> 
     set_movement_byte(8 + position * 2 + 1, value)
 }
 
+pub fn populate_movement_shared_memory(spellcast_type: SpellcastType, movement_freedom: bool) {
+    let position = spellcast_type.to_position();
+    let is_movement_controlled = !movement_freedom;
+    let is_movement_stopped = !movement_freedom;
+    set_movement_control(position, is_movement_controlled)?;
+    set_movement_stopped(position, is_movement_stopped)?;
+}
+
 pub fn communicate_next_spellcast(
     job_details: &mut JobDetails,
     spellcast_type: SpellcastType,
     spell_name: &str,
-    _movement_freedom: bool, // default value: movement is not restricted until fully programmed
+    movement_freedom: bool,
 ) {
     // let spellcast_type = SpellcastType::from_flags(alternate, aoe);
     // // debug!("Spellcast Type: {:?}", spellcast_type);
@@ -196,4 +204,6 @@ pub fn communicate_next_spellcast(
             error!("Spell {} not found for shared memory", spell_name);
         }
     }
+
+    populate_movement_shared_memory(spellcast_type, movement_freedom);
 }
