@@ -100,7 +100,7 @@ pub fn update_next_spellcast(
             }
         }
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, true);
         }
     } else {
         error!("JOB not found in spell book");
@@ -299,7 +299,7 @@ fn new_communicate_next_cast_and_movement(
     let casting_stage = job_management::get_casting_stage(job_details);
     let next_gcd_spell_name = determine_next_gcd(job_details, spell_cast_type);
     let next_ogcd_spell_name = determine_next_ogcd(job_details, spell_cast_type);
-    let movement_freedom = has_movement_freedom(
+    let _movement_freedom = has_movement_freedom(
         job_details,
         spell_cast_type,
         next_gcd_spell_name,
@@ -308,7 +308,7 @@ fn new_communicate_next_cast_and_movement(
 
     let mut next_spell_name = "";
 
-    match stage {
+    match casting_stage {
         CastingStage::GcdAvailable => next_spell_name = next_gcd_spell_name,
         CastingStage::InCasting => next_spell_name = "",
         CastingStage::WeaveSoon => next_spell_name = next_ogcd_spell_name,
@@ -319,6 +319,6 @@ fn new_communicate_next_cast_and_movement(
     // FIXME communicate movement freedom
 
     if next_spell_name != "" {
-        memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
+        memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, true);
     }
 }

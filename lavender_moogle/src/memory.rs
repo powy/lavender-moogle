@@ -163,6 +163,7 @@ pub fn communicate_next_spellcast(
     job_details: &mut JobDetails,
     spellcast_type: SpellcastType,
     spell_name: &str,
+    _movement_freedom: bool, // default value: movement is not restricted until fully programmed
 ) {
     // let spellcast_type = SpellcastType::from_flags(alternate, aoe);
     // // debug!("Spellcast Type: {:?}", spellcast_type);

@@ -115,8 +115,7 @@ pub fn update_next_spellcast(
                 job_details,
                 spell_cast_type,
                 next_spell_name,
-                aoe,
-                alternate,
+                true,
             );
         }
     } else {

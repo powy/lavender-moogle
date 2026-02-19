@@ -196,7 +196,7 @@ pub fn update_next_spellcast(
         }
 
         if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name);
+            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, true);
         }
     } else {
         error!("JOB not found in spell book");
