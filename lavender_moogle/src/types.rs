@@ -51,6 +51,7 @@ pub struct JobDetails {
     pub current_casting_spell: String,      // name of spell being cast, empty = none
     pub casting_spell_since: DateTime<Utc>, // when start_casting received
     pub casting_spell_until: DateTime<Utc>, // casting_spell_since + spell.recast_time_ms
+    pub current_casting_stage: CastingStage,
 }
 
 // Used to use JobDetails like a table of spells
@@ -91,6 +92,7 @@ pub fn reset_character_status(character_details: &mut CharacterDetails) {
         job_details.current_casting_spell = String::new();
         job_details.casting_spell_since = now_minus_500ms;
         job_details.casting_spell_until = now_minus_500ms;
+        job_details.current_casting_stage = CastingStage::GcdAvailable;
         for spell in job_details.spells.values_mut() {
             spell.active_until = now_minus_500ms;
             spell.unavailable_before = now_minus_500ms;

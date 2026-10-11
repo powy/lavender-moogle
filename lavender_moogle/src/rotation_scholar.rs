@@ -1,7 +1,7 @@
 // rotation_scholar.rs
 // Rotation logic for scholar job
 
-use log::error;
+use log::{debug, error};
 
 use crate::job_management;
 use crate::memory;
@@ -187,7 +187,6 @@ pub fn determine_next_gcd(
     let mut aoe = false;
     // let mut alternate = old_alternate;
 
-    let mut can_movement_be_restricted = false;
     let mut instant_cast_only = false;
 
     // VARIATIONS CASTERS
@@ -199,7 +198,7 @@ pub fn determine_next_gcd(
     // It would be for chill play and do the dump only then, as to not make a mess in managed mode
 
     match spell_cast_type {
-        SpellcastType::First => can_movement_be_restricted = true,
+        SpellcastType::First => (),
         SpellcastType::Second => instant_cast_only = true,
         SpellcastType::Third => aoe = true,
         SpellcastType::Fourth => (),
@@ -271,32 +270,30 @@ fn determine_next_ogcd(
     return next_spell_name;
 }
 
+// FIXME has_movement_freedom usage and content
+// Case of Casting stage GCd available : based on next gcd
+// Case of Casting stage in casting : based on the currently casting spells (saved in job details)
 fn has_movement_freedom(
     job_details: &mut JobDetails,
-    spell_cast_type: SpellcastType,
+    _spell_cast_type: SpellcastType,
     spell_name: &str,
     casting_stage: CastingStage,
 ) -> bool {
     match casting_stage {
         // Can't restrict movement between GCDs
-        CastingStage::WeaveAvailable | CastingStage::AfterWeaves => return false,
-        _ => {
-            // Making possible to have some spell cast type giving freedom
-            // Actually this is only for casters
-            // and caster's second is supposed to never return a blocking GCD
-            // Leaving it there for safety
-            if spell_cast_type != SpellcastType::Second {
-                // Checking if the current spell is blocking
-                // FIXME manage swiftcast etc.
-                if let Some(next_spell_details) = job_details.get_spell(spell_name).cloned() {
-                    return next_spell_details.casting_time_ms > 0;
-                } else {
-                    error!("Spell {} not found for shared memory", spell_name);
-                }
+        CastingStage::WeaveAvailable | CastingStage::AfterWeaves => return true,
+        CastingStage::InCasting | CastingStage::WeaveSoon => return false,
+        CastingStage::GcdAvailable => {
+            // Checking if the following spell is blocking
+            // FIXME manage swiftcast etc.
+            if let Some(next_spell_details) = job_details.get_spell(spell_name).cloned() {
+                return next_spell_details.casting_time_ms <= 0;
+            } else {
+                error!("Spell {} not found for shared memory", spell_name);
             }
         }
     }
-    return false;
+    return true;
 }
 
 fn new_communicate_next_cast_and_movement(
@@ -307,6 +304,13 @@ fn new_communicate_next_cast_and_movement(
     // Depends on final gcd selected, phase, and spell_cast_type.
     // make it a function actually
     let casting_stage = job_management::get_casting_stage(job_details);
+    if casting_stage != job_details.current_casting_stage {
+        debug!(
+            "Casting stage changed: {:?} -> {:?}",
+            job_details.current_casting_stage, casting_stage
+        );
+        job_details.current_casting_stage = casting_stage;
+    }
     let next_gcd_spell_name = determine_next_gcd(job_details, spell_cast_type);
     let next_ogcd_spell_name = determine_next_ogcd(job_details, spell_cast_type);
     let movement_freedom = has_movement_freedom(
@@ -335,3 +339,11 @@ fn new_communicate_next_cast_and_movement(
         );
     }
 }
+
+//FIXME MAJOR BUGS
+// Being in 2nd spellcast doesnt force the movement freedom
+// Restriction pop in 2nd spell cast while 100% of GCD are actually instant
+// Restriction actually doesn't stop an already pressed button
+// We need to overall the system at polling to see that the keypressed get canceled when passing freedom from yes to no
+
+// We need to have two polling frequency.

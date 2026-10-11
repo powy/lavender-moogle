@@ -110,12 +110,13 @@ Browser_Forward:: {
     movement_freedom := true
 }
 
-#HotIf !movement_freedom
-z:: return
-q:: return
-s:: return
-d:: return
-#HotIf
+; Actual application of the controlled movement
+; #HotIf !movement_freedom
+; z:: return
+; q:: return
+; s:: return
+; d:: return
+; #HotIf
 
 ; Spam executeRaw() calls using robust While+GetKeyState pattern
 ; Hold each key to spam its corresponding shared memory action
@@ -218,13 +219,24 @@ executeRaw(modifier_pos, key_pos) {
 }
 
 execute(index) {
+    UpdateMovementFreedom(index)
+    executeRaw(index * 2, index * 2 + 1)
+}
+
+UpdateMovementFreedom(position) {
     global movement_freedom
     buf := Buffer(16)
     mapping.ReadToBuffer(buf)
-    ctrl := NumGet(buf, 8 + index * 2, "UChar") != 0
-    stopped := NumGet(buf, 8 + index * 2 + 1, "UChar") != 0
-    movement_freedom := !(ctrl && stopped)
-    executeRaw(index * 2, index * 2 + 1)
+    movement_controled := GetMovementControl(position)
+    movement_stopped := GetMovementStopped(position)
+    new_freedom := !movement_controled || !movement_stopped
+    if (!new_freedom && movement_freedom) {
+        for key in ["z", "q", "s", "d"] {
+            if GetKeyState(key, "P")
+                SendEvent "{" key " up}"
+        }
+    }
+    movement_freedom := new_freedom
 }
 
 CheckController() {

@@ -1,6 +1,6 @@
 // character_init.rs
 // manage the function relatives to spell list configuration
-use crate::types::{CharacterDetails, JobDetails, SpellDetails};
+use crate::types::{CastingStage, CharacterDetails, JobDetails, SpellDetails};
 use calamine::{open_workbook_auto, DataType, Reader};
 use chrono::Utc;
 use log::{debug, warn};
@@ -43,6 +43,7 @@ pub fn init_character_details_from_excel(
                 current_casting_spell: String::new(),
                 casting_spell_since: Utc::now(),
                 casting_spell_until: Utc::now(),
+                current_casting_stage: CastingStage::GcdAvailable,
             };
 
             for row in range.rows().skip(1) {

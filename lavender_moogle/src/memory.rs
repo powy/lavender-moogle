@@ -174,6 +174,10 @@ pub fn populate_movement_shared_memory(spellcast_type: SpellcastType, movement_f
 
     let mut saved = saved_freedom.lock().unwrap();
     if *saved != Some(movement_freedom) {
+        debug!(
+            "Movement freedom changed to {} with spellcast type {:?}",
+            movement_freedom, spellcast_type
+        );
         *saved = Some(movement_freedom);
         let position = spellcast_type.to_position();
         let _ = set_movement_control(position, !movement_freedom);
