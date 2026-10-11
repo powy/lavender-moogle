@@ -11,3 +11,6 @@ Desktop.ini
 *.exe
 *.msi
 *.dll
+
+# Local Windows shortcuts
+*.lnk
