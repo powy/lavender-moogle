@@ -24,3 +24,11 @@ The shortcut points to this checkout. Recreate it if you move the folder.
 - `assets/branding/lavender-moogle.ico`: Windows icon with sizes from 16 to 256 pixels.
 
 GitHub social preview is configured separately under **Settings > Social preview > Edit**. Use a PNG, JPG or GIF smaller than 1 MB; GitHub recommends 1280 × 640 pixels. The original PNG is larger than 1 MB.
+
+## License
+
+Lavender Moogle is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). Personal use and private experimentation are permitted under its terms; commercial use is not permitted except as allowed by the license's defined permitted purposes.
+
+When redistributing the software, include the license text or its URL and preserve the attribution in [NOTICE](NOTICE). Third-party components remain subject to their own licenses.
+
+Sharing the source of your modifications is appreciated, but is not required by this license.
