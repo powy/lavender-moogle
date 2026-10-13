@@ -4,7 +4,25 @@
 
 # Lavender Moogle
 
-A Windows assistant for FFXIV rotations. It watches game events and your job state, decides which action should come next, and lets one trigger key (or a controller button) press that action for you.
+A personal helper that performs the next logical action of a rotation when a key (or a controller button) is pressed. It was built for FFXIV, with a first attempt on WoW.
+
+## Purpose
+
+The goal is to remove tedious button pressing in repetitive content (farming, reclears) in MMOs, and to make that content playable with a controller and only a few buttons when I can't use the computer (typically, a baby sleeping on me). It is also a technical playground: getting game information out of a WoW addon, relaying FFXIV events from ACT, and handing the next action to AutoHotkey through a Windows shared memory.
+
+The rotations are written by me, are very incomplete, and are tuned to my own playstyle. **If you are looking for a full auto-battler, this is not the right project:** complete ones already exist.
+
+### Fair use
+
+Automating a rotation sits in a gray area of the games' rules. My own rules, which I ask you to follow too:
+
+- personal use only, with your own code;
+- never where it affects other players: no FFXIV parsing or ranking, no PvP, no WoW competitive modes.
+
+### Status
+
+- **FFXIV** (this repository): works for the supported jobs, but is likely to become obsolete with the Evercold expansion and its new job styles.
+- **WoW**: set aside. The addon route (reading game information from an addon) has apparently been impossible for several expansions, and Blizzard has since added a native auto-rotation key, which makes the project much less useful. The old addon and screener are no longer in this repository.
 
 ## How it works
 
@@ -12,7 +30,7 @@ A Windows assistant for FFXIV rotations. It watches game events and your job sta
 FFXIV / ACT + Triggernometry ──HTTP POST (JSON)──▶ Rust engine ──shared memory──▶ AutoHotkey ──▶ key press
 ```
 
-1. **Events in.** Triggernometry (`lavender_moogle/lavender_triggers.xml`) posts spell casts, buffs, job gauge, death and reset events as JSON to `http://127.0.0.1:50017`. Each message carries a `spell_name` and a `job`.
+1. **Events in.** ACT (Advanced Combat Tracker) reads the FFXIV logs, and its Triggernometry plugin (triggers in `lavender_moogle/lavender_triggers.xml`) sends spell casts, buffs, job gauge, death and reset events as JSON requests to the Lavender Moogle server at `http://127.0.0.1:50017`. Each message carries a `spell_name` and a `job`.
 2. **Decision.** The Rust engine keeps the cooldowns, statuses, charges and job gauge of every job. Every 50 ms it runs the rotation of the current job and picks the next action for each of the four rotation variants.
 3. **Shared memory.** For each variant, the chosen key binding (modifier + key) and the movement state are written to the `Global\lavender_keys` mapping (16 bytes).
 4. **Key press.** `lavender_moogle.ahk` reads the mapping and sends the key when you hold a trigger.
