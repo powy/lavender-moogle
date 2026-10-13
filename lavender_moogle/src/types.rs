@@ -27,7 +27,6 @@ pub struct SpellDetails {
 }
 
 // Represent all spells associated with a specific job
-// pub type JobDetails = HashMap<String, SpellDetails>;
 pub struct JobDetails {
     pub spells: HashMap<String, SpellDetails>,
     pub mana: i32,
@@ -100,19 +99,6 @@ pub fn set_burst_allowed(character_details: &mut CharacterDetails, value: bool) 
         job_details.burst_allowed = value;
     }
 }
-
-// impl CharacterDetails {
-//     pub fn reset_timestamps(&mut self) {
-//         let now_minus_500ms = Utc::now() - Duration::milliseconds(500);
-
-//         for job_details in self.values_mut() {
-//             for spell in job_details.spells.values_mut() {
-//                 spell.active_until = now_minus_500ms;
-//                 spell.unavailable_before = now_minus_500ms;
-//             }
-//         }
-//     }
-// }
 
 // Spell Cast type is used to determine which type of action/rotation we are working on
 // The system allows for 4 different rotations, usable changing the modifier (alt, shift, ctrl)

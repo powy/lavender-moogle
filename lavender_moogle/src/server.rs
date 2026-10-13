@@ -47,7 +47,6 @@ async fn handle_request(
                 let spell_name = spell_name.as_str().unwrap_or_default().to_string();
                 let job = job.as_str().unwrap_or_default().to_string();
 
-                // debug!("Received spell_name: {}, job: {}", spell_name, job);
 
                 // Reserve (lock) the character_details and perform an action
                 {

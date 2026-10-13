@@ -100,22 +100,6 @@ fn should_dump_aether_charges(job_details: &mut JobDetails, alternate: bool, aoe
 }
 
 fn should_aetherflow(job_details: &mut JobDetails, _aoe: bool, _delayed_burst: bool) -> bool {
-    // if spell::is_spell_available_now(job_details, "Aetherflow") {
-    //     // Mono target static, in burst : delay the cast to after dumping the remaining energy drains
-    //     // In the other cases, it is usually better not to delay its cast
-    //     if aoe || delayed_burst {
-    //         return true;
-    //     } else {
-    //         // Not in burst - Don't wait
-    //         // In burst - wait for dumping the remanent charges
-    //         // Enable automatic gestion of dissipation opening
-    //         // TODO to be fixed with opener trigger instead
-    //         let in_burst_in_2_gcd = spell::is_status_still_active_in_two_gcd(job_details, "Burst");
-    //         return job_details.stacks_a == 0 || !in_burst_in_2_gcd;
-    //     }
-    // }
-    // return false;
-
     return spell::is_spell_available_now(job_details, "Aetherflow");
 }
 

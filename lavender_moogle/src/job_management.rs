@@ -109,7 +109,6 @@ pub fn update_job_gauge(
         ]
         .concat();
 
-        // debug!("Job gauge update: {}", final_data);
 
         match job_name {
             "GNB" => rotation_gunbreaker::update_job_gauge(job_details, &final_data),
