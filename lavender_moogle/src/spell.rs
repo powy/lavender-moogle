@@ -67,7 +67,7 @@ pub fn apply_spell_cooldown(job_details: &mut JobDetails, spell_name: &str) {
                     spell_details.charge_timers.len()
                 );
             } else {
-                // LEGACY SYSTEM: Use unavailable_before (unchanged)
+                // LEGACY SYSTEM: Use unavailable_before
                 spell_details.unavailable_before = calculate_future_time(spell_details.cooldown, 0);
                 debug!(
                     "Apply CD for ability: {}, next avaibility {}",
@@ -393,7 +393,7 @@ pub fn is_spell_available_in_x_gcd(
         // CHARGE SYSTEM: Use charge-aware function
         return get_charges_available_in_x_gcd(job_details, spell_name, nb_gcd) > 0;
     } else {
-        // LEGACY SYSTEM (unchanged)
+        // LEGACY SYSTEM
         if let Some(gcd_desciption) = job_details.get_spell("gcd unavailable") {
             let mut next_gcd_time = gcd_desciption.active_until;
             let gcd_duration_value = gcd_desciption.duration;
