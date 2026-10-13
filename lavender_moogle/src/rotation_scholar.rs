@@ -115,24 +115,6 @@ fn should_dump_aether_charges(_job_details: &mut JobDetails) -> bool {
     // If there is 1 / 2 /3 GCD left, and 1 / 2 /3 charges left, we should use them
     // Too dangerous
     return false;
-    // if job_details.stacks_a > 0 {
-    //     if (job_details.stacks_a >= 3)
-    //         && spell::is_spell_available_in_x_gcd(job_details, "Aetherflow", 3)
-    //     {
-    //         return true;
-    //     }
-    //     if (job_details.stacks_a >= 2)
-    //         && spell::is_spell_available_in_x_gcd(job_details, "Aetherflow", 2)
-    //     {
-    //         return true;
-    //     }
-    //     if (job_details.stacks_a >= 1)
-    //         && spell::is_spell_available_in_x_gcd(job_details, "Aetherflow", 1)
-    //     {
-    //         return true;
-    //     }
-    // }
-    // return false;
 }
 
 fn should_aetherflow(job_details: &mut JobDetails) -> bool {

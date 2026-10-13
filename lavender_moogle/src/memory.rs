@@ -191,8 +191,6 @@ pub fn communicate_next_spellcast(
     spell_name: &str,
     movement_freedom: bool,
 ) {
-    // let spellcast_type = SpellcastType::from_flags(alternate, aoe);
-    // // debug!("Spellcast Type: {:?}", spellcast_type);
 
     let next_spell_str = match spellcast_type {
         SpellcastType::First => &NEXT_SPELL_STR_1,

@@ -30,7 +30,6 @@ pub struct SpellDetails {
 }
 
 // Represent all spells associated with a specific job
-// pub type JobDetails = HashMap<String, SpellDetails>;
 pub struct JobDetails {
     pub spells: HashMap<String, SpellDetails>,
     pub mana: i32,
@@ -118,35 +117,6 @@ pub fn set_burst_allowed(character_details: &mut CharacterDetails, value: bool) 
         job_details.burst_allowed = value;
     }
 }
-
-pub fn set_movement_control(character_details: &mut CharacterDetails, position: usize, value: bool) {
-    debug!("set_movement_control called with position: {}, value: {}", position, value);
-    for (job_name, job_details) in character_details.iter_mut() {
-        debug!("  Setting movement_control[{}]={} for job: {}", position, value, job_name);
-        job_details.movement_control[position] = value;
-    }
-}
-
-pub fn set_movement_stopped(character_details: &mut CharacterDetails, position: usize, value: bool) {
-    debug!("set_movement_stopped called with position: {}, value: {}", position, value);
-    for (job_name, job_details) in character_details.iter_mut() {
-        debug!("  Setting movement_stopped[{}]={} for job: {}", position, value, job_name);
-        job_details.movement_stopped[position] = value;
-    }
-}
-
-// impl CharacterDetails {
-//     pub fn reset_timestamps(&mut self) {
-//         let now_minus_500ms = Utc::now() - Duration::milliseconds(500);
-
-//         for job_details in self.values_mut() {
-//             for spell in job_details.spells.values_mut() {
-//                 spell.active_until = now_minus_500ms;
-//                 spell.unavailable_before = now_minus_500ms;
-//             }
-//         }
-//     }
-// }
 
 // Spell Cast type is used to determine which type of action/rotation we are working on
 // The system allows for 4 different rotations, usable changing the modifier (alt, shift, ctrl)

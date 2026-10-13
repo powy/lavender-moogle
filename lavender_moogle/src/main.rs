@@ -66,21 +66,15 @@ fn processing_loop(shared_character_details: Arc<Mutex<types::CharacterDetails>>
     let interval = std::time::Duration::from_millis(50);
 
     loop {
-        // let current_time = chrono::Local::now();
-        // debug!("Current time: {}", current_time.format("%Y-%m-%d %H:%M:%S"));
 
-        // debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
         let start_time = std::time::Instant::now();
 
         {
             let mut character_details = shared_character_details.lock().unwrap();
             job_management::apply_current_job_rotation(&mut character_details);
-            // debug!("update");
         } // The lock is released here when the scope ends
 
         let total_elapsed = start_time.elapsed();
-        // debug!("Total elapsed time: {} ms", total_elapsed.as_millis());
-        // debug!("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
         if total_elapsed < interval {
             std::thread::sleep(interval - total_elapsed);
         }

@@ -19,8 +19,6 @@ pub fn update_next_spellcast(
         // check oGCD
         let mut next_spell_name = "";
 
-        // CAC	Mono	AOE	Dist instant
-
         // Melee arrangement
         // 1 : normal
         // 2 : AOE
@@ -60,6 +58,8 @@ pub fn update_next_spellcast(
                 next_spell_name = "Blade of Honor";
             }
         }
+
+        // No oGCD selected, prepare next GCD
 
         // check standart GCD
         if next_spell_name == "" {

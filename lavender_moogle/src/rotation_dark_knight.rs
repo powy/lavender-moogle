@@ -20,8 +20,6 @@ pub fn update_next_spellcast(
         // update status
         // check oGCD
         let mut next_spell_name = "";
-        // let burst_allowed = spell::burst_allowed(job_details);
-        // let delayed_burst = !burst_allowed;
 
         // update stack min / max
 
