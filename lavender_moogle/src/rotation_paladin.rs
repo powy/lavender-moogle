@@ -10,8 +10,8 @@ use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 pub fn update_next_spellcast(
     character_details: &mut CharacterDetails,
     spell_cast_type: SpellcastType,
-    aoe_old: bool,
-    alternate_old: bool,
+    _aoe: bool,
+    _alternate: bool,
 ) {
     if let Some(job_details) = character_details.get_mut("PLD") {
         const MAX_WEAVE_NUMBER: i32 = 2;

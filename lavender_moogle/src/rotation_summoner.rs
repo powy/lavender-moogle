@@ -10,27 +10,23 @@ use crate::types::{CharacterDetails, JobDetails, SpellcastType};
 pub fn update_next_spellcast(
     character_details: &mut CharacterDetails,
     spell_cast_type: SpellcastType,
-    aoe_old: bool,
-    alternate_old: bool,
+    _aoe: bool,
+    _alternate: bool,
 ) {
     if let Some(job_details) = character_details.get_mut("SMN") {
         const MAX_WEAVE_NUMBER: i32 = 2;
         // update status
 
-        // VARIATIONS CASTERS
-        // 1 : Constrained mono casts
-        // 2 : Instants only - free movement
-        // 3 : Constrained AOE casts. In the case of Scholar, no restriction. This is an exception
-        // 4 : Classic - mono - user can interrupt cast by moving.
-        // There is a question to make the charges dump related to this fourth choice.
-        // It would be for chill play and do the dump only then, as to not make a mess in managed mode
+        // Variations:
+        // First / Fourth : mono casts
+        // Second : instants only
+        // Third : AOE
 
         let mut aoe = false;
-        let mut restricted_movement_allowed = false; // FIXME this variable name is horrible
         let mut instant_cast_only = false;
 
         match spell_cast_type {
-            SpellcastType::First => restricted_movement_allowed = true,
+            SpellcastType::First => (),
             SpellcastType::Second => instant_cast_only = true,
             SpellcastType::Third => aoe = true,
             SpellcastType::Fourth => (),

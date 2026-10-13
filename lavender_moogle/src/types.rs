@@ -147,15 +147,6 @@ impl SpellcastType {
     pub fn to_position(self) -> usize {
         self as usize
     }
-
-    pub fn from_flags(alternate: bool, aoe: bool) -> Self {
-        match (alternate, aoe) {
-            (true, true) => Self::Fourth,
-            (false, true) => Self::Second,
-            (true, false) => Self::Third,
-            (false, false) => Self::First,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -17,104 +17,9 @@ pub fn update_next_spellcast(
 ) {
     if let Some(job_details) = character_details.get_mut("SCH") {
         new_communicate_next_cast_and_movement(job_details, spell_cast_type);
-
-        return;
-
-        const MAX_WEAVE_NUMBER: i32 = 1;
-        // ============= update status =============
-
-        let mut next_spell_name = "";
-        let burst_allowed = job_details.burst_allowed;
-        let delayed_burst = !burst_allowed;
-
-        let mut aoe = false;
-        // let mut alternate = old_alternate;
-
-        let mut can_movement_be_restricted = false; // FIXME this variable name is horrible
-        let mut instant_cast_only = false;
-
-        // VARIATIONS CASTERS
-        // 1 : Constrained mono casts
-        // 2 : Instants only - free movement
-        // 3 : Constrained AOE casts. In the case of Scholar, no restriction. This is an exception
-        // 4 : Classic - mono - user can interrupt cast by moving.
-        // FIXME: 4th to be 2 targets (for healer = same)
-        // Note that Aoe cast are interruptable for regen healers
-        // There is a question to make the charges dump related to this fourth choice.
-        // It would be for chill play and do the dump only then, as to not make a mess in managed mode
-
-        match spell_cast_type {
-            SpellcastType::First => can_movement_be_restricted = true,
-            SpellcastType::Second => instant_cast_only = true,
-            SpellcastType::Third => aoe = true,
-            SpellcastType::Fourth => (),
-        }
-
-        // Fixme - also use spell_cast etc. from job_details
-        // let static_cast_allowed = !can_movement_be_restricted;s
-
-        // Manage stop dot and no Dot in AOE
-        let dot_allowed = !aoe && !spell::is_status_active_now(job_details, "Do Not Dot");
-
-        // ============= oGCD =============
-
-        // ============= GCD =============
-        if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
-            // --- A Priority: no losing charges Refresh charges with Aetherflow
-            if should_aetherflow(job_details) {
-                next_spell_name = "Aetherflow";
-                // -- B priority - no drifting raid buffs
-            } else if spell::is_spell_available_now(job_details, "Chain Stratagem") && burst_allowed
-            {
-                next_spell_name = "Chain Stratagem";
-            // Impact imminient is delayed because doing aetherflow is a priority - Their might be a reason
-            } else if spell::is_status_active_now(job_details, "Impact Imminent")
-                && !spell::is_spell_available_now(job_details, "Aetherflow")
-            {
-                next_spell_name = "Baneful Impaction";
-            } else if should_dump_aether_charges(job_details) {
-                // Drain dump before using Aethercharge
-                next_spell_name = "Energy Drain";
-            }
-        }
-
-        // No oGCD selected, prepare next GCD
-
-        // no check on EXPIRING GCD because not an easy occurance for this job
-
-        // check normal GCD
-        if next_spell_name == "" {
-            if aoe {
-                next_spell_name = "Art of War"
-            } else {
-                // reset dot end of burst
-                if should_reset_dot_end_of_burst(job_details) {
-                    next_spell_name = "Biolysis";
-                // Reset Dot on time
-                } else if dot_allowed && !spell::is_status_active_in(job_details, "Dot", 3000) {
-                    next_spell_name = "Biolysis";
-                // Default GCD
-                } else {
-                    if instant_cast_only {
-                        next_spell_name = "Ruin II"
-                    } else {
-                        next_spell_name = "Broil IV";
-                    }
-                }
-            }
-        }
-        if next_spell_name != "" {
-            memory::communicate_next_spellcast(job_details, spell_cast_type, next_spell_name, true);
-        }
     } else {
         error!("JOB not found in spell book");
     }
-}
-
-fn should_dump_aether_charges(_job_details: &mut JobDetails) -> bool {
-    // If there is 1 / 2 /3 GCD left, and 1 / 2 /3 charges left, we should use them
-    // Too dangerous
-    return false;
 }
 
 fn should_aetherflow(job_details: &mut JobDetails) -> bool {
@@ -164,20 +69,15 @@ pub fn determine_next_gcd(
     job_details: &mut JobDetails,
     spell_cast_type: SpellcastType,
 ) -> &'static str {
-    let mut next_spell_name = "";
+    let mut next_spell_name;
 
     let mut aoe = false;
-    // let mut alternate = old_alternate;
-
     let mut instant_cast_only = false;
 
-    // VARIATIONS CASTERS
-    // 1 : Constrained mono casts
-    // 2 : Instants only - free movement
-    // 3 : Constrained AOE casts. In the case of Scholar, no restriction. This is an exception
-    // 4 : Classic - mono - user can interrupt cast by moving.
-    // There is a question to make the charges dump related to this fourth choice.
-    // It would be for chill play and do the dump only then, as to not make a mess in managed mode
+    // Variations:
+    // First / Fourth : mono casts
+    // Second : instants only
+    // Third : AOE
 
     match spell_cast_type {
         SpellcastType::First => (),
@@ -186,7 +86,7 @@ pub fn determine_next_gcd(
         SpellcastType::Fourth => (),
     }
 
-    // Manage stop dot and no Dot in AOE
+    // No dot in AOE or when the "Do Not Dot" status is active
     let dot_allowed = !aoe && !spell::is_status_active_now(job_details, "Do Not Dot");
 
     if aoe {
@@ -224,9 +124,7 @@ fn determine_next_ogcd(
     let mut next_spell_name = "";
     let burst_allowed = job_details.burst_allowed;
 
-    // let mut alternate = old_alternate;
 
-    // Manage stop dot and no Dot in AOE
     if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
         // --- A Priority: no losing charges Refresh charges with Aetherflow
         if should_aetherflow(job_details) {
@@ -234,14 +132,11 @@ fn determine_next_ogcd(
             // -- B priority - no drifting raid buffs
         } else if spell::is_spell_available_now(job_details, "Chain Stratagem") && burst_allowed {
             next_spell_name = "Chain Stratagem";
-        // Impact imminient is delayed because doing aetherflow is a priority - Their might be a reason
+        // Impact Imminent is delayed because Aetherflow is a priority
         } else if spell::is_status_active_now(job_details, "Impact Imminent")
             && !spell::is_spell_available_now(job_details, "Aetherflow")
         {
             next_spell_name = "Baneful Impaction";
-        } else if should_dump_aether_charges(job_details) {
-            // Drain dump before using Aethercharge
-            next_spell_name = "Energy Drain";
         }
     }
 
@@ -302,15 +197,11 @@ fn new_communicate_next_cast_and_movement(
         casting_stage,
     );
 
-    let mut next_spell_name = "";
-
-    match casting_stage {
-        CastingStage::GcdAvailable => next_spell_name = next_gcd_spell_name,
-        CastingStage::InCasting => next_spell_name = "",
-        CastingStage::WeaveSoon => next_spell_name = next_ogcd_spell_name,
-        CastingStage::WeaveAvailable => next_spell_name = next_ogcd_spell_name,
-        CastingStage::AfterWeaves => next_spell_name = next_gcd_spell_name, // discutable
-    }
+    let next_spell_name = match casting_stage {
+        CastingStage::GcdAvailable | CastingStage::AfterWeaves => next_gcd_spell_name,
+        CastingStage::InCasting => "",
+        CastingStage::WeaveSoon | CastingStage::WeaveAvailable => next_ogcd_spell_name,
+    };
 
     if next_spell_name != "" {
         memory::communicate_next_spellcast(
@@ -327,5 +218,3 @@ fn new_communicate_next_cast_and_movement(
 // Restriction pop in 2nd spell cast while 100% of GCD are actually instant
 // Restriction actually doesn't stop an already pressed button
 // We need to overall the system at polling to see that the keypressed get canceled when passing freedom from yes to no
-
-// We need to have two polling frequency.
