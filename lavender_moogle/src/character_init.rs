@@ -269,37 +269,3 @@ fn convert_to_char(value: String) -> char {
     }
 }
 
-// pub fn pretty_print_character_details(character_details: &CharacterDetails) {
-//     for (job_name, job_details) in character_details {
-//         println!("Job: {}", job_name);
-//         println!("{}", "=".repeat(20));
-
-//         for (spell_name, spell_details) in job_details {
-//             println!("Spell Name: {}", spell_name);
-//             println!("  Modifier: {}", spell_details.modifier);
-//             println!("  Key: {}", spell_details.key);
-//             println!("  Type: {}", spell_details.spell_type);
-//             println!("  Duration: {} milliseconds", spell_details.duration);
-//             println!("  Cooldown: {} milliseconds", spell_details.cooldown);
-
-//             if !spell_details.give_status.is_empty() {
-//                 println!("  Gives Buffs: {}", spell_details.give_status.join(", "));
-//             } else {
-//                 println!("  Gives Buffs: None");
-//             }
-
-//             if !spell_details.remove_status.is_empty() {
-//                 println!("  Removes Buffs: {}", spell_details.remove_status.join(", "));
-//             } else {
-//                 println!("  Removes Buffs: None");
-//             }
-
-//             println!("  Active Until: {}", spell_details.active_until);
-//             println!("  Unavailable Before: {}", spell_details.unavailable_before);
-
-//             println!("{}", "-".repeat(20));
-//         }
-
-//         println!();
-//     }
-// }

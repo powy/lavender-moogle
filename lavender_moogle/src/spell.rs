@@ -67,7 +67,7 @@ pub fn apply_spell_cooldown(job_details: &mut JobDetails, spell_name: &str) {
                     spell_details.charge_timers.len()
                 );
             } else {
-                // LEGACY SYSTEM: Use unavailable_before (unchanged)
+                // LEGACY SYSTEM: Use unavailable_before
                 spell_details.unavailable_before = calculate_future_time(spell_details.cooldown, 0);
                 debug!(
                     "Apply CD for ability: {}, next avaibility {}",
@@ -323,7 +323,6 @@ pub fn is_status_active_since_x_gcd(
 
 // warning - hard coded value for oGCD clipping
 pub fn ogcd_end_before_next_gcd(job_details: &mut JobDetails) -> bool {
-    // let ogcd_lock_duration = chrono::Duration::milliseconds(1250);
     let ogcd_lock_duration = chrono::Duration::milliseconds(750);
     let next_gcd_time = get_next_gcd_time(job_details);
     let expected_end_time_of_ogcd = Utc::now() + ogcd_lock_duration;
@@ -394,7 +393,7 @@ pub fn is_spell_available_in_x_gcd(
         // CHARGE SYSTEM: Use charge-aware function
         return get_charges_available_in_x_gcd(job_details, spell_name, nb_gcd) > 0;
     } else {
-        // LEGACY SYSTEM (unchanged)
+        // LEGACY SYSTEM
         if let Some(gcd_desciption) = job_details.get_spell("gcd unavailable") {
             let mut next_gcd_time = gcd_desciption.active_until;
             let gcd_duration_value = gcd_desciption.duration;
@@ -493,57 +492,6 @@ pub fn get_charges_available_in_x_gcd(
         return get_charges_available_at_time(job_details, spell_name, target_time);
     }
     0
-}
-
-/// Returns true if the spell will reach max charges before target time
-/// This is critical for charge overcapping detection
-pub fn will_overcap_before_time(
-    job_details: &mut JobDetails,
-    spell_name: &str,
-    time: DateTime<Utc>,
-) -> bool {
-    // Extract max_charges first to avoid multiple borrows
-    let max_charges = if let Some(spell_details) = job_details.get_spell(spell_name) {
-        spell_details.max_charges
-    } else {
-        return false;
-    };
-
-    if max_charges > 0 {
-        // Check if any charge timer will expire before target time
-        // AND we're not already at max charges
-        let current_charges = get_charges_available_now(job_details, spell_name);
-
-        if current_charges >= max_charges {
-            return true; // Already overcapped
-        }
-
-        // Check if recovery would cause overcap
-        let charges_at_time = get_charges_available_at_time(job_details, spell_name, time);
-        return charges_at_time >= max_charges;
-    } else {
-        // LEGACY SYSTEM: Not applicable
-        return false;
-    }
-}
-
-/// Returns true if the spell will hit max charges in X GCDs
-pub fn will_overcap_in_x_gcd(job_details: &mut JobDetails, spell_name: &str, nb_gcd: i32) -> bool {
-    if let Some(gcd_description) = job_details.get_spell("gcd unavailable") {
-        let mut next_gcd_time = gcd_description.active_until;
-
-        let now = Utc::now();
-        if next_gcd_time < now {
-            next_gcd_time = now;
-        }
-
-        let gcd_duration =
-            chrono::Duration::milliseconds(((nb_gcd - 1) * gcd_description.duration).into());
-        let target_time = next_gcd_time + gcd_duration;
-
-        return will_overcap_before_time(job_details, spell_name, target_time);
-    }
-    false
 }
 
 pub fn is_status_expiring(job_details: &mut JobDetails, status_name: &str) -> bool {

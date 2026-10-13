@@ -9,7 +9,6 @@ use crate::types::{CharacterDetails, JobDetails};
 
 pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool, alternate: bool) {
     if let Some(job_details) = character_details.get_mut("BRD") {
-        // const MAX_WEAVE_NUMBER: i32 = 2;
         let max_weave_number: i32 = 2;
 
         // update status
@@ -19,33 +18,8 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         let dot_allowed = are_dot_allowed(job_details, aoe, alternate);
         let iron_jaw_castable = is_iron_jaws_castable(job_details, aoe, alternate);
 
-        // let burst_allowed = spell::burst_allowed(job_details);
-        // let delayed_burst = !burst_allowed;
-
-        // update stack min / max
-
-        // if job_details.stacks_a > 4 {
-        //     job_details.stacks_a = 4;
-        // } else if job_details.stacks_a < 0 {
-        //     job_details.stacks_a = 0;
-        // }
-
-        // Hack for starting with HB shot, currently no idea of the charges
-        // if job_details.opener
-        //     && job_details.stacks_b == 0
-        //     && (job_details.weaves < MAX_WEAVE_NUMBER)
-        // {
-        //     next_spell_name = "Heartbreak Shot";
-        // }
-
-        // if job_details.opener && should_end_opener(job_details) {
-        //     debug!("[OPENER_TRACK] Ending opener based on Burst Shot last_cast_time timestamp");
-        //     job_details.opener = false;
-        // }
-
         // Hack to detect the very first cast of the opener and do the HB shot
         // We should do a GCD (no oGCD) and wanderer not started
-        // Ca ne marche pas, comment ne le ffaire qu'une fois ? il faut detecter qu'il n'y a jamais eu de GCD
         if job_details.opener && !aoe && !alternate {
             if job_details.stacks_b == 0 {
                 next_spell_name = "Heartbreak Shot";
@@ -70,7 +44,7 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         let normal_ogcd_allowed_conditions =
             (job_details.weaves < max_weave_number) && spell::ogcd_end_before_next_gcd(job_details);
 
-        // Special case for BRD : we have highr attack speed in the Paeon Army, making a mess of what is castable. To prevent problem, just skip late weave spot
+        // Special case for BRD : we have higher attack speed in the Paeon Army, making a mess of what is castable. To prevent problem, just skip late weave spot
         let ogcd_restricted_because_paeon = spell::is_status_active_now(job_details, "Army song")
             && (spell::in_late_ogcd_timing(job_details) || job_details.weaves >= 1);
 
@@ -79,40 +53,13 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             && normal_ogcd_allowed_conditions
             && !ogcd_restricted_because_paeon
         {
-            // BURST oGCD
-            // FIXME
-
-            // OPENER
-            // FIXME - find a hack to start with the oGCD HB
-            // if next_spell_name == "" && job_details.opener {
-            //     if spell::is_spell_available_now(job_details, "the Wanderer's Minuet") {
-            //         next_spell_name = "the Wanderer's Minuet";
-            //     } else if spell::is_spell_available_now(job_details, "Empyreal Arrow") {
-            //         next_spell_name = "Empyreal Arrow";
-            //     } else if spell::is_spell_available_now(job_details, "Battle Voice") {
-            //         next_spell_name = "Battle Voice";
-            //     }
-            //     // Auto pot broken - rather skip than doing weird
-            //     // else {
-            //     //     next_spell_name = "Potion";
-            //     // }
-            // } else {
-
-            // Songs
-            //Song ticks (proc chances) happen based on the song timer - at 42s, 39s, 36s, and so on. You can not get a proc in the last three seconds. You want to use your songs in this pattern:
-            // The Wanderer's Minuet Icon The Wanderer's Minuet for 42s (leave at 3s or less on the timer*)
-            // Mage's Ballad Icon Mage's Ballad for 42s (leave at 3s or less on the timer)
-            // Army's Paeon Icon Army's Paeon for 33s (leave at 12s or less on the timer**)
-
-            // TODO
-            // Use The Wanderer's Minuet Icon The Wanderer's Minuet as late in the oGCD window as you can, so that Enhanced Army's Paeon Icon Enhanced Army's Paeon covers five GCDs.
-
-            // Todo add more safety to avoid being song-less
+            // Songs: Wanderer's Minuet 42s, Mage's Ballad 42s, Army's Paeon 33s
+            // (song ticks happen every 3s, no proc in the last 3s)
+            // TODO use Wanderer's Minuet as late as possible in the oGCD window so Enhanced Army's Paeon covers five GCDs
+            // TODO add more safety to avoid being song-less
             if next_spell_name == "" {
                 if spell::is_spell_available_now(job_details, "the Wanderer's Minuet") {
-                    // if spell::in_late_ogcd_timing(job_details) {
                     next_spell_name = "the Wanderer's Minuet";
-                    // } // WARNING was supposed to be in late ogcd, but it is in paeon so it doesn't work
                 } else if !spell::is_status_active_next_gcd(job_details, "Wanderer song") {
                     // WARNING -Take care of Pitch perfect dump
                     if spell::is_spell_available_now(job_details, "Mage's Ballad") {
@@ -124,11 +71,9 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                     }
                 }
             }
-            // }
 
             // Force high priority emp arrow (WARNING EXPERIMENTAL)
             if next_spell_name == ""
-                    // && spell::is_spell_available_now(job_details, "Empyreal Arrow")
                     && spell::spell_will_be_available_soon(job_details, "Empyreal Arrow", 500)
             {
                 next_spell_name = "Empyreal Arrow";
@@ -341,72 +286,18 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
         .map(|chunk| String::from_utf8_lossy(chunk).to_string()) // Convert each chunk back to a String
         .collect();
 
-    // let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
-    // let chunk2: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
-    // let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
-    // let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
-    // let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
-    // let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
     let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
     let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
-    // let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
-    // let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
-    // let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
-    // let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
-    // let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
-    // let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
-    // let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
-    // let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
 
     job_details.secondary_bar = chunk8; // Apex bar
-    job_details.stacks_a = chunk7; //Pitch Perfect
+    job_details.stacks_a = chunk7; // Pitch Perfect
 
-    // // Debug output for each chunk
-    // debug!("chunk1 = {} songMilliseconds", chunk1);
-    // debug!("chunk2 = {} songProcs", chunk2);
-    // debug!("chunk3 = {} soulGauge", chunk3);
-    // debug!("chunk4 = {} song_type", chunk4);
-    // debug!("chunk5 = {}", chunk5);
-    // debug!("chunk6 = {}", chunk6); // Pitch procs
-    // debug!("chunk7 = {}", chunk7); // Soul voice
-    // debug!("chunk8 = {}", chunk8);
-    // debug!("chunk9 = {}", chunk9);
-    // debug!("chunk10 = {}", chunk10);
-    // debug!("chunk11 = {}", chunk11);
-    // debug!("chunk12 = {}", chunk12);
-    // debug!("chunk13 = {}", chunk13);
-    // debug!("chunk14 = {}", chunk14);
-    // debug!("chunk15 = {}", chunk15);
-    // debug!("chunk16 = {}", chunk16);
-
-    // public struct BardJobMemory {
-    //     private enum Song : byte {
-    //       None = 0,
-    //       Ballad = 5, // Mage's Ballad.
-    //       Paeon = 10, // Army's Paeon.
-    //       Minuet = 15, // The Wanderer's Minuet.
-    //     }
-
-    //     [FieldOffset(0x00)]
-    //     public ushort songMilliseconds;
-
-    //     [FieldOffset(0x02)]
-    //     public byte songProcs;
-
-    //     [FieldOffset(0x03)]
-    //     public byte soulGauge;
-
-    //     [NonSerialized]
-    //     [FieldOffset(0x04)]
-    //     private Song song_type;
-
-    //     public String songName {
-    //       get {
-    //         return !Enum.IsDefined(typeof(Song), song_type) ? "None" : song_type.ToString();
-    //       }
-    //     }
-
-    //   };
+    // Gauge layout (one byte per chunk, in order):
+    // 0x00-0x01 songMilliseconds (u16)
+    // 0x02 songProcs
+    // 0x03 soulGauge
+    // 0x04 song type (None = 0, Ballad = 5, Paeon = 10, Minuet = 15)
+    // chunks[5] = Pitch procs
 }
 
 fn burst_ready(job_details: &mut JobDetails) -> bool {
@@ -473,51 +364,3 @@ fn no_burst_soon(job_details: &mut JobDetails, max_waiting_duration: i32) -> boo
         spell::spell_will_be_available_soon(job_details, "Raging Strikes", max_waiting_duration);
     return job_details.dump_resources || !raging_strike_soon;
 }
-
-// Names for completion
-
-// Burst Shot
-// Hawk's Eye
-// Refulgent Arrow
-// Apex Arrow
-// Blast Arrow Ready
-// Blast Arrow
-// Ladonsbite
-// Shadowbite
-
-// Resonant Arrow Ready
-// Resonant Arrow
-// Radiant Encore Ready
-// Radiant Encore
-
-// Stormbite
-// Storm DoT
-// Caustic Bite
-// Caustic DoT
-// Iron Jaws
-
-// the Wanderer's Minuet
-// Wanderer song
-// Pitch Perfect
-
-// Mage's Ballad
-// Mage song
-// Bloodletter
-// Heartbreak Shot
-// Rain of Death
-
-// Army's Paeon
-// Army song
-// Enhanced Army’s Paeon
-
-// Barrage
-// Barrage Buff
-// Battle Voice
-// Battle Voice Buff
-// Raging Strikes
-// Raging Strikes Buff
-// Radiant Finale
-// Radiant Finale Buff
-
-// Sidewinder
-// Empyreal Arrow

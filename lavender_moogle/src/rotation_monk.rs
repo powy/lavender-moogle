@@ -1,7 +1,7 @@
 // rotation_monk.rs
 // Rotation logic for Monk job
 
-use log::{debug, error};
+use log::error;
 
 use crate::memory;
 use crate::monk_nadi::{self, Animal};
@@ -14,8 +14,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // update status
         // check oGCD
         let mut next_spell_name = "";
-        // let burst_allowed = spell::burst_allowed(job_details);
-        // let delayed_burst = !burst_allowed;
 
         // Check if we went out of opener (burst skill unavailable, burst buff over)
         if job_details.opener {
@@ -86,9 +84,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Fire's Rumination");
             let expiring_wind = spell::is_status_active_next_gcd(job_details, "Wind's Rumination")
                 && !spell::is_status_still_active_in_two_gcd(job_details, "Wind's Rumination");
-            // if expiring_finisher {
-            //     next_spell_name = "Masterful Blitz";
-            // } else
             if expiring_fire {
                 next_spell_name = "Fire's Reply";
             } else if expiring_wind {
@@ -193,47 +188,29 @@ pub fn apply_spell_additional_effects(spell_name: &str, _job_details: &mut JobDe
 }
 
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
-    // debug!("Job gauge update: {}", data);
     let chunks: Vec<String> = data
         .as_bytes() // Convert the string to a byte slice
         .chunks(2) // Split into chunks of 2 bytes
         .map(|chunk| String::from_utf8_lossy(chunk).to_string()) // Convert each chunk back to a String
         .collect();
 
-    // let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
-    // Chunck 2 = Chackra
+    // Gauge layout: chunks[2] chakra, chunks[3..=5] beast chakra animals,
+    // chunks[7] nadi flags (bit 0 lunar, bit 1 solar). chunks[5] may also hold the beast fury.
     let chunk2: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk2");
     job_details.stacks_b = chunk2;
 
     let chunk3: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk3");
     let beast_chackra_1 = Animal::from_i32(chunk3);
-    // monk_nadi::set_animal_slot_1(job_details, beast_chackra_1);
 
     let chunk4: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk4");
     let beast_chackra_2 = Animal::from_i32(chunk4);
-    // monk_nadi::set_animal_slot_2(job_details, beast_chackra_2);
 
     let chunk5: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk5");
     let beast_chackra_3 = Animal::from_i32(chunk5);
-    // monk_nadi::set_animal_slot_3(job_details, beast_chackra_3);
 
-    // // Chunck 6 = Beast fury
-    // let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
-
-    // Chunk 7 : nadi
     let chunk7: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk7");
     let lunar_nadi = (chunk7 & 1) != 0;
     let solar_nadi = ((chunk7 >> 1) & 1) != 0;
-
-    let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
-    let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
-    let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
-    let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
-    let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
-    let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
-    let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
-    let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
-    let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
 
     monk_nadi::set_nadi_state(
         job_details,
@@ -241,24 +218,6 @@ pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
         lunar_nadi,
         solar_nadi,
     );
-
-    // Debug output for each chunk
-    // debug!("chunk1 = {}", chunk1);
-    debug!("chunk2 = {}", chunk2);
-    debug!("chunk3 = {}", chunk3);
-    debug!("chunk4 = {}", chunk4);
-    debug!("chunk5 = {}", chunk5);
-    // debug!("chunk6 = {}", chunk6);
-    debug!("chunk7 = {}", chunk7);
-    debug!("chunk8 = {}", chunk8);
-    debug!("chunk9 = {}", chunk9);
-    debug!("chunk10 = {}", chunk10);
-    debug!("chunk11 = {}", chunk11);
-    debug!("chunk12 = {}", chunk12);
-    debug!("chunk13 = {}", chunk13);
-    debug!("chunk14 = {}", chunk14);
-    debug!("chunk15 = {}", chunk15);
-    debug!("chunk16 = {}", chunk16);
 }
 
 fn get_next_balance_gcd(job_details: &mut JobDetails, aoe: bool) -> &'static str {
@@ -307,8 +266,6 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
 
     let finisher_time = 3 <= monk_nadi::get_nb_beast_chakra(&job_details);
     let in_perfect_balance = spell::is_status_active_now(job_details, "Balance Buff");
-    // let in_extended_perfect_balance =
-    //     spell::is_status_active_now(job_details, "Balance Buff") || finisher_time;
 
     if in_perfect_balance {
         return false;
@@ -317,14 +274,12 @@ fn should_perfect_balance(job_details: &mut JobDetails) -> bool {
     // Used to ensure that we don't throw too many balance in one window
     let already_did_a_perfect_balance = spell::is_status_active_now(job_details, "Recent Balance");
 
-    // FIXME - case of a delayed burst. Need to do the 2m peferct balance ahead still
+    // FIXME - case of a delayed burst. Need to do the 2m perfect balance ahead still
     // FIXME - there is a design decision to do, because normaly we don't want to delay brotherhood.
     // Because of the "trigger it on an oppo" the PB is not always aligned anyway.
     // Maybe we should trigger PB anyway if we are 80 s from last one -> means we will cap the charges
 
     // !! Only One charge per odd window -> we use a buff to track it in case
-
-    // let fire_riddle_soon_or_now = spell_will_be_available_soon(job_details, "spell_name", max_waiting_duration)
 
     // Perfect balance Solar Odd window "2 to 7s before fire trigger" -> 1 full gcd to 3,5 full gcd before fire
     // We want to activate it after an opo, before the fire, and be sure that the finisher GCD is after the fire pro

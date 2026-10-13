@@ -109,14 +109,11 @@ pub fn update_job_gauge(
         ]
         .concat();
 
-        // debug!("Job gauge update: {}", final_data);
-
         match job_name {
             "GNB" => rotation_gunbreaker::update_job_gauge(job_details, &final_data),
             "DNC" => rotation_dancer::update_job_gauge(job_details, &final_data),
             "BRD" => rotation_bard::update_job_gauge(job_details, &final_data),
             "SCH" => rotation_scholar::update_job_gauge(job_details, &final_data),
-            "SMN" => rotation_summoner::update_job_gauge(job_details, &final_data),
             "MNK" => rotation_monk::update_job_gauge(job_details, &final_data),
             _ => {}
         }

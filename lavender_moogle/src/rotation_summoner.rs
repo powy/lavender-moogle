@@ -1,7 +1,7 @@
 // rotation_summoner.rs
 // Rotation logic for summoner job
 
-use log::{debug, error};
+use log::error;
 
 use crate::memory;
 use crate::spell;
@@ -246,7 +246,6 @@ fn should_swiftcast(job_details: &mut JobDetails) -> bool {
     let garuda_active = spell::is_status_active_next_gcd(job_details, "Garuda");
     let swiftcast_available = spell::is_spell_available_now(job_details, "Swiftcast");
     return slipstream_ready && garuda_active && swiftcast_available;
-    // return false;
 }
 
 fn should_swiftcast_splitstream(job_details: &mut JobDetails) -> bool {
@@ -255,7 +254,6 @@ fn should_swiftcast_splitstream(job_details: &mut JobDetails) -> bool {
     let swiftcast_active = spell::is_status_active_next_gcd(job_details, "Swiftcast Buff");
 
     return slipstream_ready && garuda_active && swiftcast_active;
-    // return false
 }
 
 fn is_drain_available(job_details: &mut JobDetails) -> bool {
@@ -276,124 +274,13 @@ pub fn apply_spell_additional_effects(spell_name: &str, job_details: &mut JobDet
     }
 }
 
-pub fn update_job_gauge(_job_details: &mut JobDetails, data: &str) {
-    debug!("Job gauge update: {}", data);
-    let chunks: Vec<String> = data
-        .as_bytes() // Convert the string to a byte slice
-        .chunks(2) // Split into chunks of 2 bytes
-        .map(|chunk| String::from_utf8_lossy(chunk).to_string()) // Convert each chunk back to a String
-        .collect();
-
-    let chunk1: i32 = i32::from_str_radix(&chunks[0], 16).expect("Failed to convert chunk1");
-    let chunk2: i32 = i32::from_str_radix(&chunks[1], 16).expect("Failed to convert chunk2");
-    let chunk3: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk3");
-    let chunk4: i32 = i32::from_str_radix(&chunks[3], 16).expect("Failed to convert chunk4");
-    let chunk5: i32 = i32::from_str_radix(&chunks[4], 16).expect("Failed to convert chunk5");
-    let chunk6: i32 = i32::from_str_radix(&chunks[5], 16).expect("Failed to convert chunk6");
-    let chunk7: i32 = i32::from_str_radix(&chunks[6], 16).expect("Failed to convert chunk7");
-    let chunk8: i32 = i32::from_str_radix(&chunks[7], 16).expect("Failed to convert chunk8");
-    let chunk9: i32 = i32::from_str_radix(&chunks[8], 16).expect("Failed to convert chunk9");
-    let chunk10: i32 = i32::from_str_radix(&chunks[9], 16).expect("Failed to convert chunk10");
-    let chunk11: i32 = i32::from_str_radix(&chunks[10], 16).expect("Failed to convert chunk11");
-    let chunk12: i32 = i32::from_str_radix(&chunks[11], 16).expect("Failed to convert chunk12");
-    let chunk13: i32 = i32::from_str_radix(&chunks[12], 16).expect("Failed to convert chunk13");
-    let chunk14: i32 = i32::from_str_radix(&chunks[13], 16).expect("Failed to convert chunk14");
-    let chunk15: i32 = i32::from_str_radix(&chunks[14], 16).expect("Failed to convert chunk15");
-    let chunk16: i32 = i32::from_str_radix(&chunks[15], 16).expect("Failed to convert chunk16");
-
-    // attenument garuda is a byte half on chunk
-    debug!("attnment ? = {:#x}", chunk8);
-    debug!("aether ? = {:#x}", chunk4);
-
-    // Debug output for each chunk
-    debug!("chunk1 = {}", chunk1);
-    debug!("chunk2 = {}", chunk2);
-    debug!("chunk3 = {}", chunk3);
-    debug!("chunk4 = {}", chunk4);
-    debug!("chunk5 = {}", chunk5);
-    debug!("chunk6 = {}", chunk6);
-    debug!("chunk7 = {}", chunk7);
-    debug!("chunk8 = {}", chunk8);
-    debug!("chunk9 = {}", chunk9);
-    debug!("chunk10 = {}", chunk10);
-    debug!("chunk11 = {}", chunk11);
-    debug!("chunk12 = {}", chunk12);
-    debug!("chunk13 = {}", chunk13);
-    debug!("chunk14 = {}", chunk14);
-    debug!("chunk15 = {}", chunk15);
-    debug!("chunk16 = {}", chunk16);
-
-    // Parse the hex string into bytes
-
-    // Parse the hex string into bytes
-    let bytes: Vec<u8> = data
-        .as_bytes()
-        .chunks(2)
-        .map(|chunk| {
-            let hex_byte = std::str::from_utf8(chunk).unwrap_or("00");
-            u8::from_str_radix(hex_byte, 16).unwrap_or(0)
-        })
-        .collect();
-
-    // We're not modifying JobDetails directly as it's an external type
-    // Instead, we'll just parse the bytes and output debug information
-
-    if bytes.len() > 7 {
-        // For Arcanist job memory
-        let aetherflow_stacks = bytes[4];
-        debug!("Arcanist - aetherflow_stacks: {}", aetherflow_stacks);
-
-        // For Summoner job memory
-        // Offset 0x00: trance_milliseconds (2 bytes)
-        let trance_milliseconds = u16::from_le_bytes([bytes[0], bytes[1]]);
-
-        // Offset 0x02: attunement_milliseconds (2 bytes)
-        let attunement_milliseconds = u16::from_le_bytes([bytes[2], bytes[3]]);
-
-        // Offset 0x06: attunement
-        let attunement = bytes[6];
-
-        // Offset 0x07: stance
-        let stance = bytes[7];
-
-        // Calculate derived properties
-        let aetherflow_stacks_smn = stance & 0x3;
-
-        let active_primal = match stance & 0xC {
-            0x4 => Some("Ifrit"),
-            0x8 => Some("Titan"),
-            0xC => Some("Garuda"),
-            _ => None,
-        };
-
-        let next_summoned = if (stance & 0x10) == 0 {
-            "Bahamut"
-        } else {
-            "Phoenix"
-        };
-
-        let mut usable_arcanum = Vec::new();
-        if (stance & 0x20) != 0 {
-            usable_arcanum.push("Ruby"); // Fire/Ifrit
-        }
-        if (stance & 0x40) != 0 {
-            usable_arcanum.push("Topaz"); // Earth/Titan
-        }
-        if (stance & 0x80) != 0 {
-            usable_arcanum.push("Emerald"); // Wind/Garuda
-        }
-
-        // Debug output
-        debug!("Summoner - trance_milliseconds: {}", trance_milliseconds);
-        debug!(
-            "Summoner - attunement_milliseconds: {}",
-            attunement_milliseconds
-        );
-        debug!("Summoner - attunement: {}", attunement);
-        debug!("Summoner - stance: {}", stance);
-        debug!("Summoner - aetherflow_stacks: {}", aetherflow_stacks_smn);
-        debug!("Summoner - active_primal: {:?}", active_primal);
-        debug!("Summoner - next_summoned: {}", next_summoned);
-        debug!("Summoner - usable_arcanum: {:?}", usable_arcanum);
-    }
-}
+// The Summoner job gauge is not decoded (job_management has no SMN arm).
+// Layout of the gauge bytes (stance = byte 0x07):
+// 0x00 trance milliseconds (u16)
+// 0x02 attunement milliseconds (u16)
+// 0x04 aetherflow stacks (Arcanist)
+// 0x06 attunement (Garuda attunement is half a byte)
+// 0x07 stance: bits 0-1 aetherflow stacks (Summoner),
+//      bits 2-3 active primal (0x4 Ifrit, 0x8 Titan, 0xC Garuda),
+//      bit 4 next summon (0 Bahamut, 1 Phoenix),
+//      bits 5-7 usable arcanum (0x20 Ruby, 0x40 Topaz, 0x80 Emerald)

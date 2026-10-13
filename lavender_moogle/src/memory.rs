@@ -145,7 +145,6 @@ pub fn communicate_next_spellcast(
     alternate: bool,
 ) {
     let spellcast_type = SpellcastType::from_flags(alternate, aoe);
-    // debug!("Spellcast Type: {:?}", spellcast_type);
 
     let next_spell_str = match spellcast_type {
         SpellcastType::MonoStandard => &NEXT_SPELL_STR_MONO_STANDARD,
