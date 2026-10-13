@@ -13,8 +13,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // update status
         // check oGCD
         let mut next_spell_name = "";
-        // let burst_allowed = job_details.burst_allowed;
-        // let delayed_burst = !burst_allowed;
 
         // No clipping?
         if (job_details.weaves < MAX_WEAVE_NUMBER) && spell::ogcd_end_before_next_gcd(job_details) {
@@ -37,39 +35,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         }
 
         // No oGCD selected, prepare next GCD
-
-        // check expiring GCD // TBC - not worth to break a burst. Should not happen outside of burst
-        // if next_spell_name == "" {
-        //     if spell::is_status_expiring(job_details, "Confiteor Ready") {
-        //         next_spell_name = "Confiteor";
-        //     } else if spell::is_status_expiring(job_details, "Blade of Faith Ready") {
-        //         next_spell_name = "Blade of Faith";
-        //     } else if spell::is_status_expiring(job_details, "Blade of Truth Ready") {
-        //         next_spell_name = "Blade of Truth";
-        //     } else if spell::is_status_expiring(job_details, "Blade of Valor Ready") {
-        //         next_spell_name = "Blade of Valor";
-        //     } else if spell::is_status_expiring(job_details, "Goring Blade Ready") {
-        //         next_spell_name = "Goring Blade";
-        //     } else if aoe {
-        //         if spell::is_status_expiring(job_details, "Divine Might") {
-        //             next_spell_name = "Holy Spirit";
-        //         } else if spell::is_status_expiring(job_details, "Prominence Ready") {
-        //             next_spell_name = "Prominence";
-        //         }
-        //     } else {
-        //         if spell::is_status_expiring(job_details, "Sepulchre Ready") {
-        //             next_spell_name = "Sepulchre";
-        //         } else if spell::is_status_expiring(job_details, "Supplication Ready") {
-        //             next_spell_name = "Supplication";
-        //         } else if spell::is_status_expiring(job_details, "Atonement Ready") {
-        //             next_spell_name = "Atonement";
-        //         } else if spell::is_status_expiring(job_details, "Royal Authority Ready") {
-        //             next_spell_name = "Royal Authority";
-        //         } else if spell::is_status_expiring(job_details, "Divine Might") {
-        //             next_spell_name = "Holy Spirit";
-        //         }
-        //     }
-        // }
 
         // check standart GCD
         if next_spell_name == "" {

@@ -14,13 +14,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
         // check oGCD
         let mut next_spell_name = "";
         let burst_allowed = spell::burst_allowed(job_details);
-        // let delayed_burst = !burst_allowed;
-
-        //     No mercy available
-        // let available = spell::is_spell_available_next_gcd(job_details, "Gnashing Fang");
-        // // let no_mercy_soon = spell::spell_will_be_available_soon(job_details, "No Mercy", 17000);
-        // let no_mercy_soon: bool =
-        //     spell::spell_will_be_available_soon(job_details, "No Mercy", 10000);
 
         // No clipping?
 
@@ -32,26 +25,19 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             spell::is_status_active_next_gcd(job_details, "Solid Barrel Ready") && !aoe;
 
         // Gnash combo :
-        let _gnash_combo_1st_gnashing_fang_ready: bool =
-            spell::is_spell_available_next_gcd(job_details, "Gnashing Fang") && !aoe;
         let gnash_combo_2nd_savage_claw_ready: bool =
             spell::is_status_active_next_gcd(job_details, "Savage Claw Ready") && !aoe;
         let gnash_combo_3rd_wicked_talon_ready: bool =
             spell::is_status_active_next_gcd(job_details, "Wicked Talon Ready") && !aoe;
-        let _in_gnash_combo =
-            gnash_combo_2nd_savage_claw_ready || gnash_combo_3rd_wicked_talon_ready;
 
         // lion combo, during burst
-        let _lion_combo_1st_reign_of_beasts_ready: bool =
-            spell::is_status_active_next_gcd(job_details, "Ready to Reign");
         let lion_combo_2nd_noble_blood_ready: bool =
             spell::is_status_active_next_gcd(job_details, "Noble Blood Ready");
         let lion_combo_3rd_lion_heart_ready: bool =
             spell::is_status_active_next_gcd(job_details, "Lion Heart Ready");
 
         // overcap gnash
-        let gnash_overcap: bool = false; //  (if don't use next GCD) // fixme
-        let _gnash_will_overlap_before_next_burst: bool = false; //  (fixme)
+        let gnash_overcap: bool = false; // FIXME not computed yet
 
         // Burst status
         // 13s before no_mercy (20s no mercy + 10s pou cd + 3s margin) // For oGCD ...
@@ -105,13 +91,10 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
             // --- D cartbridges reloader on CD. Usually few GCD of margin so it runs after the "Bow Shock" "Blasting Zone"
             // In practice they may be delayed anyway to fit in the no mercy buff window
             else if should_bloodfest(job_details, burst_allowed) {
-                next_spell_name = "Bloodfest"; // fixme bug
+                next_spell_name = "Bloodfest";
 
                 // WARNING Auto-pot
             }
-            //  else if in_burst_gcd && spell::{
-
-            // }
         }
 
         // Reaction oGCD used even if GCD available - clipping allowed for GNB TBC
@@ -260,7 +243,6 @@ pub fn update_next_spellcast(character_details: &mut CharacterDetails, aoe: bool
 fn should_bloodfest(job_details: &mut JobDetails, burst_allowed: bool) -> bool {
     let available = spell::is_spell_available_now(job_details, "Bloodfest");
     return available && burst_allowed;
-    // false
 }
 
 // FIXME need to see that Double down has been used
@@ -269,9 +251,6 @@ fn can_double_down(job_details: &mut JobDetails) -> bool {
     // Default behavior - 1 cartbridge = 1 double
     let enough_cartbridge = job_details.stacks_a >= 2;
     let available = spell::is_spell_available_next_gcd(job_details, "Double Down");
-    // let available = spell::is_status_active_next_gcd(job_details, "Ready to Reign");
-    // let no_mercy_active = spell::is_status_active_now(job_details, "No Mercy");
-    // return enough_cartbridge && available && no_mercy_active;
     return enough_cartbridge && available;
 }
 
@@ -331,17 +310,11 @@ fn cartbridges_will_overcap(job_details: &mut JobDetails, will_generate: bool) -
 pub fn apply_spell_additional_effects(_spell_name: &str, _job_details: &mut JobDetails) {}
 
 pub fn update_job_gauge(job_details: &mut JobDetails, data: &str) {
-    // debug!("Job gauge update: {}", data);
     let chunks: Vec<String> = data
         .as_bytes() // Convert the string to a byte slice
         .chunks(2) // Split into chunks of 2 bytes
         .map(|chunk| String::from_utf8_lossy(chunk).to_string()) // Convert each chunk back to a String
         .collect();
-
-    // for (i, chunk) in chunks.iter().enumerate() {
-    //     let chunk_int: i32 = i32::from_str_radix(chunk, 16).expect("Failed to convert chunk");
-    //     println!("Chunk {}: {}", i + 1, chunk_int);
-    // }
 
     let cartridges: i32 = i32::from_str_radix(&chunks[2], 16).expect("Failed to convert chunk");
     debug!("cartridges: {}", cartridges);
