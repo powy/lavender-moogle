@@ -8,7 +8,7 @@ A personal helper that performs the next logical action of a rotation when a key
 
 ## Purpose
 
-The goal is to remove tedious button pressing in repetitive content (farming, reclears) in MMOs, and to make that content playable with a controller and only a few buttons when I can't use the computer (typically, a baby sleeping on me). It is also a technical playground: getting game information out of a WoW addon, relaying FFXIV events from ACT, and handing the next action to AutoHotkey through a Windows shared memory.
+The goal is to remove tedious button pressing in repetitive content (farming, reclears) in MMOs, and to make that content playable with a controller and only a few buttons when I can't use the computer (typically, a baby sleeping on me). Technically, it does three things: it gets game information out of a WoW addon, relays FFXIV events from ACT, and hands the next action to AutoHotkey through a Windows shared memory.
 
 The rotations are written by me, are very incomplete, and are tuned to my own playstyle. **If you are looking for a full auto-battler, this is not the right project:** complete ones already exist.
 
